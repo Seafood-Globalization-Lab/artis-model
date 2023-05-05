@@ -6,7 +6,7 @@ rm(list=ls())
 
 # K: drive directories for Mac:
 datadir <- "/Volumes/jgephart/ARTIS/Data"
-outdir <- "/Volumes/jgephart/ARTIS/Outputs/model_inputs_20221121_NEW"
+outdir <- "/Volumes/jgephart/ARTIS/Outputs/model_inputs_20221129_NEW"
 outdir <- "qa/baci_value"
 tradedatadir <- "/Volumes/jgephart/Trade/Baci"
 
