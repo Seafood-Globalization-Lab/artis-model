@@ -1,0 +1,363 @@
+"country_iso3_alpha","country_iso3_numeric","country_name_en","SciName","CommonName","taxa_source","year","Species01","Genus01","Family01","Other01","habitat","prod_method","quantity"
+"MOZ",508,"Mozambique","acetes erythraeus","tsivakihini paste shrimp","acetes.erythraeus_marine_capture",2018,1,0,0,0,"marine","capture",3535
+"CHN",156,"China","acetes japonicus","akiami paste shrimp","acetes.japonicus_marine_capture",2018,1,0,0,0,"marine","capture",425185
+"KOR",410,"Korea, Republic of","acetes japonicus","akiami paste shrimp","acetes.japonicus_marine_capture",2018,1,0,0,0,"marine","capture",13478
+"ESP",724,"Spain","aristaeomorpha foliacea","giant red shrimp","aristaeomorpha.foliacea_marine_capture",2018,1,0,0,0,"marine","capture",9
+"ITA",380,"Italy","aristaeomorpha foliacea","giant red shrimp","aristaeomorpha.foliacea_marine_capture",2018,1,0,0,0,"marine","capture",2535
+"MLT",470,"Malta","aristaeomorpha foliacea","giant red shrimp","aristaeomorpha.foliacea_marine_capture",2018,1,0,0,0,"marine","capture",31
+"ESP",724,"Spain","aristaeopsis edwardsiana","scarlet shrimp","aristaeopsis.edwardsiana_marine_capture",2018,1,0,0,0,"marine","capture",54
+"PRT",620,"Portugal","aristaeopsis edwardsiana","scarlet shrimp","aristaeopsis.edwardsiana_marine_capture",2018,1,0,0,0,"marine","capture",74
+"ALB",8,"Albania","aristeus antennatus","blue and red shrimp","aristeus.antennatus_marine_capture",2018,1,0,0,0,"marine","capture",125
+"DZA",12,"Algeria","aristeus antennatus","blue and red shrimp","aristeus.antennatus_marine_capture",2018,1,0,0,0,"marine","capture",840
+"ESP",724,"Spain","aristeus antennatus","blue and red shrimp","aristeus.antennatus_marine_capture",2018,1,0,0,0,"marine","capture",2184
+"ITA",380,"Italy","aristeus antennatus","blue and red shrimp","aristeus.antennatus_marine_capture",2018,1,0,0,0,"marine","capture",1188
+"PRT",620,"Portugal","aristeus antennatus","blue and red shrimp","aristeus.antennatus_marine_capture",2018,1,0,0,0,"marine","capture",72
+"TUN",788,"Tunisia","aristeus antennatus","blue and red shrimp","aristeus.antennatus_marine_capture",2018,1,0,0,0,"marine","capture",104
+"AGO",24,"Angola","aristeus varidens","striped red shrimp","aristeus.varidens_marine_capture",2018,1,0,0,0,"marine","capture",1079
+"ESP",724,"Spain","aristeus varidens","striped red shrimp","aristeus.varidens_marine_capture",2018,1,0,0,0,"marine","capture",1979
+"ARG",32,"Argentina","artemesia longinaris","argentine stiletto shrimp","artemesia.longinaris_marine_capture",2018,1,0,0,0,"marine","capture",56
+"BRA",76,"Brazil","artemesia longinaris","argentine stiletto shrimp","artemesia.longinaris_marine_capture",2018,1,0,0,0,"marine","capture",2800
+"BEL",56,"Belgium","crangon crangon","common shrimp","crangon.crangon_marine_capture",2018,1,0,0,0,"marine","capture",1413
+"BGR",100,"Bulgaria","crangon crangon","common shrimp","crangon.crangon_marine_capture",2018,1,0,0,0,"marine","capture",1
+"DEU",276,"Germany","crangon crangon","common shrimp","crangon.crangon_marine_capture",2018,1,0,0,0,"marine","capture",17892
+"DNK",208,"Denmark","crangon crangon","common shrimp","crangon.crangon_marine_capture",2018,1,0,0,0,"marine","capture",3055
+"ESP",724,"Spain","crangon crangon","common shrimp","crangon.crangon_marine_capture",2018,1,0,0,0,"marine","capture",13
+"FRA",250,"France","crangon crangon","common shrimp","crangon.crangon_marine_capture",2018,1,0,0,0,"marine","capture",263
+"GBR",826,"United Kingdom","crangon crangon","common shrimp","crangon.crangon_marine_capture",2018,1,0,0,0,"marine","capture",1125
+"IRL",372,"Ireland","crangon crangon","common shrimp","crangon.crangon_marine_capture",2018,1,0,0,0,"marine","capture",27
+"ITA",380,"Italy","crangon crangon","common shrimp","crangon.crangon_marine_capture",2018,1,0,0,0,"marine","capture",5
+"NLD",528,"Netherlands","crangon crangon","common shrimp","crangon.crangon_marine_capture",2018,1,0,0,0,"marine","capture",27385
+"BEN",204,"Benin","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",6
+"CAN",124,"Canada","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",2013
+"CHN",156,"China","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",196131
+"CYP",196,"Cyprus","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",1
+"EGY",818,"Egypt","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",6346
+"ESP",724,"Spain","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",1176
+"FRA",250,"France","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",10
+"GHA",288,"Ghana","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",386
+"GNB",624,"Guinea-Bissau","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",50
+"GRC",300,"Greece","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",42
+"HKG",344,"China, Hong Kong SAR","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",3665
+"HTI",332,"Haiti","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",100
+"IDN",360,"Indonesia","crangonidae","natantian decapods nei","crangonidae_inland_capture",2018,0,0,1,0,"inland","capture",7936
+"IDN",360,"Indonesia","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",107749
+"IND",356,"India","crangonidae","natantian decapods nei","crangonidae_inland_capture",2018,0,0,1,0,"inland","capture",32527.514
+"IND",356,"India","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",194011
+"IRN",364,"Iran (Islamic Rep. of)","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",8805
+"ITA",380,"Italy","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",286
+"JPN",392,"Japan","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",13103
+"KEN",404,"Kenya","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",190
+"KHM",116,"Cambodia","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",11350
+"KOR",410,"Korea, Republic of","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",11784
+"KWT",414,"Kuwait","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",617
+"LBN",422,"Lebanon","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",10
+"MAC",446,"China, Macao SAR","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",230
+"MAR",504,"Morocco","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",6683
+"MDG",450,"Madagascar","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",18776
+"MMR",104,"Myanmar","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",27703
+"MNE",499,"Montenegro","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",1
+"MYS",458,"Malaysia","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",69743
+"NGA",566,"Nigeria","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",28582
+"OMN",512,"Oman","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",1062
+"PHL",608,"Philippines","crangonidae","natantian decapods nei","crangonidae_inland_capture",2018,0,0,1,0,"inland","capture",5123
+"PNG",598,"Papua New Guinea","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",190
+"PSE",275,"Palestine","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",129
+"RUS",643,"Russian Federation","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",902
+"SEN",686,"Senegal","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",1500
+"SGP",702,"Singapore","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",254
+"TLS",626,"Timor-Leste","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",14.324
+"TUR",792,"Turkey","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",1104
+"TWN",158,"Taiwan Province of China","crangonidae","natantian decapods nei","crangonidae_inland_aquaculture",2018,0,0,1,0,"inland","aquaculture",1.08
+"TWN",158,"Taiwan Province of China","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",6989
+"USA",840,"United States of America","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",2457
+"VNM",704,"Viet Nam","crangonidae","natantian decapods nei","crangonidae_inland_capture",2018,0,0,1,0,"inland","capture",16248
+"VNM",704,"Viet Nam","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",126163
+"ZAF",710,"South Africa","crangonidae","natantian decapods nei","crangonidae_marine_capture",2018,0,0,1,0,"marine","capture",2
+"MEX",484,"Mexico","farfantepenaeus aztecus","northern brown shrimp","farfantepenaeus.aztecus_marine_capture",2018,1,0,0,0,"marine","capture",16165
+"USA",840,"United States of America","farfantepenaeus aztecus","northern brown shrimp","farfantepenaeus.aztecus_marine_capture",2018,1,0,0,0,"marine","capture",53892
+"BRA",76,"Brazil","farfantepenaeus brasiliensis","redspotted shrimp","farfantepenaeus.brasiliensis_marine_capture",2018,1,0,0,0,"marine","capture",9000
+"PAN",591,"Panama","farfantepenaeus brevirostris","crystal shrimp","farfantepenaeus.brevirostris_marine_capture",2018,1,0,0,0,"marine","capture",486
+"ECU",218,"Ecuador","farfantepenaeus californiensis","yellowleg shrimp","farfantepenaeus.californiensis_marine_capture",2018,1,0,0,0,"marine","capture",147
+"MEX",484,"Mexico","farfantepenaeus californiensis","yellowleg shrimp","farfantepenaeus.californiensis_marine_capture",2018,1,0,0,0,"marine","capture",36835
+"PER",604,"Peru","farfantepenaeus californiensis","yellowleg shrimp","farfantepenaeus.californiensis_marine_capture",2018,1,0,0,0,"marine","capture",2
+"CUB",192,"Cuba","farfantepenaeus duorarum","northern pink shrimp","farfantepenaeus.duorarum_marine_capture",2018,1,0,0,0,"marine","capture",1121
+"MEX",484,"Mexico","farfantepenaeus duorarum","northern pink shrimp","farfantepenaeus.duorarum_marine_capture",2018,1,0,0,0,"marine","capture",2592
+"USA",840,"United States of America","farfantepenaeus duorarum","northern pink shrimp","farfantepenaeus.duorarum_marine_capture",2018,1,0,0,0,"marine","capture",9363
+"GAB",266,"Gabon","farfantepenaeus notialis","southern pink shrimp","farfantepenaeus.notialis_marine_capture",2018,1,0,0,0,"marine","capture",20
+"GMB",270,"Gambia","farfantepenaeus notialis","southern pink shrimp","farfantepenaeus.notialis_marine_capture",2018,1,0,0,0,"marine","capture",903
+"NGA",566,"Nigeria","farfantepenaeus notialis","southern pink shrimp","farfantepenaeus.notialis_marine_capture",2018,1,0,0,0,"marine","capture",20556
+"SEN",686,"Senegal","farfantepenaeus notialis","southern pink shrimp","farfantepenaeus.notialis_marine_capture",2018,1,0,0,0,"marine","capture",2936
+"CHL",152,"Chile","haliporoides diomedeae","chilean knife shrimp","haliporoides.diomedeae_marine_capture",2018,1,0,0,0,"marine","capture",84
+"MOZ",508,"Mozambique","haliporoides triarthrus","knife shrimp","haliporoides.triarthrus_marine_capture",2018,1,0,0,0,"marine","capture",1935
+"ZAF",710,"South Africa","haliporoides triarthrus","knife shrimp","haliporoides.triarthrus_marine_capture",2018,1,0,0,0,"marine","capture",65
+"CHL",152,"Chile","heterocarpus reedi","chilean nylon shrimp","heterocarpus.reedi_marine_capture",2018,1,0,0,0,"marine","capture",5288
+"COL",170,"Colombia","litopenaeus occidentalis","western white shrimp","litopenaeus.occidentalis_marine_capture",2018,1,0,0,0,"marine","capture",188
+"ECU",218,"Ecuador","litopenaeus occidentalis","western white shrimp","litopenaeus.occidentalis_marine_capture",2018,1,0,0,0,"marine","capture",716
+"BRA",76,"Brazil","litopenaeus schmitti","southern white shrimp","litopenaeus.schmitti_marine_capture",2018,1,0,0,0,"marine","capture",3500
+"VEN",862,"Venezuela, Boliv Rep of","litopenaeus schmitti","southern white shrimp","litopenaeus.schmitti_marine_capture",2018,1,0,0,0,"marine","capture",2570
+"MEX",484,"Mexico","litopenaeus setiferus","northern white shrimp","litopenaeus.setiferus_marine_capture",2018,1,0,0,0,"marine","capture",1142
+"USA",840,"United States of America","litopenaeus setiferus","northern white shrimp","litopenaeus.setiferus_marine_capture",2018,1,0,0,0,"marine","capture",41407
+"BRN",96,"Brunei Darussalam","litopenaeus stylirostris","blue shrimp","litopenaeus.stylirostris_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",724.317
+"MEX",484,"Mexico","litopenaeus stylirostris","blue shrimp","litopenaeus.stylirostris_marine_capture",2018,1,0,0,0,"marine","capture",34339
+"NCL",540,"New Caledonia","litopenaeus stylirostris","blue shrimp","litopenaeus.stylirostris_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",1505
+"PYF",258,"French Polynesia","litopenaeus stylirostris","blue shrimp","litopenaeus.stylirostris_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",120
+"BLZ",84,"Belize","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",500
+"BRA",76,"Brazil","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",45750.438
+"CHN",156,"China","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_inland_aquaculture",2018,1,0,0,0,"marine","aquaculture",642807
+"CHN",156,"China","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",1117534
+"COL",170,"Colombia","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_inland_aquaculture",2018,1,0,0,0,"marine","aquaculture",300
+"COL",170,"Colombia","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",5097
+"CRI",188,"Costa Rica","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",2700
+"CUB",192,"Cuba","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",6474
+"DOM",214,"Dominican Republic","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",400
+"ECU",218,"Ecuador","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",560000
+"EGY",818,"Egypt","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",155
+"ESP",724,"Spain","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_inland_aquaculture",2018,1,0,0,0,"marine","aquaculture",7.5
+"ESP",724,"Spain","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",7.5
+"GTM",320,"Guatemala","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",17273
+"GUM",316,"Guam","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",10
+"HND",340,"Honduras","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",31500
+"IDN",360,"Indonesia","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_inland_aquaculture",2018,1,0,0,0,"marine","aquaculture",22950
+"IDN",360,"Indonesia","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",685730
+"IND",356,"India","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",622000
+"IRN",364,"Iran (Islamic Rep. of)","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",47859
+"KOR",410,"Korea, Republic of","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",4480
+"LBN",422,"Lebanon","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",15
+"MEX",484,"Mexico","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",157934.361
+"MEX",484,"Mexico","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_capture",2018,1,0,0,0,"marine","capture",13572
+"MNP",580,"Northern Mariana Is.","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",23
+"MYS",458,"Malaysia","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",36007.25
+"NIC",558,"Nicaragua","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",29458.4
+"PAN",591,"Panama","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",6409
+"PER",604,"Peru","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",29716.93
+"PHL",608,"Philippines","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",12527
+"SAU",682,"Saudi Arabia","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",56100
+"SGP",702,"Singapore","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",12.6
+"SLV",222,"El Salvador","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",1150
+"SLV",222,"El Salvador","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_capture",2018,1,0,0,0,"marine","capture",420
+"SUR",740,"Suriname","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",30
+"THA",764,"Thailand","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",357933
+"TUN",788,"Tunisia","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",1.2
+"TWN",158,"Taiwan Province of China","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_inland_aquaculture",2018,1,0,0,0,"marine","aquaculture",3721.258
+"TWN",158,"Taiwan Province of China","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",4257.546
+"TWN",158,"Taiwan Province of China","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_capture",2018,1,0,0,0,"marine","capture",48
+"USA",840,"United States of America","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",2035
+"VEN",862,"Venezuela, Boliv Rep of","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",21500
+"VNM",704,"Viet Nam","litopenaeus vannamei","whiteleg shrimp","litopenaeus.vannamei_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",475000
+"CHN",156,"China","marsupenaeus japonicus","kuruma prawn","marsupenaeus.japonicus_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",55228
+"ESP",724,"Spain","marsupenaeus japonicus","kuruma prawn","marsupenaeus.japonicus_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",1.38
+"FRA",250,"France","marsupenaeus japonicus","kuruma prawn","marsupenaeus.japonicus_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",44.27
+"FRA",250,"France","marsupenaeus japonicus","kuruma prawn","marsupenaeus.japonicus_marine_capture",2018,1,0,0,0,"marine","capture",1
+"ISR",376,"Israel","marsupenaeus japonicus","kuruma prawn","marsupenaeus.japonicus_marine_capture",2018,1,0,0,0,"marine","capture",10
+"ITA",380,"Italy","marsupenaeus japonicus","kuruma prawn","marsupenaeus.japonicus_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",4.61
+"JPN",392,"Japan","marsupenaeus japonicus","kuruma prawn","marsupenaeus.japonicus_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",1478
+"JPN",392,"Japan","marsupenaeus japonicus","kuruma prawn","marsupenaeus.japonicus_marine_capture",2018,1,0,0,0,"marine","capture",355
+"KOR",410,"Korea, Republic of","marsupenaeus japonicus","kuruma prawn","marsupenaeus.japonicus_marine_capture",2018,1,0,0,0,"marine","capture",543
+"TWN",158,"Taiwan Province of China","marsupenaeus japonicus","kuruma prawn","marsupenaeus.japonicus_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",35.233
+"TWN",158,"Taiwan Province of China","marsupenaeus japonicus","kuruma prawn","marsupenaeus.japonicus_marine_capture",2018,1,0,0,0,"marine","capture",25
+"ALB",8,"Albania","melicertus kerathurus","caramote prawn","melicertus.kerathurus_marine_capture",2018,1,0,0,0,"marine","capture",38
+"ESP",724,"Spain","melicertus kerathurus","caramote prawn","melicertus.kerathurus_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",0.34
+"ESP",724,"Spain","melicertus kerathurus","caramote prawn","melicertus.kerathurus_marine_capture",2018,1,0,0,0,"marine","capture",285
+"FRA",250,"France","melicertus kerathurus","caramote prawn","melicertus.kerathurus_marine_capture",2018,1,0,0,0,"marine","capture",1
+"GRC",300,"Greece","melicertus kerathurus","caramote prawn","melicertus.kerathurus_marine_capture",2018,1,0,0,0,"marine","capture",512
+"ITA",380,"Italy","melicertus kerathurus","caramote prawn","melicertus.kerathurus_marine_capture",2018,1,0,0,0,"marine","capture",1676
+"LBY",434,"Libya","melicertus kerathurus","caramote prawn","melicertus.kerathurus_marine_capture",2018,1,0,0,0,"marine","capture",515
+"TUN",788,"Tunisia","melicertus kerathurus","caramote prawn","melicertus.kerathurus_marine_capture",2018,1,0,0,0,"marine","capture",76
+"TUR",792,"Turkey","melicertus kerathurus","caramote prawn","melicertus.kerathurus_marine_capture",2018,1,0,0,0,"marine","capture",219
+"THA",764,"Thailand","melicertus latisulcatus","western king prawn","melicertus.latisulcatus_marine_capture",2018,1,0,0,0,"marine","capture",665
+"IDN",360,"Indonesia","metapenaeus","metapenaeus shrimps nei","metapenaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",22622
+"IDN",360,"Indonesia","metapenaeus","metapenaeus shrimps nei","metapenaeus_marine_capture",2018,0,1,0,0,"marine","capture",64809
+"PAK",586,"Pakistan","metapenaeus","metapenaeus shrimps nei","metapenaeus_marine_capture",2018,0,1,0,0,"marine","capture",5869
+"PHL",608,"Philippines","metapenaeus","metapenaeus shrimps nei","metapenaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",520.6
+"PHL",608,"Philippines","metapenaeus","metapenaeus shrimps nei","metapenaeus_marine_capture",2018,0,1,0,0,"marine","capture",7350
+"PNG",598,"Papua New Guinea","metapenaeus","metapenaeus shrimps nei","metapenaeus_marine_capture",2018,0,1,0,0,"marine","capture",101
+"THA",764,"Thailand","metapenaeus","metapenaeus shrimps nei","metapenaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",124
+"THA",764,"Thailand","metapenaeus","metapenaeus shrimps nei","metapenaeus_marine_capture",2018,0,1,0,0,"marine","capture",6864
+"TWN",158,"Taiwan Province of China","metapenaeus","metapenaeus shrimps nei","metapenaeus_marine_capture",2018,0,1,0,0,"marine","capture",15
+"VNM",704,"Viet Nam","metapenaeus","metapenaeus shrimps nei","metapenaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",10000
+"AUS",36,"Australia","metapenaeus endeavouri","endeavour shrimp","metapenaeus.endeavouri_marine_capture",2018,1,0,0,0,"marine","capture",905
+"PHL",608,"Philippines","metapenaeus endeavouri","endeavour shrimp","metapenaeus.endeavouri_marine_capture",2018,1,0,0,0,"marine","capture",676
+"TWN",158,"Taiwan Province of China","metapenaeus ensis","greasyback shrimp","metapenaeus.ensis_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",306.15
+"KOR",410,"Korea, Republic of","metapenaeus joyneri","shiba shrimp","metapenaeus.joyneri_marine_capture",2018,1,0,0,0,"marine","capture",1149
+"BGD",50,"Bangladesh","metapenaeus monoceros","speckled shrimp","metapenaeus.monoceros_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",3882
+"SAU",682,"Saudi Arabia","metapenaeus monoceros","speckled shrimp","metapenaeus.monoceros_marine_capture",2018,1,0,0,0,"marine","capture",1421
+"TUN",788,"Tunisia","metapenaeus monoceros","speckled shrimp","metapenaeus.monoceros_marine_capture",2018,1,0,0,0,"marine","capture",309
+"GUY",328,"Guyana","nematopalaemon schmitti","whitebelly prawn","nematopalaemon.schmitti_marine_capture",2018,1,0,0,0,"marine","capture",1574
+"UKR",804,"Ukraine","palaemon adspersus","baltic prawn","palaemon.adspersus_marine_capture",2018,1,0,0,0,"marine","capture",517
+"FRA",250,"France","palaemon longirostris","delta prawn","palaemon.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",5
+"DNK",208,"Denmark","palaemon serratus","common prawn","palaemon.serratus_marine_capture",2018,1,0,0,0,"marine","capture",47
+"ESP",724,"Spain","palaemon serratus","common prawn","palaemon.serratus_marine_capture",2018,1,0,0,0,"marine","capture",64
+"FRA",250,"France","palaemon serratus","common prawn","palaemon.serratus_marine_capture",2018,1,0,0,0,"marine","capture",210
+"GBR",826,"United Kingdom","palaemon serratus","common prawn","palaemon.serratus_marine_capture",2018,1,0,0,0,"marine","capture",30
+"ESP",724,"Spain","palaemonetes varians","atlantic ditch shrimp","palaemonetes.varians_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",240.98
+"PRT",620,"Portugal","palaemonetes varians","atlantic ditch shrimp","palaemonetes.varians_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",18.29
+"CAN",124,"Canada","pandalus","pandalus shrimps nei","pandalus_marine_capture",2018,0,1,0,0,"marine","capture",83053
+"GBR",826,"United Kingdom","pandalus","pandalus shrimps nei","pandalus_marine_capture",2018,0,1,0,0,"marine","capture",4
+"IRL",372,"Ireland","pandalus","pandalus shrimps nei","pandalus_marine_capture",2018,0,1,0,0,"marine","capture",54
+"SWE",752,"Sweden","pandalus","pandalus shrimps nei","pandalus_marine_capture",2018,0,1,0,0,"marine","capture",2
+"DNK",208,"Denmark","pandalus borealis","northern prawn","pandalus.borealis_marine_capture",2018,1,0,0,0,"marine","capture",5893
+"EST",233,"Estonia","pandalus borealis","northern prawn","pandalus.borealis_marine_capture",2018,1,0,0,0,"marine","capture",8019
+"FRO",234,"Faroe Islands","pandalus borealis","northern prawn","pandalus.borealis_marine_capture",2018,1,0,0,0,"marine","capture",5173
+"GBR",826,"United Kingdom","pandalus borealis","northern prawn","pandalus.borealis_marine_capture",2018,1,0,0,0,"marine","capture",1283
+"GRL",304,"Greenland","pandalus borealis","northern prawn","pandalus.borealis_marine_capture",2018,1,0,0,0,"marine","capture",91261
+"IRL",372,"Ireland","pandalus borealis","northern prawn","pandalus.borealis_marine_capture",2018,1,0,0,0,"marine","capture",5
+"ISL",352,"Iceland","pandalus borealis","northern prawn","pandalus.borealis_marine_capture",2018,1,0,0,0,"marine","capture",4479
+"LTU",440,"Lithuania","pandalus borealis","northern prawn","pandalus.borealis_marine_capture",2018,1,0,0,0,"marine","capture",3939
+"LVA",428,"Latvia","pandalus borealis","northern prawn","pandalus.borealis_marine_capture",2018,1,0,0,0,"marine","capture",9
+"NOR",578,"Norway","pandalus borealis","northern prawn","pandalus.borealis_marine_capture",2018,1,0,0,0,"marine","capture",28220
+"PRT",620,"Portugal","pandalus borealis","northern prawn","pandalus.borealis_marine_capture",2018,1,0,0,0,"marine","capture",2
+"RUS",643,"Russian Federation","pandalus borealis","northern prawn","pandalus.borealis_marine_capture",2018,1,0,0,0,"marine","capture",23390
+"SWE",752,"Sweden","pandalus borealis","northern prawn","pandalus.borealis_marine_capture",2018,1,0,0,0,"marine","capture",1274
+"RUS",643,"Russian Federation","pandalus goniurus","humpy shrimp","pandalus.goniurus_marine_capture",2018,1,0,0,0,"marine","capture",2635
+"RUS",643,"Russian Federation","pandalus hypsinotus","coonstripe shrimp","pandalus.hypsinotus_marine_capture",2018,1,0,0,0,"marine","capture",2050
+"USA",840,"United States of America","pandalus jordani","ocean shrimp","pandalus.jordani_marine_capture",2018,1,0,0,0,"marine","capture",22469
+"RUS",643,"Russian Federation","pandalus kessleri","hokkai shrimp","pandalus.kessleri_marine_capture",2018,1,0,0,0,"marine","capture",56
+"GRL",304,"Greenland","pandalus montagui","aesop shrimp","pandalus.montagui_marine_capture",2018,1,0,0,0,"marine","capture",133
+"USA",840,"United States of America","pandalus platyceros","spot shrimp","pandalus.platyceros_marine_capture",2018,1,0,0,0,"marine","capture",401
+"PAK",586,"Pakistan","parapenaeopsis","parapenaeopsis shrimps nei","parapenaeopsis_marine_capture",2018,0,1,0,0,"marine","capture",5212
+"SLE",694,"Sierra Leone","parapenaeopsis atlantica","guinea shrimp","parapenaeopsis.atlantica_marine_capture",2018,1,0,0,0,"marine","capture",100
+"AGO",24,"Angola","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",430
+"ALB",8,"Albania","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",1275
+"COG",178,"Congo","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",340
+"CYP",196,"Cyprus","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",1
+"DZA",12,"Algeria","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",1090
+"EGY",818,"Egypt","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",845
+"ESP",724,"Spain","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",4496
+"FRA",250,"France","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",45
+"GNB",624,"Guinea-Bissau","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",1
+"GRC",300,"Greece","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",3555
+"HRV",191,"Croatia","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",913
+"ITA",380,"Italy","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",9831
+"MLT",470,"Malta","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",10
+"MNE",499,"Montenegro","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",47
+"MRT",478,"Mauritania","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",135.825
+"PRT",620,"Portugal","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",745
+"SEN",686,"Senegal","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",1372
+"TUN",788,"Tunisia","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",3729
+"TUR",792,"Turkey","parapenaeus longirostris","deep-water rose shrimp","parapenaeus.longirostris_marine_capture",2018,1,0,0,0,"marine","capture",3213
+"SWE",752,"Sweden","pasiphaea tarda","crimson pasiphaeid","pasiphaea.tarda_marine_capture",2018,1,0,0,0,"marine","capture",4
+"GTM",320,"Guatemala","penaeidae","pacific seabobs","penaeidae_marine_capture",2018,0,0,1,0,"marine","capture",456
+"PAN",591,"Panama","penaeidae","pacific seabobs","penaeidae_marine_capture",2018,0,0,1,0,"marine","capture",99
+"SLV",222,"El Salvador","penaeidae","pacific seabobs","penaeidae_marine_capture",2018,0,0,1,0,"marine","capture",500
+"USA",840,"United States of America","penaeidae","penaeid shrimps nei","penaeidae_marine_capture",2018,0,0,1,0,"marine","capture",6
+"AUS",36,"Australia","penaeus","penaeus shrimps nei","penaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",4205.4
+"AUS",36,"Australia","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",9238.334
+"BEN",204,"Benin","penaeus","penaeus shrimps nei","penaeus_inland_capture",2018,0,1,0,0,"inland","capture",889
+"BGD",50,"Bangladesh","penaeus","penaeus shrimps nei","penaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",3359
+"BRA",76,"Brazil","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",4100
+"BRN",96,"Brunei Darussalam","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",1368
+"CHN",156,"China","penaeus","penaeus shrimps nei","penaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",105240
+"CIV",384,"Côte d'Ivoire","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",234
+"CMR",120,"Cameroon","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",30830
+"COG",178,"Congo","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",355
+"CRI",188,"Costa Rica","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",240
+"DOM",214,"Dominican Republic","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",62
+"DZA",12,"Algeria","penaeus","penaeus shrimps nei","penaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",0.05
+"ECU",218,"Ecuador","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",439
+"ERI",232,"Eritrea","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",406.974
+"ESP",724,"Spain","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",182
+"GAB",266,"Gabon","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",160
+"GIN",324,"Guinea","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",922
+"GTM",320,"Guatemala","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",326
+"GUF",254,"French Guiana","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",250
+"GUY",328,"Guyana","penaeus","penaeus shrimps nei","penaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",175.04
+"GUY",328,"Guyana","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",421
+"HND",340,"Honduras","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",1450
+"IND",356,"India","penaeus","penaeus shrimps nei","penaeus_inland_capture",2018,0,1,0,0,"inland","capture",26872.22
+"IRL",372,"Ireland","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",1
+"KHM",116,"Cambodia","penaeus","penaeus shrimps nei","penaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",1200
+"MEX",484,"Mexico","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",2763
+"MOZ",508,"Mozambique","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",10570
+"NGA",566,"Nigeria","penaeus","penaeus shrimps nei","penaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",90
+"NIC",558,"Nicaragua","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",1612
+"PAK",586,"Pakistan","penaeus","penaeus shrimps nei","penaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",131
+"PAK",586,"Pakistan","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",4802
+"PAN",591,"Panama","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",578
+"PER",604,"Peru","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",39143
+"PHL",608,"Philippines","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",12302
+"PLW",585,"Palau","penaeus","penaeus shrimps nei","penaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",0.4
+"SAU",682,"Saudi Arabia","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",30
+"SEN",686,"Senegal","penaeus","penaeus shrimps nei","penaeus_inland_capture",2018,0,1,0,0,"inland","capture",1852
+"SGP",702,"Singapore","penaeus","penaeus shrimps nei","penaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",40.79
+"SLE",694,"Sierra Leone","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",445
+"SUR",740,"Suriname","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",379
+"THA",764,"Thailand","penaeus","penaeus shrimps nei","penaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",42
+"THA",764,"Thailand","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",12759
+"TLS",626,"Timor-Leste","penaeus","penaeus shrimps nei","penaeus_marine_aquaculture",2018,0,1,0,0,"marine","aquaculture",1
+"TTO",780,"Trinidad and Tobago","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",776
+"TZA",834,"Tanzania, United Rep. of","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",1383
+"VEN",862,"Venezuela, Boliv Rep of","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",5
+"YEM",887,"Yemen","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",833
+"ZAF",710,"South Africa","penaeus","penaeus shrimps nei","penaeus_marine_capture",2018,0,1,0,0,"marine","capture",2
+"CHN",156,"China","penaeus chinensis","fleshy prawn","penaeus.chinensis_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",55756
+"CHN",156,"China","penaeus chinensis","fleshy prawn","penaeus.chinensis_marine_capture",2018,1,0,0,0,"marine","capture",223082
+"KOR",410,"Korea, Republic of","penaeus chinensis","fleshy prawn","penaeus.chinensis_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",20
+"KOR",410,"Korea, Republic of","penaeus chinensis","fleshy prawn","penaeus.chinensis_marine_capture",2018,1,0,0,0,"marine","capture",143
+"ARE",784,"United Arab Emirates","penaeus indicus","indian white prawn","penaeus.indicus_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",225
+"BGD",50,"Bangladesh","penaeus indicus","indian white prawn","penaeus.indicus_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",2029
+"CYP",196,"Cyprus","penaeus indicus","indian white prawn","penaeus.indicus_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",28.1
+"IND",356,"India","penaeus indicus","indian white prawn","penaeus.indicus_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",1300
+"AUS",36,"Australia","penaeus merguiensis","banana prawn","penaeus.merguiensis_marine_capture",2018,1,0,0,0,"marine","capture",5737
+"IDN",360,"Indonesia","penaeus merguiensis","banana prawn","penaeus.merguiensis_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",14783
+"IDN",360,"Indonesia","penaeus merguiensis","banana prawn","penaeus.merguiensis_marine_capture",2018,1,0,0,0,"marine","capture",71454
+"PHL",608,"Philippines","penaeus merguiensis","banana prawn","penaeus.merguiensis_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",1758.9
+"PNG",598,"Papua New Guinea","penaeus merguiensis","banana prawn","penaeus.merguiensis_marine_capture",2018,1,0,0,0,"marine","capture",540
+"SLB",90,"Solomon Islands","penaeus merguiensis","banana prawn","penaeus.merguiensis_marine_capture",2018,1,0,0,0,"marine","capture",15
+"THA",764,"Thailand","penaeus merguiensis","banana prawn","penaeus.merguiensis_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",129
+"THA",764,"Thailand","penaeus merguiensis","banana prawn","penaeus.merguiensis_marine_capture",2018,1,0,0,0,"marine","capture",6211
+"AUS",36,"Australia","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_capture",2018,1,0,0,0,"marine","capture",2770
+"BGD",50,"Bangladesh","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",61709
+"BRN",96,"Brunei Darussalam","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",1.7
+"CHN",156,"China","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",75356
+"FJI",242,"Fiji","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",2
+"GHA",288,"Ghana","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",10
+"IDN",360,"Indonesia","penaeus monodon","giant tiger prawn","penaeus.monodon_inland_aquaculture",2018,1,0,0,0,"marine","aquaculture",1923
+"IDN",360,"Indonesia","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",159980
+"IDN",360,"Indonesia","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_capture",2018,1,0,0,0,"marine","capture",28730
+"IND",356,"India","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",59000
+"IND",356,"India","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_capture",2018,1,0,0,0,"marine","capture",192154
+"LKA",144,"Sri Lanka","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",8080
+"MDG",450,"Madagascar","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",4947.05
+"MMR",104,"Myanmar","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",19041.882
+"MYS",458,"Malaysia","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",9905.61
+"PAK",586,"Pakistan","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_capture",2018,1,0,0,0,"marine","capture",265
+"PHL",608,"Philippines","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",44780.4
+"PHL",608,"Philippines","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_capture",2018,1,0,0,0,"marine","capture",715
+"PNG",598,"Papua New Guinea","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_capture",2018,1,0,0,0,"marine","capture",148
+"SGP",702,"Singapore","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",27.887
+"THA",764,"Thailand","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",16146
+"THA",764,"Thailand","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_capture",2018,1,0,0,0,"marine","capture",351
+"TWN",158,"Taiwan Province of China","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",211.326
+"TWN",158,"Taiwan Province of China","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_capture",2018,1,0,0,0,"marine","capture",11
+"TZA",834,"Tanzania, United Rep. of","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",371.7
+"VNM",704,"Viet Nam","penaeus monodon","giant tiger prawn","penaeus.monodon_marine_aquaculture",2018,1,0,0,0,"marine","aquaculture",290000
+"TWN",158,"Taiwan Province of China","penaeus penicillatus","redtail prawn","penaeus.penicillatus_marine_capture",2018,1,0,0,0,"marine","capture",84
+"BHR",48,"Bahrain","penaeus semisulcatus","green tiger prawn","penaeus.semisulcatus_marine_capture",2018,1,0,0,0,"marine","capture",2800
+"IRQ",368,"Iraq","penaeus semisulcatus","green tiger prawn","penaeus.semisulcatus_marine_capture",2018,1,0,0,0,"marine","capture",1279
+"SAU",682,"Saudi Arabia","penaeus semisulcatus","green tiger prawn","penaeus.semisulcatus_marine_capture",2018,1,0,0,0,"marine","capture",7319
+"THA",764,"Thailand","penaeus semisulcatus","green tiger prawn","penaeus.semisulcatus_marine_capture",2018,1,0,0,0,"marine","capture",1092
+"ARG",32,"Argentina","pleoticus muelleri","argentine red shrimp","pleoticus.muelleri_marine_capture",2018,1,0,0,0,"marine","capture",254906
+"BRA",76,"Brazil","pleoticus muelleri","argentine red shrimp","pleoticus.muelleri_marine_capture",2018,1,0,0,0,"marine","capture",800
+"ITA",380,"Italy","plesionika edwardsii","striped soldier shrimp","plesionika.edwardsii_marine_capture",2018,1,0,0,0,"marine","capture",403
+"PRT",620,"Portugal","plesionika edwardsii","striped soldier shrimp","plesionika.edwardsii_marine_capture",2018,1,0,0,0,"marine","capture",52
+"ESP",724,"Spain","plesionika martia","golden shrimp","plesionika.martia_marine_capture",2018,1,0,0,0,"marine","capture",25
+"MLT",470,"Malta","plesionika martia","golden shrimp","plesionika.martia_marine_capture",2018,1,0,0,0,"marine","capture",4
+"ECU",218,"Ecuador","protrachypene precipua","titi shrimp","protrachypene.precipua_marine_capture",2018,1,0,0,0,"marine","capture",8739
+"RUS",643,"Russian Federation","sclerocrangon","sculptured shrimps nei","sclerocrangon_marine_capture",2018,0,1,0,0,"marine","capture",302
+"MYS",458,"Malaysia","sergestidae","sergestid shrimps nei","sergestidae_marine_capture",2018,0,0,1,0,"marine","capture",45776
+"PHL",608,"Philippines","sergestidae","sergestid shrimps nei","sergestidae_marine_capture",2018,0,0,1,0,"marine","capture",11835
+"THA",764,"Thailand","sergestidae","sergestid shrimps nei","sergestidae_marine_capture",2018,0,0,1,0,"marine","capture",20848
+"USA",840,"United States of America","sicyonia brevirostris","rock shrimp","sicyonia.brevirostris_marine_capture",2018,1,0,0,0,"marine","capture",525
+"USA",840,"United States of America","sicyonia ingentis","pacific rock shrimp","sicyonia.ingentis_marine_capture",2018,1,0,0,0,"marine","capture",181
+"COL",170,"Colombia","solenocera agassizii","kolibri shrimp","solenocera.agassizii_marine_capture",2018,1,0,0,0,"marine","capture",4
+"PAN",591,"Panama","solenocera agassizii","kolibri shrimp","solenocera.agassizii_marine_capture",2018,1,0,0,0,"marine","capture",83
+"CHN",156,"China","trachysalambria curvirostris","southern rough shrimp","trachysalambria.curvirostris_marine_capture",2018,1,0,0,0,"marine","capture",245035
+"KOR",410,"Korea, Republic of","trachysalambria curvirostris","southern rough shrimp","trachysalambria.curvirostris_marine_capture",2018,1,0,0,0,"marine","capture",2689
+"TWN",158,"Taiwan Province of China","trachysalambria curvirostris","southern rough shrimp","trachysalambria.curvirostris_marine_capture",2018,1,0,0,0,"marine","capture",511
+"BRA",76,"Brazil","xiphopenaeus kroyeri","atlantic seabob","xiphopenaeus.kroyeri_marine_capture",2018,1,0,0,0,"marine","capture",13100
+"COL",170,"Colombia","xiphopenaeus kroyeri","pacific seabob","xiphopenaeus.kroyeri_marine_capture",2018,1,0,0,0,"marine","capture",448
+"GUY",328,"Guyana","xiphopenaeus kroyeri","atlantic seabob","xiphopenaeus.kroyeri_marine_capture",2018,1,0,0,0,"marine","capture",19946
+"MEX",484,"Mexico","xiphopenaeus kroyeri","atlantic seabob","xiphopenaeus.kroyeri_marine_capture",2018,1,0,0,0,"marine","capture",1520
+"SUR",740,"Suriname","xiphopenaeus kroyeri","atlantic seabob","xiphopenaeus.kroyeri_marine_capture",2018,1,0,0,0,"marine","capture",9886
+"USA",840,"United States of America","xiphopenaeus kroyeri","atlantic seabob","xiphopenaeus.kroyeri_marine_capture",2018,1,0,0,0,"marine","capture",213
+"VEN",862,"Venezuela, Boliv Rep of","xiphopenaeus kroyeri","atlantic seabob","xiphopenaeus.kroyeri_marine_capture",2018,1,0,0,0,"marine","capture",60

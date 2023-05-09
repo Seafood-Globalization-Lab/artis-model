@@ -1,0 +1,71 @@
+"SciName","CommonName","Genus","Subfamily","Family","Order","Class","Superclass","Phylum","Kingdom","Aquarium","Fresh01","Brack01","Saltwater01"
+"acetes erythraeus","tsivakihini paste shrimp","acetes",NA,"sergestidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"acetes japonicus","akiami paste shrimp","acetes",NA,"sergestidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"aristaeomorpha foliacea","giant red shrimp","aristaeomorpha",NA,"aristeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"aristaeopsis edwardsiana","scarlet shrimp","aristaeopsis",NA,"aristeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"aristeus antennatus","blue and red shrimp","aristeus",NA,"aristeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"aristeus varidens","striped red shrimp","aristeus",NA,"aristeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"artemesia longinaris","argentine stiletto shrimp","artemesia",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"crangon crangon","common shrimp","crangon",NA,"crangonidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"crangonidae","natantian decapods nei",NA,NA,"crangonidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,NA,NA,NA
+"farfantepenaeus aztecus","northern brown shrimp","farfantepenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"farfantepenaeus brasiliensis","redspotted shrimp","farfantepenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"farfantepenaeus brevirostris","crystal shrimp","farfantepenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"farfantepenaeus californiensis","yellowleg shrimp","farfantepenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"farfantepenaeus duorarum","northern pink shrimp","farfantepenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"farfantepenaeus notialis","southern pink shrimp","farfantepenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"haliporoides diomedeae","chilean knife shrimp","haliporoides",NA,"solenoceridae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"haliporoides triarthrus","knife shrimp","haliporoides",NA,"solenoceridae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"heterocarpus reedi","chilean nylon shrimp","heterocarpus",NA,"pandalidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"litopenaeus occidentalis","western white shrimp","litopenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"litopenaeus schmitti","southern white shrimp","litopenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"litopenaeus setiferus","northern white shrimp","litopenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"litopenaeus stylirostris","blue shrimp","litopenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"litopenaeus vannamei","whiteleg shrimp","litopenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"marsupenaeus japonicus","kuruma prawn","marsupenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"melicertus kerathurus","caramote prawn","melicertus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"melicertus latisulcatus","western king prawn","melicertus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"metapenaeus","metapenaeus shrimps nei","metapenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,NA,NA,NA
+"metapenaeus endeavouri","endeavour shrimp","metapenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"metapenaeus ensis","greasyback shrimp","metapenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"metapenaeus joyneri","shiba shrimp","metapenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"metapenaeus monoceros","speckled shrimp","metapenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"nematopalaemon schmitti","whitebelly prawn","nematopalaemon",NA,"palaemonidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"palaemon adspersus","baltic prawn","palaemon",NA,"palaemonidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"palaemon longirostris","delta prawn","palaemon",NA,"palaemonidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,1,1,1
+"palaemon serratus","common prawn","palaemon",NA,"palaemonidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"palaemonetes varians","atlantic ditch shrimp","palaemonetes",NA,"palaemonidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,0
+"pandalus","pandalus shrimps nei","pandalus",NA,"pandalidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,NA,NA,NA
+"pandalus borealis","northern prawn","pandalus",NA,"pandalidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"pandalus goniurus","humpy shrimp","pandalus",NA,"pandalidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"pandalus hypsinotus","coonstripe shrimp","pandalus",NA,"pandalidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"pandalus jordani","ocean shrimp","pandalus",NA,"pandalidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"pandalus kessleri","hokkai shrimp","pandalus",NA,"pandalidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"pandalus montagui","aesop shrimp","pandalus",NA,"pandalidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"pandalus platyceros","spot shrimp","pandalus",NA,"pandalidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"parapenaeopsis","parapenaeopsis shrimps nei","parapenaeopsis",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,NA,NA,NA
+"parapenaeopsis atlantica","guinea shrimp","parapenaeopsis",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"parapenaeus longirostris","deep-water rose shrimp","parapenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"pasiphaea tarda","crimson pasiphaeid","pasiphaea",NA,"pasiphaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"penaeidae","pacific seabobs",NA,NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,NA,NA,NA
+"penaeidae","penaeid shrimps nei",NA,NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,NA,NA,NA
+"penaeus","penaeus shrimps nei","penaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,NA,NA,NA
+"penaeus chinensis","fleshy prawn","penaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"penaeus indicus","indian white prawn","penaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"penaeus merguiensis","banana prawn","penaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"penaeus monodon","giant tiger prawn","penaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"penaeus penicillatus","redtail prawn","penaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"penaeus semisulcatus","green tiger prawn","penaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"pleoticus muelleri","argentine red shrimp","pleoticus",NA,"solenoceridae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"pleoticus robustus","royal red shrimp","pleoticus",NA,"solenoceridae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"plesionika edwardsii","striped soldier shrimp","plesionika",NA,"pandalidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"plesionika martia","golden shrimp","plesionika",NA,"pandalidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"protrachypene precipua","titi shrimp","protrachypene",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"sclerocrangon","sculptured shrimps nei","sclerocrangon",NA,"crangonidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,NA,NA,NA
+"sergestidae","sergestid shrimps nei",NA,NA,"sergestidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,NA,NA,NA
+"sicyonia brevirostris","rock shrimp","sicyonia",NA,"sicyoniidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"sicyonia ingentis","pacific rock shrimp","sicyonia",NA,"sicyoniidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"solenocera agassizii","kolibri shrimp","solenocera",NA,"solenoceridae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"trachysalambria curvirostris","southern rough shrimp","trachysalambria",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,0,1
+"xiphopenaeus kroyeri","atlantic seabob","xiphopenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
+"xiphopenaeus kroyeri","pacific seabob","xiphopenaeus",NA,"penaeidae","decapoda","malacostraca",NA,"arthropoda","animalia",NA,0,1,1
