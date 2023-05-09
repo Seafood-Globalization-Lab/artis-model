@@ -7,7 +7,7 @@ rm(list=ls())
 # K: drive directories for Mac:
 datadir <- "/Volumes/jgephart/ARTIS/Data"
 outdir <- "/Volumes/jgephart/ARTIS/Outputs/model_inputs_20221129_NEW"
-outdir <- "qa/baci_value"
+outdir <- "model_inputs"
 tradedatadir <- "/Volumes/jgephart/Trade/Baci"
 
 # Creating out folder if necessary
@@ -25,6 +25,20 @@ library(doParallel)
 
 # Step 1: Load and clean production data and HS codes---------------------------
 running_sau <- FALSE
+
+#-------------------------------------------------------------------------------
+# If running a test environment with specific codes scinames this variable should be true else false
+test <- TRUE
+test_year <- 2018
+test_hs <- "12"
+
+test_scinames <- read.csv("test/sciname_shrimps_prawns.csv") %>%
+  select(sciname) %>%
+  distinct() %>%
+  pull(sciname)
+
+test_codes <- c("030617", "160529", "160521", "030627", "030616", "030626")
+#-------------------------------------------------------------------------------
 
 fao_standard_countries <- read.csv("/Volumes/jgephart/ARTIS/Outputs/clean_metadata/standard_fao_countries.csv")
 
@@ -86,6 +100,16 @@ prod_taxa_classification <- prod_taxa_classification %>%
     Class == 'actinopteri' ~ 'actinopterygii',
     TRUE ~ Class
   ))
+
+if (test) {
+  
+  prod_data <- prod_data %>%
+    filter(year == test_year) %>%
+    filter(SciName %in% test_scinames)
+  
+  prod_taxa_classification<- prod_taxa_classification %>%
+    filter(SciName %in% test_scinames)
+}
 
 # SAVE PRODUCTION OUTPUT:
 write.csv(prod_data, file = file.path(outdir, "clean_fao_prod.csv"), row.names = FALSE)
@@ -203,8 +227,12 @@ write.csv(fmfo_species, file.path(datadir, 'fmfo_species_list.csv'), row.names =
 # List of possible HS versions: HS96, HS02, HS12, HS17
 HS_year <- c("96", "02", "07", "12", "17")
 
-# Restart point for testing
-save.image(file = "qa/clean_inputs_20221219_SAU_corrected.RData")
+if (test) {
+  HS_year <- HS_year[HS_year %in% test_hs]
+  # hs_data_clean <- hs_data_clean %>%
+  #   filter(Code %in% test_codes)
+}
+
 
 for(i in 1:length(HS_year)){
   
@@ -257,10 +285,10 @@ for(i in 1:length(HS_year)){
   tmp <- tmp %>%
     mutate(habitat_classification = "") %>%
     # if there are any species of a habitat add this habitat the code's habitat classification
-    mutate(habitat_classification = case_when(
-      inland > habitat_threshold ~ paste(habitat_classification, "inland", sep = "."),
-      TRUE ~ habitat_classification
-    )) %>%
+    # mutate(habitat_classification = case_when(
+    #   inland > habitat_threshold ~ paste(habitat_classification, "inland", sep = "."),
+    #   TRUE ~ habitat_classification
+    # )) %>%
     mutate(habitat_classification = case_when(
       marine > habitat_threshold ~ paste(habitat_classification, "marine", sep = "."),
       TRUE ~ habitat_classification
@@ -350,6 +378,11 @@ for(i in 1:length(HS_year)){
   hs_taxa_match <- hs_taxa_match %>%
     select(-habitat_test) %>%
     rename(sciname_habitat = habitat, code_habitat = habitat_classification)
+  
+  if (test) {
+    hs_taxa_match <- hs_taxa_match %>%
+      filter(Code %in% test_codes)
+  }
   
   # SAVE HS TAXA MATCH OUTPUT:
   write.csv(hs_taxa_match, file = file.path(outdir, paste("hs-taxa-match_", hs_version, ".csv", sep="")), row.names = FALSE)
@@ -450,6 +483,12 @@ df_years <- data.frame(HS_year = c(rep("96", length(1996:2020)),
                        analysis_year = c(1996:2020, 2002:2020, 2007:2020,
                                          2012:2020, 2017:2020))
 
+if (test) {
+  df_years <- df_years %>%
+    filter(HS_year == test_hs,
+           analysis_year == test_year)
+}
+
 ###############################################################################
 # Load data file and filter for fish codes (i = exporter, j = importer, hs6 = HS code)
 # Note on warning message "Some values were not matched unambiguously: NULL" means all values were matched
@@ -482,10 +521,14 @@ for (i in 1:nrow(df_years)){
   # )
   
   baci_data <- standardize_countries(baci_data, baci_standard_countries, "BACI")
+  if (test) {
+    baci_data <- baci_data %>%
+      filter(hs6 %in% test_codes)
+  }
   # BACI output used to generate ARTIS (keeps legacy dataframe format)
   write.csv(
     baci_data %>%
-      select(-c(total_v, unit_v)),
+      select(-c(total_v)),
     file.path(outdir, paste("standardized_baci_seafood_hs", HS_year, "_y", analysis_year, ".csv", sep = "")),
     row.names = FALSE
   )
@@ -562,6 +605,11 @@ clean_pop <- clean_pop %>%
   rename(iso3c = artis_iso3c, country_name = artis_country_name) %>%
   group_by(iso3c, country_name, year) %>%
   summarize(pop = sum(pop, na.rm = TRUE))
+
+if (test) {
+  clean_pop <- clean_pop %>%
+    filter(year == test_year)
+}
 
 write.csv(clean_pop, file.path(outdir, "fao_annual_pop.csv"), row.names = FALSE)
 

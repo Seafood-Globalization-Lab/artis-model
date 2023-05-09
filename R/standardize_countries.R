@@ -6,7 +6,9 @@ standardize_countries <- function(df, countries, data_source = NA) {
   
   if (data_source == "FAO") {
     
-    standard_df <- standardize_prod(df, "iso3c", "country_name_en") %>%
+    standard_df <- standardize_prod(df,
+                                    "country_iso3_alpha",
+                                    "country_name_en") %>%
       # left_join(
       #   countries,
       #   by = c("country_name_en","country_iso3_alpha"="iso3c", "year")
