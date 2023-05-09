@@ -34,6 +34,14 @@ library(tidyverse)
 # Use these file paths for testing purposes
 datadir <- "demo/model_inputs"
 outdir <- "demo/outputs"
+
+# Creating out folder if necessary
+if (!dir.exists(outdir)) {
+  dir.create(outdir)
+} else {
+  warning("OUTDIR already exists!")
+}
+
 test_years <- c(2018)
 hs_version_run <- "12"
 #-------------------------------------------------------------------------------
