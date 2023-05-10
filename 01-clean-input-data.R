@@ -284,11 +284,11 @@ for(i in 1:length(HS_year)){
   habitat_threshold <- 0 
   tmp <- tmp %>%
     mutate(habitat_classification = "") %>%
-    # if there are any species of a habitat add this habitat the code's habitat classification
-    # mutate(habitat_classification = case_when(
-    #   inland > habitat_threshold ~ paste(habitat_classification, "inland", sep = "."),
-    #   TRUE ~ habitat_classification
-    # )) %>%
+    # if there are any species of a habitat add this habitat tp the code's habitat classification
+    mutate(habitat_classification = case_when(
+      inland > habitat_threshold ~ paste(habitat_classification, "inland", sep = "."),
+      TRUE ~ habitat_classification
+    )) %>%
     mutate(habitat_classification = case_when(
       marine > habitat_threshold ~ paste(habitat_classification, "marine", sep = "."),
       TRUE ~ habitat_classification

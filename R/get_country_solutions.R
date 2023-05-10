@@ -203,12 +203,12 @@ get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = 
     
     # Remove countries that don"t match between baci and production data
     prod_data_analysis_year <- prod_data_analysis_year %>%
-      filter(country_iso3_alpha %in% baci_country_list) %>%
+      # filter(country_iso3_alpha %in% baci_country_list) %>%
       select(country_iso3_alpha, taxa_source, quantity)
     
     baci_data_analysis_year <- baci_data_analysis_year %>%
-      filter(importer_iso3c %in% unique(prod_data_analysis_year$country_iso3_alpha)) %>%
-      filter(exporter_iso3c %in% unique(prod_data_analysis_year$country_iso3_alpha)) %>%
+      # filter(importer_iso3c %in% unique(prod_data_analysis_year$country_iso3_alpha)) %>%
+      # filter(exporter_iso3c %in% unique(prod_data_analysis_year$country_iso3_alpha)) %>%
       select(importer_iso3c, exporter_iso3c, hs6, total_q)
     
     
