@@ -30,6 +30,9 @@ library(parallel) # "parallel" package is now part of base and does not need to 
 library(reticulate)
 library(slam)
 library(tidyverse)
+library(doParallel)
+
+rm(list=ls())
 
 # Use these file paths for testing purposes
 datadir <- "demo/model_inputs"
@@ -44,8 +47,13 @@ if (!dir.exists(outdir)) {
 
 test_years <- c(2018)
 hs_version_run <- "12"
+
+python_path <- file.path(getwd(), "venv", "bin", "python3")
+use_python(python_path, required = TRUE)
 #-------------------------------------------------------------------------------
 # Geting country solutions
+
+start_date <- as.character(Sys.Date())
 
 # quadprog country solutions
 outdir_quadprog <- file.path(outdir, "quadprog_snet")
@@ -57,6 +65,7 @@ if (!dir.exists(outdir_quadprog)) {
   warning("OUTDIR already exists!")
 }
 
+# FIXIT more descriptive comments
 get_country_solutions(
   datadir,
   outdir_quadprog,
@@ -68,12 +77,12 @@ get_country_solutions(
 # getting all missing countries
 no_solve_countries <- get_no_solve_countries(
   snet_dir = outdir_quadprog,
-  artis_run_date_no_dash = "2022-11-18"
+  artis_run_date_no_dash = start_date
 )
 
 quadprog_no_solve_fp <- file.path(outdir_quadprog, "no_solve_countries.csv")
 
-print(file.path(snet_dir, "no_solve_countries.csv"))
+
 write.csv(no_solve_countries, quadprog_no_solve_fp, row.names = FALSE)
 
 
@@ -117,8 +126,10 @@ get_snet(
   outdir_cvxopt,
   datadir,
   outdir_snet,
+  num_cores = 3,
   hs_version = hs_version_run,
-  prod_type = "FAO"
+  prod_type = "FAO",
+  test_years = c(2018)
 )
 
 

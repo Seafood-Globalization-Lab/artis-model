@@ -1,20 +1,32 @@
 
-packdir <- "/project/ARTIS/Package"
-setwd(packdir) # note: If running on zorro need to set directory to packdir before #devtools::install()
+# packdir <- "/project/ARTIS/Package"
+# setwd(packdir) # note: If running on zorro need to set directory to packdir before #devtools::install()
 
 # Build and install artis package
 # devtools::install()
 
 # Load Packages
-library(tidyverse, lib.loc = "/home/rahulab/R/x86_64-pc-linux-gnu-library/3.6/")
+library(tidyverse)
 
+rm(list=ls())
 # Directories
-artis_run_path <-  "/project/ARTIS/ARTIS/snet_20221129_NEW"
-outdir <- "/project/ARTIS/ARTIS/snet_20230331"
+artis_run_path <- "demo/outputs"
+outdir <- "demo/outputs"
+
 outdir_building_blocks <- file.path(outdir,
                                     "building_blocks")
-outdir_ts <- file.path(outdir,
-                       "timeseries")
+
+outdir_custom_ts <- file.path(outdir,
+                              "custom_ts")
+
+if (!dir.exists(outdir_building_blocks)) {
+  dir.create(outdir_building_blocks)
+}
+
+if (!dir.exists(outdir_custom_ts)) {
+  dir.create(outdir_custom_ts)
+}
+
 
 
 # Function that list all snet files for a particular pattern
@@ -51,17 +63,6 @@ compile_artis <- function(in_path, file_pattern, out_path) {
   print(paste(out_path, "DONE"))
 }
 
-build_artis_timeseries <- function(artis_path, out_path) {
-  
-  artis <- read.csv(artis_path)
-  artis <- artis %>%
-    group_by(year, hs_version) %>%
-    summarize(product_weight_t = sum(product_weight_t))
-  
-  write.csv(artis, out_path, row.names=FALSE)
-  print(paste(out_path, "DONE"))
-}
-
 print("Compiling ARTIS")
 compile_artis(file.path(artis_run_path, 'snet'),
               "^midpoint_artis_ts", 
@@ -72,6 +73,26 @@ compile_artis(file.path(artis_run_path, 'snet'),
 compile_artis(file.path(artis_run_path, 'snet'),
               "^midpoint_artis_habitat_prod_ts",
               file.path(outdir_building_blocks, "midpoint_artis_habitat_prod_ts.csv"))
+
+compile_artis(file.path(artis_run_path, 'snet'),
+              "^max_artis_ts", 
+              file.path(outdir_building_blocks, "max_artis_ts.csv"))
+compile_artis(file.path(artis_run_path, 'snet'),
+              "^max_artis_species_ts", 
+              file.path(outdir_building_blocks, "max_artis_species_ts.csv"))
+compile_artis(file.path(artis_run_path, 'snet'),
+              "^max_artis_habitat_prod_ts",
+              file.path(outdir_building_blocks, "max_artis_habitat_prod_ts.csv"))
+
+compile_artis(file.path(artis_run_path, 'snet'),
+              "^min_artis_ts", 
+              file.path(outdir_building_blocks, "min_artis_ts.csv"))
+compile_artis(file.path(artis_run_path, 'snet'),
+              "^min_artis_species_ts", 
+              file.path(outdir_building_blocks, "min_artis_species_ts.csv"))
+compile_artis(file.path(artis_run_path, 'snet'),
+              "^min_artis_habitat_prod_ts",
+              file.path(outdir_building_blocks, "min_artis_habitat_prod_ts.csv"))
 
 #-------------------------------------------------------------------------------
 # Consumption Files
@@ -113,8 +134,8 @@ compile_artis(file.path(artis_run_path, 'snet'),
 
 # Build custom time series with one HS version per year for min, mid and max
 # ARTIS RUN File Path
-datadir <- "/project/ARTIS/ARTIS/snet_20230331/building_blocks"
-outdir <- "/project/ARTIS/ARTIS/snet_20230331/custom_ts"
+datadir <- "building_blocks"
+outdir <- "custom_ts"
 
 prep_custom_ts <- function(df) {
   
@@ -139,16 +160,16 @@ prep_custom_ts <- function(df) {
 }
 
 # max
-max <- read.csv(file.path(datadir, "max_artis_ts.csv"))
+max <- read.csv(file.path(outdir_building_blocks, "max_artis_ts.csv"))
 max <- prep_custom_ts(max)
-write.csv(max, file.path(outdir, "max_custom_ts.csv"), row.names = FALSE)
+write.csv(max, file.path(outdir_custom_ts, "max_custom_ts.csv"), row.names = FALSE)
 
 # mid
-mid <- read.csv(file.path(datadir, "midpoint_artis_ts.csv"))
+mid <- read.csv(file.path(outdir_building_blocks, "midpoint_artis_ts.csv"))
 mid <- prep_custom_ts(mid)
-write.csv(mid, file.path(outdir, "mid_custom_ts.csv"), row.names = FALSE)
+write.csv(mid, file.path(outdir_custom_ts, "mid_custom_ts.csv"), row.names = FALSE)
 
 # min
-min <- read.csv(file.path(datadir, "min_artis_ts.csv"))
+min <- read.csv(file.path(outdir_building_blocks, "min_artis_ts.csv"))
 min <- prep_custom_ts(min)
-write.csv(min, file.path(outdir, "min_custom_ts.csv"), row.names = FALSE)
+write.csv(min, file.path(outdir_custom_ts, "min_custom_ts.csv"), row.names = FALSE)
