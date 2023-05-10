@@ -14,3 +14,8 @@
 8. Confirm you have successfully installed the packages qpsolvers, quadprog, cvxopt by running "pip list".
 9. Type "deactivate" in terminal.
 10. Click on the Console tab.
+
+Note that you only need to install the solvers the first time you run this code. Warnings about the latest version of pip may also appear during the installation - these are okay, but errors are not. 
+
+# Running the model 
+[Add instructions for running through the demo]

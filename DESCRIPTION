@@ -4,5 +4,5 @@ RoxygenNote: 7.2.3
 Encoding: UTF-8
 Author@R: person("Jessica", "Gephart", email = "jgephart@american.edu", role = c("aut", "cre"))
 Description: Creates the Aquatic Resource Trade in Species (ARTIS) database, which estimates trade flows in seafood species between all countries from 1994 to 2016.
-Depends: R (>= 4.2.2), tidyverse, data.table, magrittr, Matrix, parallel, reticulate, slam, doParallel, countrycode, janitor, read_excel, stringr, dplyr
+Depends: R (>= 4.2.2), tidyverse, data.table, magrittr, Matrix, parallel, reticulate, slam, doParallel, countrycode, janitor, readxl, stringr, dplyr
 License: CC0

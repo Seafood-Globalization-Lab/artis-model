@@ -32,13 +32,14 @@ library(slam)
 library(tidyverse)
 library(doParallel)
 
+# Clear environment
 rm(list=ls())
 
 # Use these file paths for testing purposes
 datadir <- "demo/model_inputs"
 outdir <- "demo/outputs"
 
-# Creating out folder if necessary
+# Creating general outputs folder if necessary
 if (!dir.exists(outdir)) {
   dir.create(outdir)
 } else {
@@ -58,7 +59,7 @@ start_date <- as.character(Sys.Date())
 # quadprog country solutions
 outdir_quadprog <- file.path(outdir, "quadprog_snet")
 
-# Creating out folder if necessary
+# Creating out folder for quadprog outputs if necessary
 if (!dir.exists(outdir_quadprog)) {
   dir.create(outdir_quadprog)
 } else {
