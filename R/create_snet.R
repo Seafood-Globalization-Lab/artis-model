@@ -374,7 +374,9 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
       by = c("hs6")
     ) %>%
     mutate(live_weight_t = product_weight_t * live_weight_cf) %>%
-    select(-live_weight_cf)
+    select(-live_weight_cf) %>%
+    # filter out flows that we consider to be zero, default 0.1
+    filter(product_weight_t >= snet_threshold)
   
   # Bringing together all exports sourced from domestic, error and foreign
   s_net <- dom_exp %>%
