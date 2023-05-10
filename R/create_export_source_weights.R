@@ -25,7 +25,6 @@ create_export_source_weights <- function(baci_data_analysis_year, countries_to_a
   
   for (i in 1:length(countries_to_analyze)) {
     curr_country <- countries_to_analyze[i]
-    print(curr_country)
     
     # Get values from country_est for focal country
     X <- country_est[[curr_country]]$X
