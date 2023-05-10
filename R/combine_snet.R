@@ -37,20 +37,26 @@ combine_snet <- function(year_folders, hs_version, file.date, snet_type = "NA", 
     # Consumption files
     
     curr_summary_consumption <- read.csv(
-      curr_folder,
-      paste("summary_consumption_", snet_type, ".csv", sep = "")
+      file.path(
+        curr_folder,
+        paste("summary_consumption_", snet_type, ".csv", sep = "")
+      )
     ) %>%
       mutate(hs_version = hs_version)
     
     curr_foreign_consumption <- read.csv(
-      curr_folder,
-      paste("foreign_consumption_", snet_type, ".csv", sep = "")
+      file.path(
+        curr_folder,
+        paste("foreign_consumption_", snet_type, ".csv", sep = "")
+      )
     ) %>%
       mutate(hs_version = hs_version)
     
     curr_domestic_consumption <- read.csv(
-      curr_folder,
-      paste("domestic_consumption_", snet_type, ".csv", sep = "")
+      file.path(
+        curr_folder,
+        paste("domestic_consumption_", snet_type, ".csv", sep = "")
+      )
     ) %>%
       mutate(hs_version = hs_version)
     
@@ -66,19 +72,19 @@ combine_snet <- function(year_folders, hs_version, file.date, snet_type = "NA", 
   
   write.csv(
     summary_consumption,
-    file.path("summary_consumption_", snet_type, "_", hs_version, "_", ".csv"),
+    file.path(outdir, paste("summary_consumption_", snet_type, "_", hs_version, "_", ".csv", sep = "")),
     row.names = FALSE
   )
   
   write.csv(
     domestic_consumption,
-    file.path("domestic_consumption_", snet_type, "_", hs_version, "_", ".csv"),
+    file.path(outdir, paste("domestic_consumption_", snet_type, "_", hs_version, "_", ".csv", sep = "")),
     row.names = FALSE
   )
   
   write.csv(
     foreign_consumption,
-    file.path("foreign_consumption_", snet_type, "_", hs_version, "_", ".csv"),
+    file.path(outdir, paste("foreign_consumption_", snet_type, "_", hs_version, "_", ".csv", sep = "")),
     row.names = FALSE
   )
   

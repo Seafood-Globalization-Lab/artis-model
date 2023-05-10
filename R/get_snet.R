@@ -426,7 +426,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = NA, 
              year = analysis_year)
     
     rm(source_weights_midpoint)
-    rm(source_weight_max)
+    rm(source_weights_max)
     rm(source_weights_min)
     gc()
     
