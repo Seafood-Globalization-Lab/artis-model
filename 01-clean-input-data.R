@@ -7,7 +7,7 @@ rm(list=ls())
 # K: drive directories for Mac:
 datadir <- "/Volumes/jgephart/ARTIS/Data"
 outdir <- "/Volumes/jgephart/ARTIS/Outputs/model_inputs_20221129_NEW"
-outdir <- "model_inputs"
+outdir <- "demo/model_inputs"
 tradedatadir <- "/Volumes/jgephart/Trade/Baci"
 
 # Creating out folder if necessary
@@ -32,7 +32,7 @@ test <- TRUE
 test_year <- 2018
 test_hs <- "12"
 
-test_scinames <- read.csv("test/sciname_shrimps_prawns.csv") %>%
+test_scinames <- read.csv("demo/sciname_shrimps_prawns.csv") %>%
   select(sciname) %>%
   distinct() %>%
   pull(sciname)
@@ -502,6 +502,7 @@ for (i in 1:nrow(df_years)){
   
   baci_data <- read.csv(file = file.path(tradedatadir, "_Unzipped_BACI_HSXX_V202201", paste("BACI_", "HS", HS_year, "_Y", analysis_year, "_V202201.csv", sep = "")),
                        stringsAsFactors = FALSE)
+  
   baci_data <- baci_data %>%
     mutate(q = as.numeric(q)) %>%
     # NAs should only arise when q is "           NA" (whitespace included)
@@ -513,6 +514,15 @@ for (i in 1:nrow(df_years)){
     baci_country_codes = read.csv(file.path(tradedatadir, "country_codes_V202201.csv"))
   )
   
+  if (test) {
+    baci_data <- baci_data %>%
+      filter(hs6 %in% test_codes)
+  }
+  
+  baci_data <- baci_data %>%
+    mutate(year = analysis_year,
+           hs_version = paste("HS", HS_year, sep = ""))
+  
   # write.csv(
   #   baci_data %>%
   #     select(-c(total_v, unit_v)),
@@ -521,10 +531,7 @@ for (i in 1:nrow(df_years)){
   # )
   
   baci_data <- standardize_countries(baci_data, baci_standard_countries, "BACI")
-  if (test) {
-    baci_data <- baci_data %>%
-      filter(hs6 %in% test_codes)
-  }
+  
   # BACI output used to generate ARTIS (keeps legacy dataframe format)
   write.csv(
     baci_data %>%
@@ -543,7 +550,6 @@ for (i in 1:nrow(df_years)){
 
 # Clean FAO population data
 datadir <- "/Volumes/jgephart/ARTIS/Data"
-outdir <- "/Volumes/jgephart/ARTIS/Outputs/clean_metadata"
 pop_raw <- read.csv(file.path(datadir, "Population_E_All_Data/Population_E_All_Data_NOFLAG.csv"))
 
 clean_pop <- pop_raw %>%
@@ -611,6 +617,6 @@ if (test) {
     filter(year == test_year)
 }
 
-write.csv(clean_pop, file.path(outdir, "fao_annual_pop.csv"), row.names = FALSE)
+write.csv(clean_pop, file.path("demo/model_inputs", "fao_annual_pop.csv"), row.names = FALSE)
 
 
