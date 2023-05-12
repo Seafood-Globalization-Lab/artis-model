@@ -1,5 +1,13 @@
 #' @export
-reweight_X <- function(country_est, country_j){
+reweight_X <- function(country_est, country_j, V1, V2){
+  
+  # Live weight conversion factors from live weight to product weight
+  # maximum V1 values is 1
+  V1_long <- data.frame(V1) %>%
+    mutate(hs6 = colnames(V2)) %>%
+    pivot_longer(cols = -hs6, names_to = "SciName", values_to = "live_weight_cf") %>%
+    filter(live_weight_cf > 0)
+  
   tmp_p <- data.frame(SciName = colnames(country_est[[country_j]]$X), 
                       production = country_est[[country_j]]$p)
   
@@ -13,9 +21,17 @@ reweight_X <- function(country_est, country_j){
     mutate(iso3c = str_extract(hs6, "[[:alpha:]]+"),
            hs6 = str_extract(hs6, "[[:digit:]]+")) %>%
     # Join with production to reweight
-    left_join(tmp_p, by = "SciName") %>% 
+    left_join(tmp_p, by = "SciName") %>%
+    # CFs from live weight to product weight
+    left_join(
+      V1_long,
+      by = c("hs6", "SciName")
+    ) %>%
+    # Converting production from live weight to product weight to match calculations
+    # further down the pipeline in calculating snet
+    mutate(production = production * live_weight_cf) %>%
     # Multiply by production to reweight by code
-    mutate(species_commod_production = estimated_X*production) %>%
+    mutate(species_commod_production = estimated_X * production) %>%
     # Total production of each commod
     group_by(hs6) %>%
     mutate(total_commod_production = sum(species_commod_production)) %>%
