@@ -242,7 +242,7 @@ for(i in 1:length(HS_year)){
   # Match HS codes to production taxa (can be FAO or SAU depending on which was used in clean_and_clasify_prod_dat function)
   hs_taxa_match <- match_hs_to_taxa(hs_data_clean = hs_data_clean,
                                     prod_taxa_classification = prod_taxa_classification,
-                                    # species used for FMFO globally (output of Cashion et al. 2017)
+                                    # species used for FMFO globally based on SAU data
                                     fmfo_species_list = fmfo_species,
                                     hs_version = hs_version)
   
