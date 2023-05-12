@@ -171,10 +171,12 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = NA, 
   write.csv(V1_long, file.path(outdir, paste("HS", hs_version, "/V1_long_HS", hs_version, ".csv", sep = "")), row.names = FALSE)
   
   # Product-to-Product
+  # This is going from original product weight to new product weight
+  # (ie represents processing losses, all values should be <= 1)
   V2_long <- data.frame(V2) %>%
-    mutate(from_hs6 = as.character(cc_m)) %>%
-    pivot_longer(cols = -from_hs6, names_to = "to_hs6", values_to = "product_cf") %>%
-    mutate(to_hs6 = substr(to_hs6, 2, str_length(to_hs6))) %>%
+    mutate(to_hs6 = as.character(cc_m)) %>%
+    pivot_longer(cols = -to_hs6, names_to = "from_hs6", values_to = "product_cf") %>%
+    mutate(from_hs6 = substr(from_hs6, 2, str_length(from_hs6))) %>%
     filter(product_cf > 0)
   
   write.csv(V2_long, file.path(outdir, paste("HS", hs_version, "/V2_long_HS", hs_version, ".csv", sep = "")), row.names = FALSE)
@@ -358,22 +360,6 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = NA, 
     # Free up clusters after use
     stopCluster(w_long_cl)
     
-    # incorporate processing losses from one code to another
-    W_long <- W_long %>%
-      # joining product cfs
-      left_join(
-        V2_long,
-        by = c("hs6_original"="from_hs6", "hs6_processed"="to_hs6")
-      ) %>%
-      # These product cfs were removed from initial V2_long since they were 0
-      mutate(product_cf = case_when(
-        is.na(product_cf) ~ 0,
-        TRUE ~ product_cf
-      )) %>%
-      # including processing losses in estimated W
-      mutate(estimated_W = estimated_W * product_cf) %>%
-      select(-product_cf)
-    
     # Restructure BACI data to specify that it handles product weight
     baci_data_analysis_year <- baci_data_analysis_year %>%
       rename(product_weight_t = total_q) %>%
@@ -383,6 +369,13 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = NA, 
     # estimated W = proportion of each imported hs6 going into
     #               each processed hs6 which is available for export
     reweight_W_long <- W_long %>%
+      # joining processing losses
+      left_join(
+        V2_long,
+        by = c("hs6_original"="from_hs6", "hs6_processed"="to_hs6")
+      ) %>%
+      # including processing losses in estimated W
+      mutate(estimated_W = estimated_W * (1/product_cf)) %>%
       left_join(
         # get total imports by country and hs6 code for weighting
         baci_data_analysis_year %>%
