@@ -1,5 +1,5 @@
 #' @export
-get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = NA, hs_version = NA, 
+get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10, hs_version = NA, 
                      test_years = NA, prod_type = "FAO") {
   
   #-------------------------------------------------------------------------------
@@ -13,9 +13,9 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = NA, 
   # List of variables to retain in memory when environment is cleared
   analysis_info <- c("outdir", "datadir", "file.date", "full_analysis_start", "HS_year_rep", "hs_dir", 
                      "df_years", "analysis_year", "hs_analysis_year_dir",
-                     "hs_dir", "quadprog_dir", "cvxopt_dir")
+                     "hs_dir", "quadprog_dir", "cvxopt_dir", "num_cores")
   analysis_setup <- c("prod_data", "V1", "V2", "V1_long", "V2_long", "sc_n", "cc_m", "X_cols", "X_rows", 
-                      "W_cols", "W_rows", "Xq", "analysis_years_rep", "HS_year_rep", "num_cores")
+                      "W_cols", "W_rows", "Xq", "analysis_years_rep", "HS_year_rep")
   
   # Use file.date for all filenames
   # If scripts runs overnight, setting this up top prevents having to deal with two dates before and after midnight

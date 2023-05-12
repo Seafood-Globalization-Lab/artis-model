@@ -1,5 +1,5 @@
 #' @export
-get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = NA, prod_type = "FAO", solver_type = "quadprog", no_solve_countries = NA) {
+get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = NA, prod_type = "FAO", solver_type = "quadprog", no_solve_countries = NA, num_cores = 10) {
   
   #-----------------------------------------------------------------------------
   # Step 0: Setup
@@ -10,7 +10,7 @@ get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = 
   file.date <- Sys.Date()
   
   # List of variables to retain in memory when environment is cleared
-  analysis_info <- c("outdir", "datadir", "file.date", "full_analysis_start", "HS_year_rep", "hs_dir", "df_years", "analysis_year", "hs_analysis_year_dir", "solver_type")
+  analysis_info <- c("outdir", "datadir", "file.date", "full_analysis_start", "HS_year_rep", "hs_dir", "df_years", "analysis_year", "hs_analysis_year_dir", "solver_type", "num_cores")
   analysis_setup <- c("prod_data", "V1", "V2", "sc_n", "cc_m", "X_cols", "X_rows", "W_cols", "W_rows", "Xq", "analysis_years_rep", "HS_year_rep", "no_solve_countries")
   
   #-----------------------------------------------------------------------------
@@ -362,9 +362,8 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\", verbose = True)', c
     
     # Parallelize:
     # Maybe decrease number of mc.cores to a lower amount
-    mclapply(countries_to_analyze, solve_country, solver_to_use = solver_type, mc.cores = 3, mc.preschedule = FALSE)
-    # mclapply(countries_to_analyze, FUN = function(i){solve_country(i, "quadprog")}, mc.cores = 10, mc.preschedule = FALSE)
-    
+    mclapply(countries_to_analyze, solve_country, solver_to_use = solver_type, mc.cores = num_cores, mc.preschedule = FALSE)
+
     # This needs to contain ALL files across quadprog and cvxopt solutions
     # Read in individual country solutions and combine into a list
     output_files <- list.files(hs_analysis_year_dir)
