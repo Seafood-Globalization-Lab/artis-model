@@ -281,7 +281,6 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = NA, 
                                "analysis_info", analysis_info))])
     gc()
     
-    print(coproduct_codes)
     # Determine most specific clade of each HS code (but if clade is not reported in production data (i.e., hs_taxa_match$SciName), return NA)
     # To match to clade, even if not reported in production data, set match_to_prod to FALSE
     hs_clade_match <- match_hs_to_clade(hs_taxa_match = read.csv(file.path(datadir, paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = ""))) %>%
@@ -304,7 +303,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = NA, 
     # post completely built ARTIS
     reweight_X_long <- data.frame()
     for(i in 1:length(countries_to_analyze)){
-      tmp <- reweight_X(country_est, countries_to_analyze[i])
+      tmp <- reweight_X(country_est, countries_to_analyze[i], V1, V2)
       reweight_X_long <- reweight_X_long %>%
         bind_rows(tmp)
     }
@@ -358,6 +357,22 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = NA, 
     }
     # Free up clusters after use
     stopCluster(w_long_cl)
+    
+    # incorporate processing losses from one code to another
+    W_long <- W_long %>%
+      # joining product cfs
+      left_join(
+        V2_long,
+        by = c("hs6_original"="from_hs6", "hs6_processed"="to_hs6")
+      ) %>%
+      # These product cfs were removed from initial V2_long since they were 0
+      mutate(product_cf = case_when(
+        is.na(product_cf) ~ 0,
+        TRUE ~ product_cf
+      )) %>%
+      # including processing losses in estimated W
+      mutate(estimated_W = estimated_W * product_cf) %>%
+      select(-product_cf)
     
     # Restructure BACI data to specify that it handles product weight
     baci_data_analysis_year <- baci_data_analysis_year %>%
