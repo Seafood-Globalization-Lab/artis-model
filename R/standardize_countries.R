@@ -1,6 +1,6 @@
 #' @importFrom countrycode countrycode
 #' @export
-standardize_countries <- function(df, countries, data_source = NA) {
+standardize_countries <- function(df, data_source = NA) {
   
   standard_df <- data.frame()
   
