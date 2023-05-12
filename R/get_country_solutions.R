@@ -201,14 +201,14 @@ get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = 
     print(paste("Countries in production, but not in baci data: ", paste(setdiff(prod_country_list, baci_country_list), collapse = ", "), sep = ""))
     sink()
     
-    # Remove countries that don"t match between baci and production data
+    # # Remove countries that don"t match between baci and production data
     prod_data_analysis_year <- prod_data_analysis_year %>%
-      filter(country_iso3_alpha %in% baci_country_list) %>%
+      # filter(country_iso3_alpha %in% baci_country_list) %>%
       select(country_iso3_alpha, taxa_source, quantity)
-    
+
     baci_data_analysis_year <- baci_data_analysis_year %>%
-      filter(importer_iso3c %in% unique(prod_data_analysis_year$country_iso3_alpha)) %>%
-      filter(exporter_iso3c %in% unique(prod_data_analysis_year$country_iso3_alpha)) %>%
+      # filter(importer_iso3c %in% unique(prod_data_analysis_year$country_iso3_alpha)) %>%
+      # filter(exporter_iso3c %in% unique(prod_data_analysis_year$country_iso3_alpha)) %>%
       select(importer_iso3c, exporter_iso3c, hs6, total_q)
     
     
@@ -362,7 +362,7 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\", verbose = True)', c
     
     # Parallelize:
     # Maybe decrease number of mc.cores to a lower amount
-    mclapply(countries_to_analyze, solve_country, solver_to_use = solver_type, mc.cores = 10, mc.preschedule = FALSE)
+    mclapply(countries_to_analyze, solve_country, solver_to_use = solver_type, mc.cores = 3, mc.preschedule = FALSE)
     # mclapply(countries_to_analyze, FUN = function(i){solve_country(i, "quadprog")}, mc.cores = 10, mc.preschedule = FALSE)
     
     # This needs to contain ALL files across quadprog and cvxopt solutions
