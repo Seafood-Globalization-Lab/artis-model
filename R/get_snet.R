@@ -1,26 +1,30 @@
 #' @export
-get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10, hs_version = NA, 
-                     test_years = NA, prod_type = "FAO") {
+get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
+                     hs_version = NA, test_years = NA, prod_type = "FAO") {
   
-  #-------------------------------------------------------------------------------
+  #-----------------------------------------------------------------------------
   # Step 0: Setup
   full_analysis_start <- Sys.time()
   
   # Use file.date for all filenames
-  # If scripts runs overnight, setting this up top prevents having to deal with two dates before and after midnight
+  # If scripts runs overnight, setting this up top prevents having to deal with
+  # two dates before and after midnight
   file.date <- Sys.Date()
   
   # List of variables to retain in memory when environment is cleared
-  analysis_info <- c("outdir", "datadir", "file.date", "full_analysis_start", "HS_year_rep", "hs_dir", 
-                     "df_years", "analysis_year", "hs_analysis_year_dir",
-                     "hs_dir", "quadprog_dir", "cvxopt_dir", "num_cores")
-  analysis_setup <- c("prod_data", "V1", "V2", "V1_long", "V2_long", "sc_n", "cc_m", "X_cols", "X_rows", 
-                      "W_cols", "W_rows", "Xq", "analysis_years_rep", "HS_year_rep")
+  analysis_info <- c("outdir", "datadir", "file.date", "full_analysis_start",
+                     "HS_year_rep", "hs_dir", "df_years", "analysis_year",
+                     "hs_analysis_year_dir", "hs_dir", "quadprog_dir",
+                     "cvxopt_dir", "num_cores")
+  analysis_setup <- c("prod_data", "V1", "V2", "V1_long", "V2_long", "sc_n",
+                      "cc_m", "X_cols", "X_rows", "W_cols", "W_rows", "Xq",
+                      "analysis_years_rep", "HS_year_rep")
   
   # Use file.date for all filenames
-  # If scripts runs overnight, setting this up top prevents having to deal with two dates before and after midnight
+  # If scripts runs overnight, setting this up top prevents having to deal
+  # with two dates before and after midnight
   file.date <- Sys.Date()
-  #-------------------------------------------------------------------------------
+  #-----------------------------------------------------------------------------
   # Step 2: Loop through all years for each HS code year
   
   # List of possible HS versions: HS92, HS96, HS02, HS12, HS17
@@ -33,7 +37,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10, 
                          analysis_year = c(1996:2020, 2002:2020, 2007:2020,
                                            2012:2020, 2017:2020))
   
-  #-------------------------------------------------------------------------------
+  #-----------------------------------------------------------------------------
   # Choose single HS (this will change for each file submitted to Zorro - 
   # run one HS code per Zorro submission)
   
@@ -73,19 +77,29 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10, 
   prod_data <- read.csv(file.path(datadir, prod_filename))
   prod_taxa_classification <- read.csv(file.path(datadir, prod_taxa_filename))
   
-  #-------------------------------------------------------------------------------
+  #-----------------------------------------------------------------------------  
   # Load hs_taxa_match for appropriate HS year
-  hs_taxa_match <- read.csv(file.path(datadir, paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = ""))) %>%
-    # select(-c(sciname_habitat, code_habitat)) %>%
+  hs_taxa_match <- read.csv(
+    file.path(datadir, paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = ""))
+  ) %>%
     # pad HS codes with zeroes
     mutate(Code = as.character(Code)) %>%
-    mutate(Code = if_else(str_detect(Code, "^30"), true = str_replace(Code, pattern = "^30", replacement = "030"),
-                          if_else(str_detect(Code, "^511"), true = str_replace(Code, pattern = "^511", replacement = "0511"),
-                                  false = Code)))
+    mutate(Code = if_else(
+      str_detect(Code, "^30"),
+      true = str_replace(Code, pattern = "^30", replacement = "030"),
+      if_else(str_detect(Code, "^511"),
+              true = str_replace(Code, pattern = "^511", replacement = "0511"),
+              false = Code)))
   
-  # Make new version of hs_taxa_match that includes SciName + taxa_source for the full snet estimation
+  # Make new version of hs_taxa_match that includes SciName +
+  # taxa_source for the full snet estimation
   hs_taxa_match <- hs_taxa_match %>%
-    left_join(prod_data %>% select(SciName, taxa_source) %>% distinct(), by = "SciName") %>%
+    left_join(
+      prod_data %>%
+        select(SciName, taxa_source) %>%
+        distinct(),
+      by = "SciName"
+    ) %>%
     select(-SciName) %>%
     rename("SciName" = "taxa_source") %>%
     filter(!is.na(SciName)) %>%
@@ -96,16 +110,33 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10, 
     select(-c(sciname_habitat, code_habitat))
   
   # Load hs_taxa_CF_match for appropriate HS year
-  hs_taxa_CF_match <- read.csv(file.path(datadir, paste("hs-taxa-CF_strict-match_HS", HS_year_rep, ".csv", sep = ""))) %>%
+  hs_taxa_CF_match <- read.csv(
+    file.path(datadir,
+              paste("hs-taxa-CF_strict-match_HS", HS_year_rep, ".csv", sep = ""))
+  ) %>%
     # pad HS codes with zeroes
     mutate(Code = as.character(Code)) %>%
-    mutate(Code = if_else(str_detect(Code, "^30"), true = str_replace(Code, pattern = "^30", replacement = "030"),
-                          if_else(str_detect(Code, "^511"), true = str_replace(Code, pattern = "^511", replacement = "0511"),
-                                  false = Code)))
+    mutate(
+      Code = if_else(
+        str_detect(Code, "^30"),
+        true = str_replace(Code, pattern = "^30", replacement = "030"),
+        if_else(
+          str_detect(Code, "^511"),
+          true = str_replace(Code, pattern = "^511", replacement = "0511"),
+          false = Code
+        )
+      )
+    )
   
-  # Make new version of hs_taxa_CF_match that includes SciName + taxa_source for the full snet estimation
+  # Make new version of hs_taxa_CF_match that includes SciName +
+  # taxa_source for the full snet estimation
   hs_taxa_CF_match <- hs_taxa_CF_match %>%
-    left_join(prod_data %>% select(SciName, taxa_source) %>% distinct(), by = c("Taxa" = "SciName")) %>%
+    left_join(
+      prod_data %>%
+        select(SciName, taxa_source) %>%
+        distinct(),
+      by = c("Taxa" = "SciName")
+    ) %>%
     select(-Taxa) %>%
     rename("Taxa" = "taxa_source") %>%
     filter(!is.na(Taxa)) %>%
@@ -116,51 +147,78 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10, 
     )
   
   # Load hs-hs match for appropriate HS year
-  hs_hs_match <- read.csv(file.path(datadir, paste("hs-hs-match_HS", HS_year_rep, ".csv", sep=""))) %>% 
+  hs_hs_match <- read.csv(
+    file.path(datadir,
+              paste("hs-hs-match_HS", HS_year_rep, ".csv", sep=""))
+  ) %>% 
     # pad HS codes with zeroes
     mutate(Code_pre = as.character(Code_pre)) %>%
-    mutate(Code_pre = if_else(str_detect(Code_pre, "^30"), true = str_replace(Code_pre, pattern = "^30", replacement = "030"),
-                              if_else(str_detect(Code_pre, "^511"), true = str_replace(Code_pre, pattern = "^511", replacement = "0511"),
-                                      false = Code_pre))) %>%
+    mutate(
+      Code_pre = if_else(
+        str_detect(Code_pre, "^30"),
+        true = str_replace(Code_pre, pattern = "^30", replacement = "030"),
+        if_else(
+          str_detect(Code_pre, "^511"),
+          true = str_replace(Code_pre, pattern = "^511", replacement = "0511"),
+          false = Code_pre
+        )
+      )
+    ) %>%
     mutate(Code_post = as.character(Code_post)) %>%
-    mutate(Code_post = if_else(str_detect(Code_post, "^30"), true = str_replace(Code_post, pattern = "^30", replacement = "030"),
-                               if_else(str_detect(Code_post, "^511"), true = str_replace(Code_post, pattern = "^511", replacement = "0511"),
-                                       false = Code_post)))
+    mutate(
+      Code_post = if_else(
+        str_detect(Code_post, "^30"),
+        true = str_replace(Code_post, pattern = "^30", replacement = "030"),
+        if_else(
+          str_detect(Code_post, "^511"),
+          true = str_replace(Code_post, pattern = "^511", replacement = "0511"),
+          false = Code_post
+        )
+      )
+    )
   
-  ###############################################################################
+  #-----------------------------------------------------------------------------  
   # Step 3: Make V1 and V2
   
-  # V1: sparse matrix (products x species) of conversion factors corresponding to the entries of X
-  # coproduct_codes are products with CF == 0
-  coproduct_codes <- hs_taxa_CF_match %>% select(Code, CF_calc) %>% filter(CF_calc == 0) %>% distinct() %>% pull(Code)
+  # V1: sparse matrix (products x species) of conversion factors corresponding 
+  # to the entries of X, coproduct_codes are products with CF == 0
+  coproduct_codes <- hs_taxa_CF_match %>%
+    select(Code, CF_calc) %>%
+    filter(CF_calc == 0) %>%
+    distinct() %>%
+    pull(Code)
+  
   X_all <- make_v1(hs_taxa_CF_match, coproduct_codes)
   V1 <- X_all[[1]]
-  
   X_rows <- X_all[[2]]
   X_cols <- X_all[[3]]
   
-  # Make Xq, matrix for controlling strength of species to product estimates in optimization problem (see transform_to_qp_with_python.R)
+  # Make Xq, matrix for controlling strength of species to product estimates in
+  # optimization problem (see transform_to_qp_with_python.R)
   Xq <- categorize_hs_to_taxa(hs_taxa_match, coproduct_codes)
   
-  # V2: sparse matrix of (products x products) conversion factors corresponding to the entries of W
-  # Columns are the original products, Rows are the final product state
+  # V2: sparse matrix of (products x products) conversion factors corresponding
+  # to the entries of W, columns are the original products,
+  # Rows are thefinal product state
   W_all <- make_v2(hs_hs_match = hs_hs_match, hs_taxa_CF_match = hs_taxa_CF_match, coproduct_codes)
   V2 <- W_all[[1]]
   W_rows <- W_all[[2]]
   W_cols <-W_all[[3]]
   
   # Set a max for V2 to prevent gain of mass
-  V2[V2>1] <- 1 
+  V2[V2>1] <- 1
   
   # Insert -1 on diagonal if all imports are represented as consumption of foreign goods
   # Insert 1 on diagonal if imports can be exported under the same product code
   diag(V2) <- 1
   
   # Save list of species for analysis from hs_taxa_match
-  # Note: hs_taxa_match is what is used to make hs_hs_match, V_1, V_2, so all of these lists should match
+  # Note: hs_taxa_match is what is used to make hs_hs_match, V_1, V_2,
+  # so all of these lists should match
   sc_n <- X_cols
   
-  # Save list of HS codes for analysis from V_1 matrix, since some codes had to be filtered out
+  # Save list of HS codes for analysis from V_1 matrix,
+  # since some codes had to be filtered out
   cc_m <- X_rows
   
   # This is used for consumption and diversity calculations post a complete ARTIS
@@ -197,20 +255,24 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10, 
 
     #-----------------------------------------------------------------------------
     # Step 4: Load trade (BACI) data and standardize countries between production and trade data
-    baci_data_analysis_year <- read.csv(file = file.path(datadir, paste("standardized_baci_seafood_hs", HS_year_rep, "_y", analysis_year, ".csv", sep = ""))) %>%
+    baci_data_analysis_year <- read.csv(
+      file.path(
+        datadir,
+        paste("standardized_baci_seafood_hs",
+              HS_year_rep, "_y", analysis_year, ".csv", sep = "")
+      )) %>%
       # pad hs6 with 0s
       mutate(hs6 = as.character(hs6)) %>%
-      mutate(hs6 = if_else(str_detect(hs6, "^30"), true = str_replace(hs6, pattern = "^30", replacement = "030"),
-                           if_else(str_detect(hs6, "^511"), true = str_replace(hs6, pattern = "^511", replacement = "0511"),
-                                   false = hs6)))
+      mutate(hs6 = if_else(
+        str_detect(hs6, "^30"),
+        true = str_replace(hs6, pattern = "^30", replacement = "030"),
+        if_else(str_detect(hs6, "^511"),
+                true = str_replace(hs6, pattern = "^511", replacement = "0511"),
+                false = hs6)))
 
     # Filter production data to analysis_year
     prod_data_analysis_year <- prod_data %>%
       filter(year == analysis_year)
-
-    # Print message for non-matching countries between baci and production data
-    baci_country_list <- unique(c(as.character(baci_data_analysis_year$importer_iso3c), as.character(baci_data_analysis_year$exporter_iso3c)))
-    prod_country_list <- unique(prod_data_analysis_year$country_iso3_alpha)
 
     prod_data_analysis_year <- prod_data_analysis_year %>%
       select(country_iso3_alpha, taxa_source, quantity)
@@ -221,13 +283,19 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10, 
 
     # Read in individual country solutions and combine into a list
     quadprog_output_files <- list.files(file.path(quadprog_dir, hs_dir, analysis_year))
-    quadprog_output_files <- lapply(quadprog_output_files, FUN = function(x) file.path(quadprog_dir, hs_dir, analysis_year, x))
+    quadprog_output_files <- lapply(quadprog_output_files,
+                                    FUN = function(x) file.path(
+                                      quadprog_dir, hs_dir, analysis_year, x))
 
     cvxopt_output_files <- list.files(file.path(cvxopt_dir, hs_dir, analysis_year))
-    cvxopt_output_files <- lapply(cvxopt_output_files, FUN = function(x) file.path(cvxopt_dir, hs_dir, analysis_year, x))
+    cvxopt_output_files <- lapply(cvxopt_output_files,
+                                  FUN = function(x) file.path(
+                                    cvxopt_dir, hs_dir, analysis_year, x))
 
     output_files <- c(quadprog_output_files, cvxopt_output_files)
-    solve_country_files <- output_files[grepl(pattern = "_country-est_", output_files) & grepl(pattern = analysis_year, output_files) & grepl(pattern = HS_year_rep, output_files)]
+    solve_country_files <- output_files[grepl(pattern = "_country-est_", output_files) &
+                                          grepl(pattern = analysis_year, output_files) &
+                                          grepl(pattern = HS_year_rep, output_files)]
 
     country_est <- vector(mode = "list", length = length(solve_country_files))
     
@@ -236,7 +304,9 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10, 
     }
 
     # Add country names to country_est
-    file_countries <- unlist(lapply(solve_country_files, FUN = function(x) substr(str_extract(x, "country-est_[A-Z]{3}_"), 13, 15)))
+    file_countries <- unlist(lapply(solve_country_files,
+                                    FUN = function(x) substr(
+                                      str_extract(x, "country-est_[A-Z]{3}_"), 13, 15)))
     names(country_est) <- file_countries
     
     # Add row and column names to X and W
@@ -262,47 +332,42 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10, 
     }
     saveRDS(country_est, file.path(hs_analysis_year_dir, paste(file.date, "_all-country-est_", analysis_year, "_HS", HS_year_rep, ".RDS", sep = "")))
 
-    # See: Explore_intermediate_results/explore-country-est.R
-    # End optimization
-    ###############################################################################
 
-    # RESTARTING POINT for make_snet_model_2: If loading old data, might also need to reset file.date and directories
-    # load("/Volumes/jgephart/ARTIS/Outputs/S_net/20220207_ARTIS-timeseries/HS12/2012/2022-02-07_all-data-prior-to-solve-country_2012_HS12.RData") # for V2
-    # country_est <- readRDS("/Volumes/Dept/CAS/jgephart/ARTIS/Outputs/S_net/20220207_ARTIS-timeseries/HS12/2012/2022-02-07_all-country-est_2012_HS12.RDS") # country_est
-    # Reset time and output directory as needed:
-    # file.date <- Sys.Date()
-
-    # RESTARTING POINT for JAG
-    # load("/Volumes/jgephart/ARTIS/Outputs/S_net/snet_20221129/quadprog_snet/hs12/2016/2022-11-30_all-data-prior-to-solve-country_2016_HS12.RData") # for V2
-    # country_est <- readRDS("/Volumes/jgephart/ARTIS/Outputs/S_net/snet_20221129/snet/HS12/2016/2022-12-01_all-country-est_2016_HS12.RDS") # country_est
-    # datadir <- "/Volumes/jgephart/ARTIS/Outputs/model_inputs_20220913_hs_hs"
-
-
-    ###############################################################################
+    #---------------------------------------------------------------------------
 
     # Step 6: Make S_net assuming commodity processing only occurs one trade-flow back
-    rm(list=ls()[!(ls() %in% c("baci_data_analysis_year", "country_est", "V1", "V2", "V1_long",
-                               "countries_to_analyze", "coproduct_codes", "fao_pop", "hs_dir",
+    rm(list=ls()[!(ls() %in% c("baci_data_analysis_year", "country_est", "V1",
+                               "V2", "V1_long", "countries_to_analyze",
+                               "coproduct_codes", "fao_pop", "hs_dir",
                                "analysis_setup", analysis_setup,
                                "analysis_info", analysis_info))])
     gc()
     
-    # Determine most specific clade of each HS code (but if clade is not reported in production data (i.e., hs_taxa_match$SciName), return NA)
+    # Determine most specific clade of each HS code (but if clade is not reported
+    # in production data (i.e., hs_taxa_match$SciName), return NA)
     # To match to clade, even if not reported in production data, set match_to_prod to FALSE
-    hs_clade_match <- match_hs_to_clade(hs_taxa_match = read.csv(file.path(datadir, paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = ""))) %>%
-                                          select(-c(sciname_habitat, code_habitat)),
-                                        prod_taxa_classification = read.csv(file.path(datadir, "clean_fao_taxa.csv")),
-                                        match_to_prod = FALSE) %>%
+    hs_clade_match <- match_hs_to_clade(
+      hs_taxa_match = read.csv(
+        file.path(datadir,
+                  paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = ""))) %>%
+        select(-c(sciname_habitat, code_habitat)),
+      prod_taxa_classification = read.csv(file.path(datadir, "clean_fao_taxa.csv")),
+      match_to_prod = FALSE
+    ) %>%
       # pad HS codes with zeroes
       mutate(Code = as.character(Code)) %>%
-      mutate(Code = if_else(str_detect(Code, "^30"), true = str_replace(Code, pattern = "^30", replacement = "030"),
-                            if_else(str_detect(Code, "^511"), true = str_replace(Code, pattern = "^511", replacement = "0511"),
-                                    false = Code))) %>%
+      mutate(Code = if_else(
+        str_detect(Code, "^30"),
+        true = str_replace(Code, pattern = "^30", replacement = "030"),
+        if_else(str_detect(Code, "^511"),
+                true = str_replace(Code, pattern = "^511", replacement = "0511"),
+                false = Code))) %>%
       # Filter down to just the codes in cc_m (recreated above from country_est)
       filter(Code %in% cc_m)
 
-    # Create new list of countries_to_analyze using only countries with solve_qp solutions (i.e., names(country_est))
-    # Some countries have no solution, so using the original list causes error in lapply below
+    # Create new list of countries_to_analyze using only countries with
+    # solve_qp solutions (i.e., names(country_est)), some countries have
+    # no solution, so using the original list causes error in lapply below
     countries_to_analyze <- names(country_est)
 
     # writing reweighted X matrix as a dataframe for consumption and diversity calcs
@@ -318,7 +383,11 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10, 
       mutate(hs_version = paste("HS", HS_year_rep, sep = ""),
              year = analysis_year)
 
-    write.csv(reweight_X_long, file = file.path(hs_analysis_year_dir, paste("reweight_X_long_", analysis_year, "_HS", HS_year_rep, ".csv", sep = "")), row.names = FALSE)
+    write.csv(reweight_X_long, 
+              file.path(hs_analysis_year_dir,
+                        paste("reweight_X_long_", analysis_year, "_HS",
+                              HS_year_rep, ".csv", sep = "")),
+              row.names = FALSE)
     
     check_reweight_X_long <- reweight_X_long %>%
       group_by(iso3c, hs6, year) %>%
@@ -332,16 +401,13 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10, 
     }
     
     # Creating reweighted W long that finds proportion of hs6 processed codes that
-    # come from hs6 original codes
-    # outlines how much hs6 original code gets transferred to hs6 processed code
+    # come from hs6 original codes outlines how much hs6 original code gets
+    # transferred to hs6 processed code
     W_long <- data.frame()
     # creating a cluster of cores to parallelize creating a dataframe for W long:
-    #   hs6 processed, hs6 original, exporter_iso3c
+    # hs6 processed, hs6 original, exporter_iso3c
     w_long_cl <- makeCluster(num_cores, type="FORK")
-    # Note this line allows you to pipe output to different files for each parallel cluster worker
-    # not needed when in production
-    # clusterEvalQ(w_long_cl, sink(file.path(getwd(), paste("qa/w_long_", Sys.getpid(), ".txt", sep = ""))))
-    registerDoParallel(w_long_cl)  # use multicore, set to the number of our cores
+    registerDoParallel(w_long_cl) 
     # Parallel approach to building W long
     W_long <- foreach(i = 1:length(countries_to_analyze), .combine = rbind) %dopar% {
       curr_country <- countries_to_analyze[i]
@@ -403,7 +469,11 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10, 
       # remove columns that are no longer needed
       select(-c(row_sum, estimated_W))
     
-    write.csv(reweight_W_long, file = file.path(hs_analysis_year_dir, paste("reweight_W_long_", analysis_year, "_HS", HS_year_rep, ".csv", sep = "")), row.names = FALSE)
+    write.csv(reweight_W_long,
+              file.path(hs_analysis_year_dir,
+                        paste("reweight_W_long_", analysis_year, "_HS",
+                              HS_year_rep, ".csv", sep = "")),
+              row.names = FALSE)
     
     # returns the export and consumption weights by
     #   iso3c, hs6, dom_source
@@ -442,54 +512,66 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10, 
     rm(source_weights_min)
     gc()
     
-    s_net_midpoint <- create_snet(baci_data_analysis_year, export_source_weights_mid, reweight_W_long,
-                         reweight_X_long, V1_long, hs_clade_match, num_cores) %>%
+    s_net_midpoint <- create_snet(baci_data_analysis_year, export_source_weights_mid,
+                                  reweight_W_long, reweight_X_long, V1_long,
+                                  hs_clade_match, num_cores) %>%
       mutate(hs_version = HS_year_rep,
              year = analysis_year)
 
-    s_net_max <- create_snet(baci_data_analysis_year, export_source_weights_max, reweight_W_long,
-                             reweight_X_long, V1_long, hs_clade_match, num_cores) %>%
+    s_net_max <- create_snet(baci_data_analysis_year, export_source_weights_max,
+                             reweight_W_long, reweight_X_long, V1_long,
+                             hs_clade_match, num_cores) %>%
       mutate(hs_version = HS_year_rep,
              year = analysis_year)
 
-    s_net_min <- create_snet(baci_data_analysis_year, export_source_weights_min, reweight_W_long,
-                             reweight_X_long, V1_long, hs_clade_match, num_cores) %>%
+    s_net_min <- create_snet(baci_data_analysis_year, export_source_weights_min,
+                             reweight_W_long, reweight_X_long, V1_long,
+                             hs_clade_match, num_cores) %>%
       mutate(hs_version = HS_year_rep,
              year = analysis_year)
 
     # Save full s_net
     write.csv(
       s_net_midpoint,
-      file = file.path(hs_analysis_year_dir, paste(file.date, "_S-net_raw_midpoint_", analysis_year, "_HS", HS_year_rep, ".csv", sep = "")),
+      file.path(hs_analysis_year_dir,
+                paste(file.date, "_S-net_raw_midpoint_", analysis_year, "_HS",
+                      HS_year_rep, ".csv", sep = "")),
       row.names = FALSE
     )
     write.csv(
       s_net_max,
-      file = file.path(hs_analysis_year_dir, paste(file.date, "_S-net_raw_max_", analysis_year, "_HS", HS_year_rep, ".csv", sep = "")),
+      file.path(hs_analysis_year_dir,
+                paste(file.date, "_S-net_raw_max_", analysis_year, "_HS",
+                      HS_year_rep, ".csv", sep = "")),
       row.names = FALSE
     )
     write.csv(
       s_net_min,
-      file = file.path(hs_analysis_year_dir, paste(file.date, "_S-net_raw_min_", analysis_year, "_HS", HS_year_rep, ".csv", sep = "")),
+      file = file.path(hs_analysis_year_dir,
+                       paste(file.date, "_S-net_raw_min_", analysis_year, "_HS",
+                             HS_year_rep, ".csv", sep = "")),
       row.names = FALSE
     )
 
     write.csv(consumption_source_weights_mid,
               file = file.path(
                 hs_analysis_year_dir,
-                paste(file.date, "consumption_raw_midpoint_", analysis_year, "_HS", HS_year_rep, ".csv", sep = "")),
+                paste(file.date, "consumption_raw_midpoint_", analysis_year, "_HS",
+                      HS_year_rep, ".csv", sep = "")),
               row.names = FALSE)
     
     write.csv(consumption_source_weights_max,
               file = file.path(
                 hs_analysis_year_dir,
-                paste(file.date, "consumption_raw_max_", analysis_year, "_HS", HS_year_rep, ".csv", sep = "")),
+                paste(file.date, "consumption_raw_max_", analysis_year, "_HS",
+                      HS_year_rep, ".csv", sep = "")),
               row.names = FALSE)
     
     write.csv(consumption_source_weights_min,
               file = file.path(
                 hs_analysis_year_dir,
-                paste(file.date, "consumption_raw_min_", analysis_year, "_HS", HS_year_rep, ".csv", sep = "")),
+                paste(file.date, "consumption_raw_min_", analysis_year, "_HS",
+                      HS_year_rep, ".csv", sep = "")),
               row.names = FALSE)
     
     # Calculate consumption
@@ -515,28 +597,10 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10, 
                           estimate_type = "max")
     
     
-    # ###############################################################################
-    # Step 7: Clean S_net: add attributes for taxa and production information
-
-    # NOTE: Move all snet cleaning options into a separate script that includes data checks, etc.
-
-    # Other Snet cleaning options:
-    # Add columns for: common name, isscaap group, classification info
-    # S_net_clean <- add_taxa_info(S_net_clean,
-    #                              prod_data = prod_data,
-    #                              prod_taxa_classification = read.csv(file.path(datadir, "clean_fao_taxa.csv")))
-
-    # Split quantities by production source (i.e., multiply quantity by the proportion of of that species produced wild vs aquaculture and marine vs inland)
-    # May no longer need this section / function if prod_source can be included within the analysis of Snet
-    # NOTE: This creates tiny quantities again filter again to be > 1
-    # S_net_clean <- add_prod_source(S_net_clean, prod_data = prod_data, analysis_year) %>%
-    #   filter(quantity > 1) %>%
-    #   arrange(desc(quantity))
-
-    # write.csv(S_net_clean, file = file.path(hs_analysis_year_dir, paste(file.date, "_S-net_", analysis_year, "_HS", HS_year_rep, ".csv", sep = "")), row.names = FALSE)
-
-    rm(list=ls()[!(ls() %in% c("analysis_setup", analysis_setup, "coproduct_codes", "V1_long",
-                               "analysis_info", analysis_info, "fao_pop", "hs_dir"))])
+    #---------------------------------------------------------------------------
+    rm(list=ls()[!(ls() %in% c("analysis_setup", analysis_setup, "coproduct_codes",
+                               "V1_long", "analysis_info", analysis_info,
+                               "fao_pop", "hs_dir"))])
 
     # Clear current analysis year and output directory before looping to the next analysis year
     rm(analysis_year)

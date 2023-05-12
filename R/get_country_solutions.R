@@ -58,14 +58,20 @@ get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = 
   
   #-----------------------------------------------------------------------------  
   # Load hs_taxa_match for appropriate HS year
-  hs_taxa_match <- read.csv(file.path(datadir, paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = ""))) %>%
+  hs_taxa_match <- read.csv(
+    file.path(datadir, paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = ""))
+  ) %>%
     # pad HS codes with zeroes
     mutate(Code = as.character(Code)) %>%
-    mutate(Code = if_else(str_detect(Code, "^30"), true = str_replace(Code, pattern = "^30", replacement = "030"),
-                          if_else(str_detect(Code, "^511"), true = str_replace(Code, pattern = "^511", replacement = "0511"),
-                                  false = Code)))
+    mutate(Code = if_else(
+      str_detect(Code, "^30"),
+      true = str_replace(Code, pattern = "^30", replacement = "030"),
+      if_else(str_detect(Code, "^511"),
+              true = str_replace(Code, pattern = "^511", replacement = "0511"),
+              false = Code)))
   
-  # Make new version of hs_taxa_match that includes SciName + taxa_source for the full snet estimation
+  # Make new version of hs_taxa_match that includes SciName +
+  # taxa_source for the full snet estimation
   hs_taxa_match <- hs_taxa_match %>%
     left_join(
       prod_data %>%
@@ -101,7 +107,8 @@ get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = 
         )
     )
   
-  # Make new version of hs_taxa_CF_match that includes SciName + taxa_source for the full snet estimation
+  # Make new version of hs_taxa_CF_match that includes SciName +
+  # taxa_source for the full snet estimation
   hs_taxa_CF_match <- hs_taxa_CF_match %>%
     left_join(
       prod_data %>%
@@ -152,8 +159,8 @@ get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = 
   #-----------------------------------------------------------------------------  
   # Step 3: Make V1 and V2
   
-  # V1: sparse matrix (products x species) of conversion factors corresponding to the entries of X
-  # coproduct_codes are products with CF == 0
+  # V1: sparse matrix (products x species) of conversion factors corresponding 
+  # to the entries of X, coproduct_codes are products with CF == 0
   coproduct_codes <- hs_taxa_CF_match %>%
     select(Code, CF_calc) %>%
     filter(CF_calc == 0) %>%
