@@ -8,13 +8,6 @@ create_export_source_weights <- function(baci_data_analysis_year, countries_to_a
     # rename(product_weight_t = total_q) %>%
     filter(!(hs6 %in% coproduct_codes))
   
-  V1_long <- data.frame(V1) %>%
-    mutate(hs6 = colnames(V2)) %>% 
-    pivot_longer(cols = -hs6, names_to = "SciName", values_to = "live_weight_cf") %>%
-    filter(live_weight_cf > 0) %>%
-    # Transform conversion factors to represent conversion from product to live
-    mutate(live_weight_cf = 1/live_weight_cf)
-  
   # Calculate the domestic, foreign, and error-source weights for exports
   # Replace diag V2 with 1 if imported products can go to exports 
   # Replace with 0 if all non-processed imported products should be considered for domestic consumption
