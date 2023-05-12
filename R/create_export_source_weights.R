@@ -78,7 +78,7 @@ create_export_source_weights <- function(baci_data_analysis_year, countries_to_a
     curr_consumption_source_weights <- data.frame(consumption = c_domestic,
                                                   hs6 = cc_m,
                                                   domestic_prod = (X*V1) %*% p, # max(V1) = 1, meaning conversions go from live weight to product weight
-                                                  import_prod = (W * V2) %*% imports) %>%
+                                                  import_prod = (W*V2) %*% imports) %>%
       left_join(
         curr_export_source_weights %>%
           select(matches("^remaining|^hs6")),

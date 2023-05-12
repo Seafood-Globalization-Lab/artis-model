@@ -1,5 +1,6 @@
 #' @export
-get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = NA, hs_version = NA, test_years = NA, prod_type = "FAO") {
+get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = NA, hs_version = NA, 
+                     test_years = NA, prod_type = "FAO") {
   
   #-------------------------------------------------------------------------------
   # Step 0: Setup
@@ -10,9 +11,11 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = NA, 
   file.date <- Sys.Date()
   
   # List of variables to retain in memory when environment is cleared
-  analysis_info <- c("outdir", "datadir", "file.date", "full_analysis_start", "HS_year_rep", "hs_dir", "df_years", "analysis_year", "hs_analysis_year_dir",
+  analysis_info <- c("outdir", "datadir", "file.date", "full_analysis_start", "HS_year_rep", "hs_dir", 
+                     "df_years", "analysis_year", "hs_analysis_year_dir",
                      "hs_dir", "quadprog_dir", "cvxopt_dir")
-  analysis_setup <- c("prod_data", "V1", "V2", "V1_long", "V2_long", "sc_n", "cc_m", "X_cols", "X_rows", "W_cols", "W_rows", "Xq", "analysis_years_rep", "HS_year_rep", "num_cores")
+  analysis_setup <- c("prod_data", "V1", "V2", "V1_long", "V2_long", "sc_n", "cc_m", "X_cols", "X_rows", 
+                      "W_cols", "W_rows", "Xq", "analysis_years_rep", "HS_year_rep", "num_cores")
   
   # Use file.date for all filenames
   # If scripts runs overnight, setting this up top prevents having to deal with two dates before and after midnight
@@ -235,6 +238,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = NA, 
     # Add country names to country_est
     file_countries <- unlist(lapply(solve_country_files, FUN = function(x) substr(str_extract(x, "country-est_[A-Z]{3}_"), 13, 15)))
     names(country_est) <- file_countries
+    
     # Add row and column names to X and W
     for(i in 1:length(country_est)){
       if (is.matrix(country_est[[i]]$X)) {
