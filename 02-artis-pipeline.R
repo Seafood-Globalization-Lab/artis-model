@@ -1,74 +1,25 @@
 
 #-------------------------------------------------------------------------------
-# Zorro Setup
-# Setup and directories for Zorro (High Performance Computer used for full analysis)
-# packdir <- "/project/ARTIS/Package"
-# datadir <- "/project/ARTIS/ARTIS/model_inputs_20221129"
-# outdir <- "/project/ARTIS/ARTIS/snet_20221129"
-# setwd(packdir)
-# 
-# # If running on Zorro need to specify path to R packages
-# library(artis, lib.loc = "/home/rahulab/R/x86_64-pc-linux-gnu-library/3.6/")
-# library(data.table, lib.loc = "/home/rahulab/R/x86_64-pc-linux-gnu-library/3.6/")
-# library(magrittr, lib.loc = "/home/rahulab/R/x86_64-pc-linux-gnu-library/3.6/")
-# library(Matrix, lib.loc = "/home/rahulab/R/x86_64-pc-linux-gnu-library/3.6/")
-# library(parallel) # "parallel" package is now part of base and does not need to be installed, BUT still needs to be activated by running library(parallel)
-# library(reticulate, lib.loc = "/home/rahulab/R/x86_64-pc-linux-gnu-library/3.6/")
-# library(slam, lib.loc = "/home/rahulab/R/x86_64-pc-linux-gnu-library/3.6/")
-# library(tidyverse, lib.loc = "/home/rahulab/R/x86_64-pc-linux-gnu-library/3.6/")
-# 
-# hs_version_run <- "17"
+# Setup based on the kind of analysis and machine you are working with
 
-#-------------------------------------------------------------------------------
-# Set up for running ARTIS pipeline on a local machine
-
-# R packages needed
-library(artis)
-library(data.table)
-library(magrittr)
-library(Matrix)
-library(parallel)
-library(reticulate)
-library(slam)
-library(tidyverse)
-library(doParallel)
-
-# Clear environment
+# Start with a clean working environment
 rm(list=ls())
 
-# Getting the start date to identify files generated in this ARTIS run
-start_date <- as.character(Sys.Date())
+# High Performance Computing (Zorro) Setup
+# Uncomment the line below if creating the full ARTIS database and outputs on
+# the Zorro High Performance computing system
+# source("00-zorro-hpc-setup.R")
 
-# Directory for inputs to create the ARTIS database
-datadir <- ""
-# Directory where ARTIS database will be generated
-outdir <- ""
+# Local Machine Setup
+# Uncomment the line below if creating the ARTIS database and outputs on a
+# local machine
+# source("00-local-machine-setup.R")
 
-# HS version for trade records and timespan for ARTIS
-# ie HS12 will generate all trade records from 2012 - 2020
-hs_version_run <- "17"
+# Demo Setup
+# Uncomment the line below if you are running the ARTIS demo
+# Note: you do not need to run the local machine setup if you are running the demo
+source("00-demo-setup.R")
 
-# Linking python environment set up during installation for use in the pipeline
-python_path <- file.path(getwd(), "venv", "bin", "python3")
-use_python(python_path, required = TRUE)
-
-# Will determine if the ARTIS pipeline functions are run with the demo variables
-# or to run functions to create the ARTIS database for all years and HS versions
-demo_run <- FALSE
-
-#-------------------------------------------------------------------------------
-# Demo setup
-# Note: only run this code chunk if you are running the demo
-
-# Model inputs and outputs directories
-datadir <- "demo/model_inputs"
-outdir <- "demo/outputs"
-
-# Demo run will only generate an ARTIS database for 2018 using HS12 trade records
-test_years <- c(2018)
-hs_version_run <- "12"
-
-demo_run <- TRUE
 #-------------------------------------------------------------------------------
 # This section generates the solutions for the mass balance problem for all
 # countries across all years and HS versions
@@ -119,7 +70,7 @@ if (!demo_run) {
 # Depending on the HS version and year, some mass balance problems were not
 # solved by the quadprog solver. This function goes through all years for a
 # specific HS version and finds all the countries where no solution was found by
-# the quadprog solver by year and HS versio
+# the quadprog solver by year and HS version
 no_solve_countries <- get_no_solve_countries(
   snet_dir = outdir_quadprog,
   artis_run_date_no_dash = start_date
@@ -214,6 +165,3 @@ if (!demo_run) {
     test_years = test_years
   )
 }
-
-
-
