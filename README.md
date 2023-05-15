@@ -1,5 +1,45 @@
 # artis-model
 
+# Software Dependencies and Operating Systems
+- Platform: x86_64-apple-darwin17.0 (64-bit)
+- Running under: macOS Ventura 13.3.1
+- R version 4.2.2
+- R packages:
+  - readxl 1.4.1
+  - janitor 2.1.0
+  - countrycode 1.4.0
+  - doParallel 1.0.17
+  - iterators 1.0.14
+  - foreach 1.5.2
+  - slam 0.1-50
+  - Matrix 1.5-1
+  - magrittr 2.0.3
+  - data.table 1.14.6
+  - forcats 0.5.2
+  - stringr 1.5.0
+  - dplyr 1.0.10
+  - purrr 1.0.1
+  - readr 2.1.3
+  - tidyr 1.2.1
+  - tibble 3.1.8
+  - ggplot2 3.4.0
+  - tidyverse 1.3.2
+  - reticulate 1.26
+- Python version 3.10.9
+- Python packages:
+  - cvxopt     1.3.0
+  - daqp       0.5.1
+  - ecos       2.0.12
+  - numpy      1.24.3
+  - osqp       0.6.2.post9
+  - pip        22.3.1
+  - qdldl      0.1.7
+  - qpsolvers  3.4.0
+  - quadprog   0.1.11
+  - scipy      1.10.1
+  - scs        3.2.3
+  - setuptools 65.6.3
+
 # Installation
 
 1. Open the artis-model repository in RStudio.
