@@ -1,6 +1,6 @@
 # artis-model
 
-# Software Dependencies and Operating Systems
+# System Requirements
 - Platform: x86_64-apple-darwin17.0 (64-bit)
 - Running under: macOS Ventura 13.3.1
 - R version 4.2.2
@@ -40,8 +40,9 @@
   - scs        3.2.3
   - setuptools 65.6.3
 
-# Installation
+# Installation Guide
 
+## Creating python virtual environment
 1. Open the artis-model repository in RStudio.
 2. Click on the terminal tab.
 3. Type "pwd" in the terminal.
@@ -55,7 +56,15 @@
 9. Type "deactivate" in terminal.
 10. Click on the Console tab.
 
-Note that you only need to install the solvers the first time you run this code. Warnings about the latest version of pip may also appear during the installation - these are okay, but errors are not. 
+Note that you only need to install the solvers the first time you run this code. Warnings about the latest version of pip may also appear during the installation - these are okay, but errors are not.
+
+# R installation instructions
+1. Click "Build" on the build tab on the top right hand side corner of RStudio.
+2. Click on the dropdown arrow in the "Install" subtab within the "Build" window.
+3. Click the option "Configure Build Tools..."
+4. Make sure options mirror the image below and click OK.
+![Build configuration options](documentation/artis_r_build_config_options.png)
+5. Click on the dropdown arrow in the "Install" subtab and select the option "Clean and Install"
 
 # Running the model 
 [Add instructions for running through the demo]
