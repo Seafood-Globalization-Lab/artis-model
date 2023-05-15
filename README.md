@@ -42,6 +42,8 @@
 
 # Installation Guide
 
+This project uses Python 3.10.9 which can be downloaded [here](https://www.python.org/downloads/release/python-3109/) and RStudio which can be downloaded [here](https://posit.co/download/rstudio-desktop/).
+
 ## Creating python virtual environment
 1. Open the artis-model repository in RStudio.
 2. Click on the terminal tab.
