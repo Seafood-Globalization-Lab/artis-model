@@ -17,3 +17,7 @@ library(slam, lib.loc = "/home/rahulab/R/x86_64-pc-linux-gnu-library/3.6/")
 library(tidyverse, lib.loc = "/home/rahulab/R/x86_64-pc-linux-gnu-library/3.6/")
 
 hs_version_run <- "17"
+
+# ARTIS folder structure needs to be created differently when running on the
+# High Performance Computing sytem
+hpc_run <- TRUE

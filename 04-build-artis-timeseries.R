@@ -1,10 +1,4 @@
 
-# packdir <- "/project/ARTIS/Package"
-# setwd(packdir) # note: If running on zorro need to set directory to packdir before #devtools::install()
-
-# Build and install artis package
-# devtools::install()
-
 # Load Packages
 library(tidyverse)
 

@@ -34,3 +34,7 @@ use_python(python_path, required = TRUE)
 # or to run functions to create the ARTIS database for all years and HS versions
 demo_run <- FALSE
 
+# ARTIS folder structure needs to be created differently when running on the
+# High Performance Computing sytem
+hpc_run <- FALSE
+
