@@ -61,6 +61,8 @@ calculate_consumption <- function(consumption_source_weights, artis, reweight_X_
         ungroup(),
       by = c("iso3c", "year")
     ) %>%
+    # Note: there are some countries that have no population data associated with it
+    filter(!is.na(pop)) %>%
     group_by(year, iso3c) %>%
     summarize(per_capita = 1000 * sum(consumption, na.rm = TRUE) / sum(pop, na.rm = TRUE))
   
@@ -111,6 +113,24 @@ calculate_consumption <- function(consumption_source_weights, artis, reweight_X_
     row.names = FALSE
   )
   
+  # revert consumption back to product weight
+  consumption <- consumption %>%
+    left_join(
+      V1_long %>%
+        mutate(hs6 = as.character(hs6)) %>%
+        mutate(hs6 = case_when(
+          str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
+          TRUE ~ hs6
+        )) %>%
+        # conversion from live to product weight
+        mutate(live_weight_cf = 1 / live_weight_cf) %>%
+        group_by(hs6) %>%
+        summarize(live_weight_cf = mean(live_weight_cf, na.rm = TRUE)),
+      by = c("hs6")
+    ) %>%
+    mutate(consumption = consumption * live_weight_cf) %>%
+    select(-live_weight_cf)
+  
   reweight_X_long <- reweight_X_long %>%
     separate(SciName, c("sciname", "habitat", "method"), sep = "_") %>%
     mutate(sciname = gsub("\\.", " ", sciname))
@@ -118,6 +138,7 @@ calculate_consumption <- function(consumption_source_weights, artis, reweight_X_
   domestic_consumption <- consumption %>%
     filter(!(hs6 %in% c("230120", "051191", "030110", "030111", "030119"))) %>%
     select(-foreign_weight) %>%
+    filter(domestic_weight > 0) %>%
     left_join(
       reweight_X_long,
       by = c("iso3c", "hs6", "year", "hs_version")
@@ -129,7 +150,20 @@ calculate_consumption <- function(consumption_source_weights, artis, reweight_X_
     mutate(hs6 = case_when(
       str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
       TRUE ~ hs6
-    ))
+    )) %>%
+    left_join(
+      V1_long %>%
+        mutate(hs6 = as.character(hs6)) %>%
+        mutate(hs6 = case_when(
+          str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
+          TRUE ~ hs6
+        )) %>%
+        separate(SciName, c("sciname", "habitat", "method"), sep = "_") %>%
+        mutate(sciname = gsub("\\.", " ", sciname)),
+      by = c("hs6", "sciname", "habitat", "method")
+    ) %>%
+    # convert consumption back to live weight
+    mutate(domestic_consumption_t = domestic_consumption_t * live_weight_cf)
   
   
   write.csv(
@@ -154,9 +188,9 @@ calculate_consumption <- function(consumption_source_weights, artis, reweight_X_
   prop_imports <- artis %>%
     # Get total imports by importer
     group_by(importer_iso3c, hs6) %>%
-    mutate(total_import = sum(live_weight_t, na.rm = TRUE)) %>%
+    mutate(total_import = sum(product_weight_t, na.rm = TRUE)) %>%
     ungroup() %>%
-    mutate(importer_prop = live_weight_t / total_import)
+    mutate(importer_prop = product_weight_t / total_import)
   
   write.csv(
     prop_imports,
@@ -187,7 +221,33 @@ calculate_consumption <- function(consumption_source_weights, artis, reweight_X_
     # special case minor percentage of consumption does not have a match with ARTIS
     filter(!is.na(source_country_iso3c)) %>%
     # prop of consumption from imports * prop of imports by all categories
-    mutate(foreign_consumption_t = consumption * importer_prop)
+    mutate(foreign_consumption_t = consumption * importer_prop) %>%
+    left_join(
+      V1_long %>%
+        mutate(hs6 = as.character(hs6)) %>%
+        mutate(hs6 = case_when(
+          str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
+          TRUE ~ hs6
+        )) %>%
+        separate(SciName, c("sciname", "habitat", "method"), sep = "_") %>%
+        mutate(sciname = gsub("\\.", " ", sciname)),
+      by = c("hs6", "sciname", "habitat", "method")
+    ) %>%
+    left_join(
+      V1_long %>%
+        mutate(hs6 = as.character(hs6)) %>%
+        mutate(hs6 = case_when(
+          str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
+          TRUE ~ hs6
+        )) %>%
+        group_by(hs6) %>%
+        summarize(avg_live_weight_cf = mean(live_weight_cf, na.rm = TRUE)),
+      by = c("hs6")
+    ) %>%
+    mutate(foreign_consumption_t = case_when(
+      !is.na(live_weight_cf) ~ foreign_consumption_t * live_weight_cf,
+      TRUE ~ foreign_consumption_t * avg_live_weight_cf)) %>%
+    select(-c(live_weight_cf, avg_live_weight_cf))
   
   write.csv(
     foreign_consumption,
