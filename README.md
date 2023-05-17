@@ -77,12 +77,14 @@ Running the demo for the ARTIS model should take approximately 10 minutes.
 # Methods and Workflow
 
 ## High level overview
+The following diagrams describes how ARTIS trade records are obtained.
 
 ![Disaggregating Trade Records](documentation/workflow_diagrams/disaggregating_trade_records.png)
 ![Aggregating Trade Records back up](documentation/workflow_diagrams/building_trade_records_back_up.png)
 ![Consumption Workflow](documentation/workflow_diagrams/consumption_workflow.png)
 
 ## Code workflows
+The following diagrams describe the how the codebase follows the workflow illustrated above.
 
 ![Cleaning data diagram](documentation/workflow_diagrams/model_inputs_creation.png)
 ![Mass balance solutions](documentation/workflow_diagrams/country_mass_balance_solution_creation.png)
