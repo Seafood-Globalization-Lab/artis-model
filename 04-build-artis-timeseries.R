@@ -1,11 +1,24 @@
 
-# Load Packages
-library(tidyverse)
-
+# Start with a clean working environment
 rm(list=ls())
-# Directories
-artis_run_path <- "demo/outputs"
-outdir <- "demo/outputs"
+
+# High Performance Computing (Zorro) Setup
+# Uncomment the line below if creating the full ARTIS database and outputs on
+# the Zorro High Performance computing system
+# source("00-zorro-hpc-setup.R")
+
+# Local Machine Setup
+# Uncomment the line below if creating the ARTIS database and outputs on a
+# local machine
+# source("00-local-machine-setup.R")
+
+# Demo Setup
+# Uncomment the line below if you are running the ARTIS demo
+# Note: you do not need to run the local machine setup if you are running the demo
+source("00-demo-setup.R")
+#-------------------------------------------------------------------------------
+
+artis_run_path <- outdir
 
 outdir_building_blocks <- file.path(outdir,
                                     "building_blocks")
@@ -153,6 +166,8 @@ prep_custom_ts <- function(df) {
   return(df)
 }
 
+# ARTIS trade records
+
 # max
 max <- read.csv(file.path(outdir_building_blocks, "max_artis_ts.csv"))
 max <- prep_custom_ts(max)
@@ -167,3 +182,47 @@ write.csv(mid, file.path(outdir_custom_ts, "mid_custom_ts.csv"), row.names = FAL
 min <- read.csv(file.path(outdir_building_blocks, "min_artis_ts.csv"))
 min <- prep_custom_ts(min)
 write.csv(min, file.path(outdir_custom_ts, "min_custom_ts.csv"), row.names = FALSE)
+
+# Consumption files
+
+# max
+max <- read.csv(file.path(outdir_building_blocks, "summary_consumption_max.csv"))
+max <- prep_custom_ts(max)
+write.csv(max, file.path(outdir_custom_ts, "summary_consumption_max.csv"), row.names = FALSE)
+
+foreign_max <- read.csv(file.path(outdir_building_blocks, "foreign_consumption_max.csv"))
+foreign_max <- prep_custom_ts(foreign_max)
+write.csv(foreign_max, file.path(outdir_custom_ts, "foreign_consumption_max.csv"), row.names = FALSE)
+
+domestic_max <- read.csv(file.path(outdir_building_blocks, "domestic_consumption_max.csv"))
+domestic_max <- prep_custom_ts(domestic_max)
+write.csv(domestic_max, file.path(outdir_custom_ts, "domestic_consumption_max.csv"), row.names = FALSE)
+
+# mid
+mid <- read.csv(file.path(outdir_building_blocks, "summary_consumption_midpoint.csv"))
+mid <- prep_custom_ts(mid)
+write.csv(mid, file.path(outdir_custom_ts, "summary_consumption_midpoint.csv"), row.names = FALSE)
+
+foreign_mid <- read.csv(file.path(outdir_building_blocks, "foreign_consumption_midpoint.csv"))
+foreign_mid <- prep_custom_ts(foreign_mid)
+write.csv(foreign_mid, file.path(outdir_custom_ts, "foreign_consumption_midpoint.csv"), row.names = FALSE)
+
+domestic_mid <- read.csv(file.path(outdir_building_blocks, "domestic_consumption_midpoint.csv"))
+domestic_mid <- prep_custom_ts(domestic_mid)
+write.csv(domestic_mid, file.path(outdir_custom_ts, "domestic_consumption_midpoint.csv"), row.names = FALSE)
+
+# min
+min <- read.csv(file.path(outdir_building_blocks, "summary_consumption_min.csv"))
+min <- prep_custom_ts(min)
+write.csv(min, file.path(outdir_custom_ts, "summary_consumption_min.csv"), row.names = FALSE)
+
+foreign_min <- read.csv(file.path(outdir_building_blocks, "foreign_consumption_min.csv"))
+foreign_min <- prep_custom_ts(foreign_min)
+write.csv(foreign_mid, file.path(outdir_custom_ts, "foreign_consumption_min.csv"), row.names = FALSE)
+
+domestic_min <- read.csv(file.path(outdir_building_blocks, "domestic_consumption_min.csv"))
+domestic_min <- prep_custom_ts(domestic_min)
+write.csv(domestic_mid, file.path(outdir_custom_ts, "domestic_consumption_min.csv"), row.names = FALSE)
+
+
+
