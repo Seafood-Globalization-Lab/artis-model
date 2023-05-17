@@ -72,7 +72,15 @@ Note that you only need to install the solvers the first time you run this code.
 
 # Running the model 
 
-Running the demo for the ARTIS model should take approximately 10 minutes.
+Running the demo for the ARTIS model should take approximately 10 minutes. To run the demo for ARTIS run the 02-artis-pipeline.R script and then run the 04-build-artis-timeseries.R script.
+
+# Outputs
+
+The outputs of the demo will appear in the "demo/outputs" directory. Within this folder "demo/outputs/custom_ts" will contain all the final files that if run on the full model inputs would be used to create the results of the ARTIS research paper.
+
+Please find below descriptions of main files:
+- "demo/outputs/custom_ts/mid_custom_ts.csv": This is the demo version of the main ARTIS trade records table.
+- "demo/outputs/custom_ts/summary_consumption_midpoint.csv": This is the demo version of the main ARTIS seafood consumption records table.
 
 # Methods and Workflow
 
