@@ -199,7 +199,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
   
   # V2: sparse matrix of (products x products) conversion factors corresponding
   # to the entries of W, columns are the original products,
-  # Rows are thefinal product state
+  # Rows are the final product state
   W_all <- make_v2(hs_hs_match = hs_hs_match, hs_taxa_CF_match = hs_taxa_CF_match, coproduct_codes)
   V2 <- W_all[[1]]
   W_rows <- W_all[[2]]
@@ -245,7 +245,6 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
 
   fao_pop <- read.csv(file.path(datadir, "fao_annual_pop.csv"))
   
-  # FIX IT: remove coproduct codes at beginning of workflow
   # Loop through all analysis years for a given HS version
   for (j in 1:nrow(analysis_years_rep)) {
 
@@ -468,6 +467,17 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
       mutate(reweighted_W = estimated_W / row_sum) %>%
       # remove columns that are no longer needed
       select(-c(row_sum, estimated_W))
+    
+    check_reweight_W <- reweight_W_long %>%
+      group_by(exporter_iso3c, hs6_processed) %>%
+      summarize(reweighted_W = sum(reweighted_W)) %>%
+      ungroup() %>%
+      mutate(difference = 1 - reweighted_W) %>%
+      filter(abs(difference) > 1e-9)
+    
+    if (nrow(check_reweight_W) > 0) {
+      warning("not all reweight W values group back up to 1.")
+    }
     
     write.csv(reweight_W_long,
               file.path(hs_analysis_year_dir,
