@@ -44,6 +44,8 @@
 
 This project uses Python 3.10.9 which can be downloaded [here](https://www.python.org/downloads/release/python-3109/) and RStudio which can be downloaded [here](https://posit.co/download/rstudio-desktop/).
 
+It should take approximately 10 minutes to run this full installation.
+
 ## Creating python virtual environment
 1. Open the artis-model repository in RStudio.
 2. Click on the terminal tab.
@@ -69,4 +71,21 @@ Note that you only need to install the solvers the first time you run this code.
 5. Click on the dropdown arrow in the "Install" subtab and select the option "Clean and Install"
 
 # Running the model 
-[Add instructions for running through the demo]
+
+Running the demo for the ARTIS model should take approximately 10 minutes.
+
+# Methods and Workflow
+
+## High level overview
+
+![Disaggregating Trade Records](documentation/workflow_diagrams/disaggregating_trade_records.png)
+![Aggregating Trade Records back up](documentation/workflow_diagrams/building_trade_records_back_up.png)
+![Consumption Workflow](documentation/workflow_diagrams/consumption_workflow.png)
+
+## Code workflows
+
+![Cleaning data diagram](documentation/workflow_diagrams/model_inputs_creation.png)
+![Mass balance solutions](documentation/workflow_diagrams/country_mass_balance_solution_creation.png)
+![Creating ARTIS codeflow](documentation/workflow_diagrams/create_artis_codeflow.png)
+
+
