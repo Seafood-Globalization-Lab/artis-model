@@ -69,7 +69,6 @@ match_hs_to_clade <- function(hs_taxa_match, prod_taxa_classification, match_to_
     } else {
       hs_clade <- as.character(NA)
     }
-
     
     hs_clade_match <- hs_clade_match %>%
       bind_rows(data.frame(Code = code_i, hs_clade = hs_clade, classification_level = hs_level) %>% mutate(classification_level = if_else(classification_level == "SciName", true = "Species", false = as.character(classification_level))))
@@ -77,7 +76,6 @@ match_hs_to_clade <- function(hs_taxa_match, prod_taxa_classification, match_to_
     rm(hs_level, hs_clade) # remove matches so they don't get carried over into next loop
     
   }
-  
-  
+
   return(hs_clade_match)
 }

@@ -4,15 +4,17 @@
 #' @export
 match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_species_list, hs_version){
 
-  # FIX IT - KEEP CLASSIFICATION SCHEME below but clean BACI data on the front end (need to address codes that are reported for years that no longer have that code)
   hs_tibble <- tibble(HS_year = c("HS92", "HS96", "HS02", "HS07", "HS12", "HS17"),
                       Classification = c("H0", "H1", "H2", "H3", "H4", "H5"))
-  HS_classification <- hs_tibble %>% filter(HS_year==hs_version) %>% pull(Classification)
+  HS_classification <- hs_tibble %>% 
+    filter(HS_year==hs_version) %>% 
+    pull(Classification)
   
-  #Retrieve HS codes for relevant year
-  hs_data_version <- hs_data_clean %>% filter(Classification==HS_classification)
+  # Retrieve HS codes for relevant year
+  hs_data_version <- hs_data_clean %>% 
+    filter(Classification==HS_classification)
   
-  # FILTER OUT SPECIAL CASES: 
+  # FILTER OUT SPECIAL CASES:
   # Assumption is that HS codes are grouped by broad commodity type at the 4-digit level (only one type of fish, crustaceans, molluscs, or crustaceans for a given 4 digit parent)
   # Filter these codes out of because they: 
   # (1) are matched based on non-taxonomic info (e.g., ornamentals, fish oils, flours meals and pellets)
@@ -45,8 +47,6 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
   ##############################################################################################
   # FIRST OUTPUT LIST
   # Note: Code is divided into first output, second output, and special output
-  
-  
   first_output_list = list()
   
   for (p in 1:length(HS_groups)){
@@ -232,12 +232,10 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
       # These codes match taxa multiple times within the parent group
       # Don't filter taxa out of possible_prod_taxa
       # For final NEC code, will need to figure out what hasn't been matched yet since we aren't filtering possible_prod_taxa 
-      # FIX IT - need to limit Gastropoda for Code 030760 (description calls for freshwater snails?)
       
       if (parent_p %in% c("0307", "0308", "1604")){
         parent_output_list = list()
         for (c in 1:length(possible_hs_codes$Code)){
-          #for (c in 1:8){
           match_code_output <- NULL # reset match_code output
           hs_codes_row_c <- possible_hs_codes[c,]
           if (hs_codes_row_c$NEC == 0){ # Do simple matching
@@ -249,8 +247,7 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
                                                              match_type = "explicit_taxa_match",
                                                              hs_version = hs_version)
             match_code_output <- match_by_classification_output[[1]]
-            # possible_prod_taxa <- match_by_classification_output[[2]] # this line is not necessary for this parent group because possible_prod_taxa is not being filtered
-            
+     
             parent_output_list[[c]] <- match_code_output
             
           } # end if (hs_codes_row_c$NEC == 0)
@@ -359,7 +356,7 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
           
           match_code_output <- match_NEC_taxa(hs_codes_row = hs_codes_row_c, 
                                               possible_hs_codes = possible_hs_codes, 
-                                              parent_output_list = parent_output_list, 
+                                              parent_output_list = group_output_list, 
                                               possible_prod_taxa = possible_prod_taxa, 
                                               match_code_output = match_code_output, 
                                               match_type = "NEC_match", 
@@ -409,7 +406,6 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
           other_than_phrase <- str_extract_all(string = special_codes_row_c$Description, pattern = "(other than.*)|(excluding.*)") # What is the phrase that comes after "other than"
           other_than_phrase <- tolower(other_than_phrase)
           
-          # FIX IT -  This section is modified from "match_and_remove_by_classification.R"; should expand match_and_remove_by_classification to include this variation
           # Check if any species are listed as "other thans"
           match_sciname <- str_extract(string = other_than_phrase, pattern = (possible_prod_taxa %>% pull(SciName)))
           match_sciname <- unique(match_sciname[is.na(match_sciname)==FALSE])
@@ -470,7 +466,7 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
         special_descript <- tolower(hs_special_cases$Description[c])
         
         
-        # FIX IT - 621 out of 2181 fish species have missing info (NA) for the "Aquarium" column; 
+        # Note: 621 out of 2181 fish species have missing info (NA) for the "Aquarium" column; 
         # NAs also for Fresh01, Brack01, and Saltwater01 (some of these are genera or anything higher than species-level, and therefore not enough resolution to be considered)
         if (grepl(pattern = "freshwater", x = special_descript)==TRUE & grepl(pattern = "other than", x = special_descript)==FALSE){
           possible_prod_taxa <- possible_prod_taxa %>%
@@ -529,7 +525,6 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
   
   #############################################################################################
   # COMBINE ALL OUTPUTS INTO FINAL_OUTPUT
-  
   final_output <- data.table::rbindlist(list(first_output, second_output, special_output)) %>%
     arrange(Code, SciName, Match_category)
   
@@ -676,29 +671,6 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
   
   broad_matches <- broad_matches %>% 
     anti_join(final_output, by = c("Code", "SciName"))
-                   
-  # FIX IT: Old code - check with Kelvin on whether we can remove
-  # Match osteichthyes to everything, combine back with final_output, filter out the exceptions:
-  # list of exceptions:
-  # exception_codes <- c("030281", "030282", "030381", "030382", "030571", "^0306", "^0307", "^0308", "^1605")
-  # not_osteichthyes <- unique(final_output$Code)[grepl(pattern = paste(exception_codes, collapse = "|"), unique(final_output$Code))]
-  # 
-  # osteichthyes_new <- final_output %>%
-  #   select(Code, Description, Modification) %>%
-  #   unique() %>%
-  #   mutate(SciName = "osteichthyes",
-  #          Match_category = "broad_taxa_match",
-  #          HS_version = hs_version) %>%
-  #   filter(Code %in% not_osteichthyes == FALSE)
-  # 
-  # # PERCIFORMES - treat the same as OSTEICHTHYES
-  # perciformes_new <- final_output %>%
-  #   select(Code, Description, Modification) %>%
-  #   unique() %>%
-  #   mutate(SciName = "perciformes",
-  #          Match_category = "broad_taxa_match",
-  #          HS_version = hs_version) %>%
-  #   filter(Code %in% not_osteichthyes == FALSE)
   
   # Now bind all the new matches to the original final_output and unique()
   final_output <- final_output %>%
@@ -709,8 +681,6 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
     bind_rows(echinoidea_new) %>%
     bind_rows(elasmobranchii_new) %>%
     bind_rows(gadiformes_new) %>%
-    #bind_rows(osteichthyes_new) %>%
-    #bind_rows(perciformes_new) %>%
     bind_rows(rajiformes_new) %>%
     bind_rows(siluriformes_new) %>%
     bind_rows(broad_matches) %>%

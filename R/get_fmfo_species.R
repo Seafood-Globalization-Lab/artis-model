@@ -1,5 +1,6 @@
 #' @export
-get_fmfo_species <- function(datadir, sau_fp, taxa_fp) {
+get_fmfo_species <- function(datadir, sau_fp, taxa_fp, threshold = 1) {
+  # Percent threshold default is 1% of production going to FM
   
   #-----------------------------------------------------------------------------
   # Production Data
@@ -19,9 +20,6 @@ get_fmfo_species <- function(datadir, sau_fp, taxa_fp) {
     ungroup() %>%
     mutate(percent = 100 * quantity / total)
   
-  # Percent threshold (currently 1%)
-  threshold <- 1
-  
   fmfo_species <- sau_grouped %>%
     filter(end_use == "Fishmeal and fish oil" & percent > threshold)
   
@@ -40,7 +38,6 @@ get_fmfo_species <- function(datadir, sau_fp, taxa_fp) {
   # Species name standardizing (just for true species)
   for (i in 1:length(non_standard_scinames)) {
     curr_sciname <- non_standard_scinames[i]
-    print(curr_sciname)
     fb_result <- query_synonyms(fb_df, curr_sciname)
     
     # Only process synonyms for true species names
@@ -54,7 +51,6 @@ get_fmfo_species <- function(datadir, sau_fp, taxa_fp) {
         
         if (nrow(slb_result) > 0) {
           accepted_syn <- slb_result$synonym
-          accepted_scinames 
         }
       }
     }

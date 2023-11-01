@@ -1,286 +1,285 @@
 #' @export
-calculate_consumption <- function(consumption_source_weights, artis, reweight_X_long, reweight_W_long,
-                                  V1_long, pop_data, outdir, estimate_type = "midpoint", consumption_threshold = 0.0001) {
+calculate_consumption <- function(artis, prod_data, analysis_year, X_long, reweight_X_long, reweight_W_long,
+                                  V1_long, pop_data, outdir, estimate_type = "midpoint", end_use = "human", 
+                                  consumption_threshold = 0.001) {
   
-  consumption <- consumption_source_weights %>%
-    mutate(hs_version = paste("HS", hs_version, sep = "")) %>%
-    mutate(consumption = case_when(
-      consumption < consumption_threshold ~ 0,
-      TRUE ~ consumption)) %>%
-    mutate(domestic_weight = case_when(
-      consumption == 0 ~ 0,
-      TRUE ~ domestic_weight
-    )) %>%
-    mutate(foreign_weight = case_when(
-      consumption == 0 ~ 0,
-      TRUE ~ foreign_weight
-    )) %>%
-    filter(consumption > 0)
+  artis <- artis %>%
+    filter(year == analysis_year)
   
-  consumption <- consumption %>%
-    # average live weight cfs used to determine live weight consumption
-    left_join(V1_long %>%
-                mutate(hs6 = as.character(hs6)) %>%
-                mutate(hs6 = case_when(
-                  str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
-                  TRUE ~ hs6
-                )) %>%
-                group_by(hs6) %>%
-                summarize(live_weight_cf = mean(live_weight_cf, na.rm = TRUE)),
-              by = c("hs6")) %>%
-    mutate(consumption = consumption * live_weight_cf) %>%
-    select(-live_weight_cf)
+  prod_data <- prod_data %>%
+    filter(year == analysis_year)
   
-  write.csv(
-    consumption,
-    file.path(outdir, paste("consumption_live_weight_", estimate_type, ".csv", sep = "")),
-    row.names = FALSE
-  )
+  pop_data <- pop_data %>%
+    filter(year == analysis_year)
   
-  consumption <- consumption %>%
-    # remove non human consumption codes
-    filter(!(hs6 %in% c("230120", "051191", "030110", "030111", "030119")))
-  
-  write.csv(
-    consumption,
-    file.path(outdir, paste("consumption_human_only_", estimate_type, ".csv", sep = "")),
-    row.names = FALSE
-  )
-  
-  consumption_per_capita <- consumption %>%
-    filter(iso3c != "NEI") %>%
-    filter(!(iso3c == "SDN" & year <= 2011)) %>%
-    group_by(iso3c, year) %>%
-    summarize(consumption = sum(consumption, na.rm = TRUE)) %>%
-    ungroup() %>%
-    left_join(
-      pop_data %>%
-        select(iso3c, year, pop) %>%
-        group_by(iso3c, year) %>%
-        summarize(pop = sum(pop)) %>%
-        ungroup(),
-      by = c("iso3c", "year")
-    ) %>%
-    # Note: there are some countries that have no population data associated with it
-    filter(!is.na(pop)) %>%
-    group_by(year, iso3c) %>%
-    summarize(per_capita = 1000 * sum(consumption, na.rm = TRUE) / sum(pop, na.rm = TRUE))
-  
-  # Remove records where per capita consumption is over 100 kg
-  outliers_per_cap <- consumption_per_capita %>%
-    filter(per_capita > 100)
-  
-  write.csv(
-    outliers_per_cap,
-    file.path(outdir, paste("outliers_per_cap_", estimate_type, ".csv", sep = "")),
-    row.names = FALSE
-  )
-  
-  consumption_outliers <- outliers_per_cap %>%
-    left_join(
-      consumption,
-      by = c("iso3c", "year")
-    ) %>%
-    group_by(iso3c, year) %>%
-    mutate(total_consumption = sum(consumption)) %>%
-    ungroup() %>%
-    mutate(prop_consumption = consumption / total_consumption) %>%
-    left_join(
-      pop_data %>%
-        select(iso3c, pop, year),
-      by = c("iso3c", "year")
-    ) %>%
-    # 100 kg = 0.1 tonnes
-    mutate(total_consumption = 0.1 * pop) %>%
-    mutate(consumption = prop_consumption * total_consumption) %>%
-    select(-pop) %>%
-    select(iso3c, year, hs_version, hs6, consumption, domestic_weight, foreign_weight)
-  
-  consumption_no_outliers <- consumption %>%
-    anti_join(
-      outliers_per_cap %>%
-        select(iso3c, year) %>%
-        distinct(),
-      by = c("iso3c")
-    )
-  
-  consumption <- consumption_no_outliers %>%
-    bind_rows(consumption_outliers)
-  
-  write.csv(
-    consumption,
-    file.path(outdir, paste("consumption_max_100kg_per_capita_", estimate_type, ".csv", sep = "")),
-    row.names = FALSE
-  )
-  
-  # revert consumption back to product weight
-  consumption <- consumption %>%
-    left_join(
-      V1_long %>%
-        mutate(hs6 = as.character(hs6)) %>%
-        mutate(hs6 = case_when(
-          str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
-          TRUE ~ hs6
-        )) %>%
-        # conversion from live to product weight
-        mutate(live_weight_cf = 1 / live_weight_cf) %>%
-        group_by(hs6) %>%
-        summarize(live_weight_cf = mean(live_weight_cf, na.rm = TRUE)),
-      by = c("hs6")
-    ) %>%
-    mutate(consumption = consumption * live_weight_cf) %>%
-    select(-live_weight_cf)
-  
-  reweight_X_long <- reweight_X_long %>%
-    separate(SciName, c("sciname", "habitat", "method"), sep = "_") %>%
+  # Fixing production data habitat and method classifications
+  prod_data <- prod_data %>%
+    select(country_iso3_alpha, taxa_source, quantity, year) %>%
+    separate(taxa_source, c("sciname", "habitat", "method"), sep = "_") %>%
     mutate(sciname = gsub("\\.", " ", sciname))
   
-  domestic_consumption <- consumption %>%
-    filter(!(hs6 %in% c("230120", "051191", "030110", "030111", "030119"))) %>%
-    select(-foreign_weight) %>%
-    filter(domestic_weight > 0) %>%
+  # Domestic Consumption--------------------------------------------------------
+  domestic_production <- prod_data %>%
+    select(iso3c=country_iso3_alpha, sciname, habitat, method, quantity, year) %>%
+    group_by(iso3c, sciname, habitat, method, year) %>%
+    summarize(production = sum(quantity, na.rm = TRUE)) %>%
+    ungroup() %>%
     left_join(
-      reweight_X_long,
-      by = c("iso3c", "hs6", "year", "hs_version")
+      X_long,
+      by = c("iso3c", "sciname", "habitat", "method")
     ) %>%
-    # prop of consumption from domestic prod * prop of domestic prod that goes into each species
-    mutate(reweighted_domestic_weight = domestic_weight * reweighted_X) %>%
-    mutate(domestic_consumption_t = consumption * reweighted_domestic_weight) %>%
-    mutate(hs6 = as.character(hs6)) %>%
-    mutate(hs6 = case_when(
-      str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
-      TRUE ~ hs6
-    )) %>%
-    left_join(
-      V1_long %>%
-        mutate(hs6 = as.character(hs6)) %>%
-        mutate(hs6 = case_when(
-          str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
-          TRUE ~ hs6
-        )) %>%
-        separate(SciName, c("sciname", "habitat", "method"), sep = "_") %>%
-        mutate(sciname = gsub("\\.", " ", sciname)),
-      by = c("hs6", "sciname", "habitat", "method")
+    mutate(production = production * estimated_X) %>%
+    group_by(iso3c, hs6, sciname, habitat, method, year) %>%
+    summarize(production = sum(production, na.rm = TRUE)) %>%
+    ungroup()
+  
+  domestic_exports <- artis %>%
+    filter(dom_source == "domestic") %>%
+    group_by(exporter_iso3c, hs6, sciname, habitat, method, year) %>%
+    summarize(dom_exports_live = sum(live_weight_t, na.rm = TRUE)) %>%
+    ungroup()
+  
+  domestic_consumption <- domestic_exports %>%
+    rename(iso3c = exporter_iso3c) %>%
+    full_join(
+      domestic_production,
+      by = c("iso3c", "hs6", "sciname", "habitat", "method", "year")
     ) %>%
-    # convert consumption back to live weight
-    mutate(domestic_consumption_t = domestic_consumption_t * live_weight_cf)
+    mutate(
+      dom_exports_live = case_when(
+        is.na(dom_exports_live) ~ 0,
+        TRUE ~ dom_exports_live
+      ),
+      production = case_when(
+        is.na(production) ~ 0,
+        TRUE ~ production
+      )
+    ) %>%
+    mutate(dom_consumption = production - dom_exports_live,
+           source_country_iso3c = iso3c)
   
+  # Foreign Consumption---------------------------------------------------------
+  import_production <- artis %>%
+    group_by(importer_iso3c, hs6, year) %>%
+    summarize(import_prod = sum(live_weight_t, na.rm = TRUE)) %>%
+    ungroup()
   
-  write.csv(
-    domestic_consumption,
-    file.path(outdir, paste("domestic_consumption_", estimate_type, ".csv", sep = "")),
-    row.names = FALSE
-  )
-  
-  # Connect consumption final HS6 code to original hs6 that it was imported under before processing
-  consumption <- consumption %>%
-    rename(hs6_processed = hs6) %>%
+  foreign_exports <- artis %>%
+    filter(dom_source == "foreign") %>%
+    group_by(exporter_iso3c, hs6) %>%
+    summarize(foreign_exports_product = sum(product_weight_t, na.rm = TRUE)) %>%
+    ungroup() %>%
     left_join(
       reweight_W_long,
-      by = c("hs6_processed","iso3c"="exporter_iso3c") # , "year", "hs_version"
+      by = c("exporter_iso3c", "hs6"="hs6_processed")
     ) %>%
-    mutate(consumption = consumption * reweighted_W * foreign_weight) %>%
-    group_by(iso3c, hs6_original, year, hs_version) %>%
-    summarize(consumption = sum(consumption, na.rm = TRUE)) %>%
+    mutate(foreign_exports_reweighted = foreign_exports_product * reweighted_W) %>%
+    # Re summarize foreign exports by their original imported form
+    group_by(exporter_iso3c, hs6_original) %>%
+    summarize(foreign_exports_reweighted = sum(foreign_exports_reweighted)) %>%
     ungroup() %>%
-    rename(hs6 = hs6_original)
-  
-  prop_imports <- artis %>%
-    # Get total imports by importer
-    group_by(importer_iso3c, hs6) %>%
-    mutate(total_import = sum(product_weight_t, na.rm = TRUE)) %>%
-    ungroup() %>%
-    mutate(importer_prop = product_weight_t / total_import)
-  
-  write.csv(
-    prop_imports,
-    file.path(outdir, paste("prop_imports_", estimate_type, ".csv", sep = "")),
-    row.names = FALSE
-  )
-  
-  foreign_consumption <- consumption %>%
-    # Note: we can leave this in
-    filter(!(hs6 %in% c("230120", "051191", "030110", "030111", "030119"))) %>%
-    mutate(hs6 = as.character(hs6)) %>%
-    mutate(
-      hs6 = case_when(
-        str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
-        TRUE ~ hs6)
-    ) %>%
-    # prop of consumption from imports * 
-    left_join(
-      prop_imports %>%
-        mutate(hs6 = as.character(hs6)) %>%
-        mutate(hs6 = case_when(
-          str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
-          TRUE ~ hs6
-        )) %>%
-        select(source_country_iso3c, exporter_iso3c, importer_iso3c, dom_source, hs6, sciname, habitat, method, year, importer_prop),
-      by = c("iso3c" = "importer_iso3c", "hs6", "year")
-    ) %>%
-    # special case minor percentage of consumption does not have a match with ARTIS
-    filter(!is.na(source_country_iso3c)) %>%
-    # prop of consumption from imports * prop of imports by all categories
-    mutate(foreign_consumption_t = consumption * importer_prop) %>%
     left_join(
       V1_long %>%
-        mutate(hs6 = as.character(hs6)) %>%
-        mutate(hs6 = case_when(
-          str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
-          TRUE ~ hs6
-        )) %>%
-        separate(SciName, c("sciname", "habitat", "method"), sep = "_") %>%
-        mutate(sciname = gsub("\\.", " ", sciname)),
-      by = c("hs6", "sciname", "habitat", "method")
-    ) %>%
-    left_join(
-      V1_long %>%
-        mutate(hs6 = as.character(hs6)) %>%
-        mutate(hs6 = case_when(
-          str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
-          TRUE ~ hs6
-        )) %>%
         group_by(hs6) %>%
-        summarize(avg_live_weight_cf = mean(live_weight_cf, na.rm = TRUE)),
-      by = c("hs6")
+        summarize(avg_live_weight_cf = mean(live_weight_cf)),
+      by = c("hs6_original"="hs6")
     ) %>%
-    mutate(foreign_consumption_t = case_when(
-      !is.na(live_weight_cf) ~ foreign_consumption_t * live_weight_cf,
-      TRUE ~ foreign_consumption_t * avg_live_weight_cf)) %>%
-    select(-c(live_weight_cf, avg_live_weight_cf))
+    mutate(foreign_exports_reweighted_live = foreign_exports_reweighted * avg_live_weight_cf)
+  
+  foreign_consumption <- foreign_exports %>%
+    rename(iso3c = exporter_iso3c) %>%
+    full_join(
+      import_production,
+      by = c("iso3c"="importer_iso3c", "hs6_original"="hs6")
+    ) %>%
+    mutate(foreign_consumption_t = import_prod - foreign_exports_reweighted) %>%
+    rename(hs6 = hs6_original) %>%
+    # Note that for small flows (less than 0.01) do not have an import production record
+    filter(!is.na(import_prod)) %>%
+    # Note there are some flows where product was imported but
+    # there are no corresponding foreign exports
+    filter(!is.na(foreign_exports_reweighted))
+  
+  artis_import_props <- artis %>%
+    group_by(importer_iso3c, hs6, sciname, habitat, method, source_country_iso3c, year) %>%
+    summarize(imports_live = sum(live_weight_t, na.rm = TRUE)) %>%
+    ungroup() %>%
+    group_by(importer_iso3c, hs6) %>%
+    mutate(total = sum(imports_live, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(prop_import = imports_live / total)
+  
+  foreign_consumption <- foreign_consumption %>%
+    select(iso3c, hs6, foreign_consumption_t, year) %>%
+    left_join(
+      artis_import_props %>%
+        select(-c(imports_live, total)),
+      by = c("iso3c"="importer_iso3c", "hs6", "year")
+    ) %>%
+    mutate(foreign_consumption_resolved = foreign_consumption_t * prop_import)
+  
+  # Bring together a complete consumption dataframe including domestic and foreign consumption
+  complete_consumption <- domestic_consumption %>%
+    mutate(dom_source = "domestic",
+           source_country_iso3c = iso3c) %>%
+    rename(consumption_live_t = dom_consumption) %>%
+    select(-c(dom_exports_live, production)) %>%
+    bind_rows(
+      foreign_consumption %>%
+        mutate(dom_source = "foreign") %>%
+        select(-c(foreign_consumption_t, prop_import)) %>%
+        rename(consumption_live_t = foreign_consumption_resolved)
+    )
   
   write.csv(
-    foreign_consumption,
-    file.path(outdir, paste("foreign_consumption_", estimate_type, ".csv", sep = "")),
+    complete_consumption,
+    file.path(outdir, paste("complete_consumption_raw_", estimate_type, ".csv", sep = "")),
     row.names = FALSE
   )
   
-  summary_consumption <- domestic_consumption %>%
-    group_by(hs6, iso3c, sciname, habitat, method, year) %>%
-    summarize(domestic_consumption_t = sum(domestic_consumption_t, na.rm = TRUE)) %>%
+  # Summary Consumption (legacy code matching file)
+  summary_consumption <- complete_consumption %>%
+    group_by(iso3c, hs6, sciname, habitat, method, year, dom_source) %>%
+    summarize(consumption_live_t = sum(consumption_live_t, na.rm = TRUE)) %>%
     ungroup() %>%
-    filter(!is.na(sciname)) %>%
-    full_join(
-      foreign_consumption %>%
-        group_by(hs6, iso3c, sciname, habitat, method, year) %>%
-        summarize(foreign_consumption_t = sum(foreign_consumption_t, na.rm = TRUE)) %>%
-        ungroup(),
-      by = c("hs6", "iso3c", "sciname", "habitat", "method", "year")
-    ) %>%
-    mutate(domestic_consumption_t = case_when(
-      is.na(domestic_consumption_t) ~ 0,
-      TRUE ~ domestic_consumption_t
-    )) %>%
-    mutate(foreign_consumption_t = case_when(
-      is.na(foreign_consumption_t) ~ 0,
-      TRUE ~ foreign_consumption_t
-    )) %>%
+    pivot_wider(names_from = dom_source, values_from = consumption_live_t, values_fill = 0) %>%
+    rename(domestic_consumption_t = domestic,
+           foreign_consumption_t = foreign) %>%
     mutate(supply = domestic_consumption_t + foreign_consumption_t)
-  
   
   write.csv(
     summary_consumption,
+    file.path(outdir, paste("summary_consumption_raw_", estimate_type, ".csv", sep = "")),
+    row.names = FALSE  
+  )
+  
+  # Removing non human consumption codes
+  if (end_use == "human") {
+    complete_consumption <- complete_consumption %>%
+      filter(!(hs6 %in% c("230120", "051191", "030110", "030111", "030119")))
+  }
+  
+  # Percent of consumption that is domestic vs foreign sourced by country
+  percent_consumption <- complete_consumption %>%
+    group_by(iso3c, dom_source) %>%
+    summarize(consumption_live_t = sum(consumption_live_t, na.rm = TRUE)) %>%
+    ungroup() %>%
+    group_by(iso3c) %>%
+    mutate(total_consumption_t = sum(consumption_live_t, na.rm = TRUE)) %>%
+    mutate(percent = 100 * consumption_live_t / total_consumption_t)
+  
+  # Standardizing all consumption to be at most 100 kg per capita
+  consumption_per_capita <- complete_consumption %>%
+    group_by(iso3c, year) %>%
+    summarize(total_consumption_kg = 1000 * sum(consumption_live_t, na.rm = TRUE)) %>%
+    ungroup() %>%
+    left_join(
+      pop_data,
+      by = c("iso3c", "year")
+    ) %>%
+    mutate(consumption_kg_per_capita = total_consumption_kg / pop)
+  
+  non_outliers <- consumption_per_capita %>%
+    filter(consumption_kg_per_capita <= 100)
+  
+  outliers <- consumption_per_capita %>%
+    filter(consumption_kg_per_capita > 100) %>%
+    # 100 kg * pop / (1000 kg / 1 tonne)
+    mutate(correct_total_consumption_t = (100 * pop) / 1000)
+  
+  outlier_consumption_edits <- complete_consumption %>%
+    filter(iso3c %in% unique(outliers$iso3c)) %>%
+    group_by(iso3c) %>%
+    mutate(country_total_consumption_t = sum(consumption_live_t, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(flow_prop = consumption_live_t / country_total_consumption_t) %>%
+    left_join(
+      outliers %>%
+        select(iso3c, year, correct_total_consumption_t),
+      by = c("iso3c", "year")
+    ) %>%
+    mutate(consumption_live_t = correct_total_consumption_t * flow_prop) %>%
+    select(-c(country_total_consumption_t, flow_prop, correct_total_consumption_t))
+  
+  consumption_100kg_per_capita <- complete_consumption %>%
+    filter(!(iso3c %in% unique(outliers$iso3c))) %>%
+    bind_rows(outlier_consumption_edits)
+  
+  # Test all countries have at most 100 kg per capita consumption
+  test_per_capita_consumption <- consumption_100kg_per_capita %>%
+    group_by(iso3c, year) %>%
+    summarize(total_consumption_kg = 1000 * sum(consumption_live_t, na.rm = TRUE)) %>%
+    ungroup() %>%
+    left_join(
+      pop_data,
+      by = c("iso3c", "year")
+    ) %>%
+    mutate(consumption_kg_per_capita = total_consumption_kg / pop) %>%
+    filter(consumption_kg_per_capita > 100)
+    
+  if (nrow(test_per_capita_consumption) > 100) {
+    warning("ERROR: 100 kg consumption per capita threshold exceeded")
+  }
+  
+  test_percent_match <- consumption_100kg_per_capita %>%
+    group_by(iso3c, dom_source) %>%
+    summarize(consumption_live_t = sum(consumption_live_t, na.rm = TRUE)) %>%
+    ungroup() %>%
+    group_by(iso3c) %>%
+    mutate(total_consumption_t = sum(consumption_live_t, na.rm = TRUE)) %>%
+    mutate(new_percent = 100 * consumption_live_t / total_consumption_t) %>%
+    select(-c(total_consumption_t, consumption_live_t)) %>%
+    left_join(
+      percent_consumption %>%
+        select(-c(total_consumption_t, consumption_live_t)),
+      by = c("iso3c", "dom_source")
+    ) %>%
+    mutate(difference = percent - new_percent) %>%
+    filter(abs(difference) > 1e-9)
+  
+  if (nrow(test_percent_match) > 0) {
+    warning("ERROR: 100 kg consumption per capita correction not keeping previous domestic/foreign proportions")
+  }
+  
+  test_props <- consumption_100kg_per_capita %>%
+    group_by(iso3c) %>%
+    mutate(country_total_consumption_t = sum(consumption_live_t, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(new_flow_prop = consumption_live_t / country_total_consumption_t) %>%
+    left_join(
+      complete_consumption %>%
+        group_by(iso3c) %>%
+        mutate(country_total_consumption_t = sum(consumption_live_t, na.rm = TRUE)) %>%
+        ungroup() %>%
+        mutate(flow_prop = consumption_live_t / country_total_consumption_t)
+    ) %>%
+    mutate(difference = flow_prop - new_flow_prop) %>%
+    filter(abs(difference) > 1e-9)
+  
+  if (nrow(test_props) > 0) {
+    warning("ERROR: 100 kg consumption per capita correction not keeping previous domestic/foreign proportions")
+  }
+  
+  write.csv(
+    consumption_100kg_per_capita,
+    file.path(outdir, paste("complete_consumption_100kg_per_capita_", estimate_type, ".csv", sep = "")),
+    row.names = FALSE
+  )
+  
+  # Summary Consumption (legacy code matching file)
+  summary_consumption_100kg_per_capita <- consumption_100kg_per_capita %>%
+    group_by(iso3c, hs6, sciname, habitat, method, year, dom_source) %>%
+    summarize(consumption_live_t = sum(consumption_live_t, na.rm = TRUE)) %>%
+    ungroup() %>%
+    pivot_wider(names_from = dom_source, values_from = consumption_live_t, values_fill = 0) %>%
+    rename(domestic_consumption_t = domestic,
+           foreign_consumption_t = foreign) %>%
+    mutate(supply = domestic_consumption_t + foreign_consumption_t)
+  
+  write.csv(
+    summary_consumption_100kg_per_capita,
     file.path(outdir, paste("summary_consumption_", estimate_type, ".csv", sep = "")),
     row.names = FALSE
   )
+  
 }

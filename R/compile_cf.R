@@ -5,8 +5,8 @@
 #' @import stringr
 #' @export
 
-compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version, match_criteria){
-  
+compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version, match_criteria,
+                       fb_slb_dir = '/Volumes/jgephart/ARTIS/Data/fishbase_sealifebase'){
   
   # NOTE on warnings when creating hs_cf_full_match
   # There were 50 or more warnings (use warnings() to see the first 50): In max(conversion_factor_full, na.rm = TRUE): no non-missing arguments to max; returning -Inf
@@ -156,21 +156,6 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
     cf_data$Separation[str_detect(cf_data$type_of_processing, pattern="whole")] <- "whole"
     cf_data$Separation[cf_data$type_of_processing=="live"] <- "whole"
     
-    # Commenting this out, after examining EU Commission's list of CF values, we can't assume these to mean "whole" fishes:
-    # assuming that when only preparation is specified (i.e., unspecified separations) then separation-level is "whole" 
-    #cf_data$Separation[cf_data$type_of_processing=="fresh/chilled"] <- "whole"
-    #cf_data$Separation[cf_data$type_of_processing=="frozen"] <- "whole"
-    #cf_data$Separation[cf_data$type_of_processing=="salted, wet or in brine"] <- "whole"
-    #cf_data$Separation[cf_data$type_of_processing=="salted wet light"] <- "whole"
-    #cf_data$Separation[cf_data$type_of_processing=="salted dry light"] <- "whole"
-    #cf_data$Separation[cf_data$type_of_processing=="salted wet heavy"] <- "whole"
-    #cf_data$Separation[cf_data$type_of_processing=="salted dry heavy, hand processed"] <- "whole"
-    #cf_data$Separation[cf_data$type_of_processing=="smoked"] <- "whole"
-    #cf_data$Separation[cf_data$type_of_processing=="salted"] <- "whole"
-    #f_data$Separation[cf_data$type_of_processing=="salted dry heavy"] <- "whole"
-    #cf_data$Separation[cf_data$type_of_processing=="dried, whether or not salted"] <- "whole"
-    #cf_data$Separation[cf_data$type_of_processing=="dried"] <- "whole"
-    
     # other whole separations (non-exact matching): loose definition, head/tail off can still be considered "whole"
     # NOTE: this is loose matching here, but many of these (e.g., frozen, gutted, split", "frozen, gutted, head off, tail off, blocks") get assigned back to "other meat" in the next section 
     cf_data$Separation[str_detect(cf_data$type_of_processing, pattern="gutted")] <- "whole" 
@@ -217,20 +202,9 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
     # all non-fish should get NA, unless it's flours/meals/pellets
     cf_data$Separation[str_detect(cf_data$type, pattern="Fishes")==FALSE] <- "non-fish, non-fmp form"
     
-    
-    # RUN the following to see which products still have't been assigned a preparation and/or separation label
-    # cf_data %>%
-    #  filter(is.na(Separation) | is.na(Preparation)) %>%
-    #  select(type_of_processing, Separation, Preparation) %>%
-    #  unique()
-    
     # NOTES on NAs:
     # cf_data with missing data don't specify a preparation method, only separation (e.g., "fillets, skinless")
-    
-    # Check how types of processing was translated into different preparations and separations
-    #as.data.frame(table(cf_data$Separation, cf_data$type_of_processing)) %>% filter(Freq!=0) %>% arrange(Var1, Var2)
-    #as.data.frame(table(cf_data$Preparation, cf_data$type_of_processing)) %>% filter(Freq!=0) %>% arrange(Var1, Var2)
-    
+  
     ############################################################################################################
     # Final cleaning of cf_data
     cf_data_clean <- cf_data %>%
@@ -387,7 +361,6 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
     nomatch_species_post <- nomatch_species_post[grepl(nomatch_species_post, pattern = " ")]
     
     # Reading in fishbase and sealifebase synonym databases for matches
-    fb_slb_dir <- '/Volumes/jgephart/ARTIS/Data/fishbase_sealifebase'
     fb_df <- read_synonyms(file.path(fb_slb_dir, "synonyms_fishbase_20220518.csv"))
     slb_df <- read_synonyms(file.path(fb_slb_dir, "synonyms_sealifebase_20220525.csv"))
     
@@ -430,10 +403,7 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
     # All taxa names checked for correct spelling and corrected in cf_data_clean
     nomatch_species_final <- unique(cf_data_clean$Species)[unique(cf_data_clean$Species) %in% unique(hs_for_cf_matching$Taxa)==FALSE]
     nomatch_species_final <- sort(nomatch_species_final[nomatch_species_final != ""])
-    # For just the binomial nomenclature species:
-    # nomatch_species_final <- nomatch_species_final[grepl(nomatch_species_final, pattern = " ")]
-    
-    
+
     ################################################################################################################
     # Now join hs_for_cf_matching with cf_data by Species, Preparation, and/or Separation
     
@@ -448,8 +418,6 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
       select(Code, Description, Taxa, Separation, Preparation, conversion_factor_full)  %>% 
       group_by(Code, Description, Taxa, Separation, Preparation) %>%
       summarise(mean_cf_full = mean(conversion_factor_full, na.rm = TRUE), 
-                #max_cf_full = max(conversion_factor_full, na.rm = TRUE), 
-                #min_cf_full = min(conversion_factor_full, na.rm = TRUE), 
                 max_cf_full = max(conversion_factor_full), 
                 min_cf_full = min(conversion_factor_full), 
                 n_cf_full = n()) %>%
@@ -502,64 +470,6 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
              CF_n = if_else(is.na(mean_cf_loose)==FALSE & is.na(CF_n), true = n_cf_loose, false = CF_n),  # NOTE: for CF_n need to test is.na(mean_cf_loose) instead of is.na(n_cf_loose), since n_cf_full is never NA
              match_notes = if_else(is.na(CF_match)==FALSE & match_notes=="no_cf_match", true = "loose_match", false = match_notes)) %>%
       select(Code, Description, Taxa, Separation, Preparation, CF_match, CF_max, CF_min, CF_n, match_notes)
-    
-    # Code below is for keeping separation only vs preparation only matches separate:
-    # hs_cf_sep_match: mean of all CF's matched by taxa and separation
-    #hs_cf_sep_match <- hs_for_cf_matching %>%
-    #  left_join(cf_data_clean, by = c("Taxa" = "Species",
-    #                                   "Separation")) %>%
-    #  rename(conversion_factor_sep = Conversion.factor,
-    #         Preparation_HS_code = Preparation.x) %>% 
-    #  select(Code, Description, Taxa, Separation, Preparation_HS_code, conversion_factor_sep) %>% # matches only taxa and separation
-    #  group_by(Code, Description, Taxa, Separation) %>%
-    #  summarise(mean_cf_sep = mean(conversion_factor_sep, na.rm = TRUE), 
-    #            stdev_cf_sep = sd(conversion_factor_sep, na.rm = TRUE), 
-    #            max_cf_sep = max(conversion_factor_sep, na.rm = TRUE), 
-    #            min_cf_sep = min(conversion_factor_sep, na.rm = TRUE), 
-    #            n_cf_sep = n()) %>%
-    #  ungroup()
-    
-    # hs_cf_prep_match: mean of all CF's matched by taxa and preparation  
-    #hs_cf_prep_match <- hs_for_cf_matching %>%
-    #  left_join(cf_data_clean, by = c("Taxa" = "Species",
-    #                                  "Preparation")) %>%
-    #  rename(conversion_factor_prep = Conversion.factor, # matches only taxa and preparation
-    #         Separation_HS_code = Separation.x) %>%
-    #  select(Code, Description, Taxa, Separation_HS_code, Preparation, conversion_factor_prep) %>%
-    #  group_by(Code, Description, Taxa, Preparation) %>%
-    #  summarise(mean_cf_prep = mean(conversion_factor_prep, na.rm = TRUE), 
-    #            stdev_cf_prep = sd(conversion_factor_prep, na.rm = TRUE), 
-    #            max_cf_prep = max(conversion_factor_prep, na.rm = TRUE), 
-    #            min_cf_prep = min(conversion_factor_prep, na.rm = TRUE), 
-    #            n_cf_prep = n()) %>%
-    #  ungroup()
-    
-    # Now join all three versions together, while creating new column CF_match for matching CF values and match_notes to indicate the type of match
-    # FIX IT - need to reconsider: code below prioritizes separation matches over preparation matches
-    #hs_cf_match <- hs_cf_full_match %>%
-    #  full_join(hs_cf_sep_match, by = intersect(names(hs_cf_full_match), names(hs_cf_sep_match))) %>%
-    #  full_join(hs_cf_prep_match, by = intersect(names(.), names(hs_cf_prep_match))) %>%
-    #  arrange(Code, Taxa) %>%
-    # min and max functions return -Inf and Inf when there are missing values; replace these with NAs
-    #  mutate_if(is.numeric, list(~na_if(., Inf))) %>% 
-    #  mutate_if(is.numeric, list(~na_if(., -Inf))) %>%
-    #  # now compile similar information (e.g., max_cf_full, max_cf_sep, and max_cf_prep) into one column (CF_max) while recording type of match in match_notes
-    #  mutate(CF_match = if_else(is.na(mean_cf_full)==FALSE, true = mean_cf_full, false = NaN),
-    #         CF_max = if_else(is.na(max_cf_full)==FALSE, true = max_cf_full, false = NaN),
-    #         CF_min = if_else(is.na(min_cf_full)==FALSE, true = min_cf_full, false = NaN),
-    #         CF_n = if_else(is.na(n_cf_full)==FALSE, true = n_cf_full, false = NaN),
-    #         match_notes = if_else(is.na(CF_match)==FALSE, true = "full_match", false = "no_cf_match")) %>%
-    #  mutate(CF_match = if_else(is.na(mean_cf_sep)==FALSE & is.na(CF_match), true = mean_cf_sep, false = CF_match),
-    #         CF_max = if_else(is.na(max_cf_sep)==FALSE & is.na(CF_max), true = max_cf_sep, false = CF_max),
-    #         CF_min = if_else(is.na(min_cf_sep)==FALSE & is.na(CF_min), true = min_cf_sep, false = CF_min),
-    #         CF_n = if_else(is.na(n_cf_sep)==FALSE& is.na(CF_n), true = n_cf_sep, false = CF_n),
-    #         match_notes = if_else(is.na(CF_match)==FALSE & match_notes=="no_cf_match", true = "sep_match", false = match_notes)) %>%
-    #  mutate(CF_match = if_else(is.na(mean_cf_prep)==FALSE & is.na(CF_match), true = mean_cf_prep, false = CF_match),
-    #         CF_max = if_else(is.na(max_cf_prep)==FALSE & is.na(CF_max), true = max_cf_prep, false = CF_max),
-    #         CF_min = if_else(is.na(min_cf_prep)==FALSE & is.na(CF_min), true = min_cf_prep, false = CF_min),
-    #         CF_n = if_else(is.na(n_cf_prep)==FALSE & is.na(CF_n), true = n_cf_prep, false = CF_n),
-    #         match_notes = if_else(is.na(CF_match)==FALSE & match_notes=="no_cf_match", true = "prep_match", false = match_notes)) %>%
-    #  select(Code, Description, Taxa, CF_match, CF_max, CF_min, CF_n, match_notes)
     
     ############################################################################################################
     # Now calculate final CF values by aggregating
@@ -622,10 +532,12 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
         mutate(CF_calc = if_else(Code %in% fillet_list | calc_notes == "assign", true = CF_calc, false = NaN))
       
     }
- 
     
     # Get list of missing CF values: 
-    hs_cf_missing <- hs_cf_match_calc %>% filter(is.na(CF_calc)) %>% select(Code, Description) %>% unique()
+    hs_cf_missing <- hs_cf_match_calc %>% 
+      filter(is.na(CF_calc)) %>% 
+      select(Code, Description) %>% 
+      unique()
     
     # Join EUMOFA data with hs_cf_match_final and use EUMOFA data to fill in missing values calculated from cf_data
     
@@ -644,38 +556,14 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
   
   ############################################################################################################
   # Output data and plots
-    
-  # Use this to identify code/taxa pairs that still don't have a CF value
-  #hs_cf_match_final %>%
-  #  filter(is.na(CF_calc)) %>%
-  #  select(Code, Description) %>%
-  #  unique() %>% as_tibble()
-  
-  # Check that "calc_notes" column no longer has a "no_calc" group
-  #table(hs_cf_match_final$calc_notes)
-  
-  
-  # plot eumofa vs cf_data for comparison to 1:1 line
-  #p <- ggplot(data = (hs_cf_match_final %>% select(CF_calc, mean_EUMOFA, calc_notes) %>% filter(is.na(mean_EUMOFA)==FALSE) %>% unique()), aes(x = CF_calc, y = mean_EUMOFA)) +
-  #  geom_point(aes(color = calc_notes), alpha = 0.4) +
-  #  geom_abline(slope = 1, intercept = 0) + 
-  #  labs(x = "compiled CF values", y = "EUMOFA CF values", title = match_criteria) #+
-    #xlim(1, 4) +
-    #ylim(1, 4)
-  
-  #pdf_name <- paste("plot_CF_values_", match_criteria, "_match_", Sys.Date(), ".pdf", sep = "")
-  #pdf(file.path(outdir, pdf_name))
-  #print(p)
-  #dev.off()
   
   hs_cf_match_final <- hs_cf_match_final %>%
     mutate(CF_calc = case_when(
-      max_EUMOFA == 0 ~ 0, # FIX IT: Need to determine whether to accept EUMOFA's definition of coproduct or not, (CF_max + CF_min) / 2,
+      max_EUMOFA == 0 ~ 0,
       is.na(CF_n) ~ mean_EUMOFA,
       TRUE ~ ((CF_max + CF_min) / 2) * (CF_n / (CF_n + n_EUMOFA)) + ((max_EUMOFA + min_EUMOFA) / 2) * (n_EUMOFA / (CF_n + n_EUMOFA))
     )) %>% 
     mutate(CF_calc = case_when(str_detect(Code, "^0301") ~ 1, # LIVE/WHOLE FISH
-                               # str_detect(Code, "^0302") ~ 1,
                                # FISH OILS
                                str_detect(Code, "^1504") ~ 0,
                                # FISH FLOUR, MEALS, PELLETS
@@ -687,9 +575,9 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
                                str_detect(Code, pattern = "230120") ~ 1/(fm_rate+fo_rate) * (fm_rate/(fm_rate+fo_rate)),
                                # CAVIAR:
                                str_detect(Description, pattern = "caviar") ~ 0,
-                               # FIX IT: similar str detect for roe
                                TRUE ~ CF_calc)) %>%
-    mutate(calc_notes = if_else(is.na(CF_calc) == FALSE, true = "assign", false = "no_CF"))
+    mutate(calc_notes = if_else(is.na(CF_calc) == FALSE, true = "assign", false = "no_CF")) %>%
+    mutate(CF_live_to_commod = 1/CF_calc)
   
   # Check to make sure all CFs are non NA
   if (sum(is.na(hs_cf_match_final$CF_calc)) > 0) {
@@ -697,5 +585,4 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
   }
   
   return(hs_cf_match_final)
-  
 }

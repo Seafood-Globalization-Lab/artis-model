@@ -1,8 +1,6 @@
 #' @import dplyr
 #' @export
 query_synonyms <- function(df, in_query) {
-  # DESCRIPTION
-  #       - 
   # INPUTS:
   #       - synonym data frame to be queried (DATA FRAME)
   #       - query string with a potential species synonym (STRING)

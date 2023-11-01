@@ -1,7 +1,7 @@
 #' @export
-get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = NA,
+get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = c(),
                                   prod_type = "FAO", solver_type = "quadprog",
-                                  no_solve_countries = NA, num_cores = 10) {
+                                  no_solve_countries = data.frame(), num_cores = 10) {
   
   #-----------------------------------------------------------------------------
   # Step 0: Setup
@@ -205,9 +205,9 @@ get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = 
     filter(HS_year == HS_year_rep)
   
   # Check if there is a specific test year to create an snet for
-  if (!is.na(test_year)) {
+  if (length(test_year) > 0) {
     analysis_years_rep <- analysis_years_rep %>%
-      filter(analysis_year == test_year)
+      filter(analysis_year %in% test_year)
   }
   
   # Create all output directories for HS version and each year
@@ -259,10 +259,7 @@ get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = 
     
     # Filter production data to analysis_year
     prod_data_analysis_year <- prod_data %>%
-      filter(year == analysis_year)
-    
-    # # Remove countries that don"t match between baci and production data
-    prod_data_analysis_year <- prod_data_analysis_year %>%
+      filter(year == analysis_year) %>%
       select(country_iso3_alpha, taxa_source, quantity)
 
     baci_data_analysis_year <- baci_data_analysis_year %>%
@@ -294,7 +291,7 @@ get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = 
     
     # Get list of countries
     countries_to_analyze <- NA
-    if (is.na(no_solve_countries)) {
+    if (nrow(no_solve_countries) == 0) {
       countries_to_analyze <- sort(unique(prod_data_analysis_year$country_iso3_alpha))
     } else {
       

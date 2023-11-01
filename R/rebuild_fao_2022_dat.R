@@ -43,10 +43,8 @@ rebuild_fao_2022_dat <- function(datadir, filename){
   ds$Codelist_Code_id <- tolower(ds$Codelist_Code_id)
   
   # read in time series.csv
-  time_file <- fish_files[grep("QUANTITY", fish_files)] # Was labeled as "TS" for time series in 2020 version
+  time_file <- fish_files[grep("Quantity", fish_files)] # Was labeled as "TS" for time series in 2020 version
   time_series <- read.csv(file.path(unzip_folder, time_file))
-  
-  
   
   # IMPORTANT: row ORDER (ABCDEF) in DSD file should match columns ABCDEF in time series for looping to work below
   # Change "Measure" to "Unit" and "Staus" to "Symbol" to match 2020 version
@@ -56,7 +54,6 @@ rebuild_fao_2022_dat <- function(datadir, filename){
     # REORDER to match order of DSD rows
     select(all_of(ds$Concept_id))
   names(time_series_join) <- tolower(names(time_series_join))
-  
   
   for (i in 1:nrow(ds)) {
     # TRUE/FALSE: is there a filename listed in Codelist_id?

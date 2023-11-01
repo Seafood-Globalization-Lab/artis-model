@@ -3,7 +3,8 @@
 match_by_taxon <- function(hs_codes_row, possible_prod_taxa, match_code_output, remove_after_match = TRUE, match_type, hs_version = hs_version){
   
   # First, match to species: extract species names in code_descript that match list of SciNames in possible_prod_taxa
-  # Note: Matching at the species level is slightly different than matching for genus, family, order, class because the SciName column in possible_prod_taxa is a mix of different classification levels, not just species
+  # Note: Matching at the species level is slightly different than matching for genus, family, order, class because the SciName column in 
+  # possible_prod_taxa is a mix of different classification levels, not just species
   code_descript <- tolower(hs_codes_row$Description)
   
   # Pattern for matching all taxa names structured like this:

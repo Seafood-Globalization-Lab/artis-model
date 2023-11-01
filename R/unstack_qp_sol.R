@@ -1,6 +1,5 @@
 #' @export
 unstack_qp_sol <- function(qp_sol, qp_inputs) {
-  
   # Save solution to vector
   x <- qp_sol
   
@@ -64,5 +63,4 @@ unstack_qp_sol <- function(qp_sol, qp_inputs) {
   } else {out_X <- NA}
 
   return(list(X = out_X, W = out_W, c = out_c, p = p, error_term = out_error, exports = exports, imports = imports))
-  # Note: p needed for make_snet_simple
 }

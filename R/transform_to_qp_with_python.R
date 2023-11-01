@@ -4,7 +4,6 @@
 #' @importFrom reticulate py_to_r
 #' @export
 transform_to_qp_with_python <- function(country_j, V1, V2, baci_data_clean, prod_data_clean, sc_n, cc_m, Xq){
-  
   # Create data table with all hs codes to standardize the order
   cc_dt <- data.table(hs6 = as.character(cc_m)) 
   

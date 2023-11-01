@@ -1,17 +1,13 @@
 #' @import stringr
 #' @import dplyr 
 #' @export
-clean_hs <- function(hs_data_raw){
+clean_hs <- function(hs_data_raw, fb_slb_dir = "/Volumes/jgephart/ARTIS/Data/fishbase_sealifebase"){
   # Run ALL HS codes through clean_hs function to:
   # 1 correct spelling mistakes in HS code descriptions
   # 2 standardize HS code descriptions: e.g., all genera should be written as <genera spp>, species-level names should be in parentheses separated by commas, etc
   # 3 add scientific classification info to common names (e.g., add "Pleuronectiformes" to code descriptions for flatfish)
   # 4 create columns that will be used to match taxa to HS Codes by scientific classification (species, genera, family, order, and class) and Commodity Type (i.e., Fish, Mollusc, Crustacean, or Aquatic Invertebrate)
   # 5 run all species names through rfishbase and if outdated, replace with the current accepted scientific name (synonym function in rfishbase)
-  
-  # FIX IT - Use OR statement for the conditional: e.g., str_detect(pattern = "XXXX") | str_detect(patern = "XXXX" and use paste() instead of str_replace to append descriptions
-  # See "Sharks" below as an example
-  # FIX IT - convert to case_when instead of if_else for easier readability (see 030419 as example)
   
   hs_data <- hs_data_raw %>%
     filter(nchar(Code)==6) %>% # ONLY KEEP 6 digit codes for analysis
@@ -33,7 +29,6 @@ clean_hs <- function(hs_data_raw){
   # Assumption in downstream code is that all genera are indicated as "<genera> spp"
   # Rewrite descriptions that are exceptions to this: "of the genus XXX" and "of the genera XXX"
   # Rewrite (Aguilla) and (Channa) as (Aguilla spp.) annd (Channa spp.)
-  # check_grep <- grep("of the genus|of the genera", x = hs_data$Description)
  
   hs_data <- hs_data %>%
     mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "of the genera pecten, chlamys or placopecten"), 
@@ -45,7 +40,6 @@ clean_hs <- function(hs_data_raw){
                                   str_replace(hs_data$Description, pattern = "of the genus thunnus", replacement = "of thunnus spp."),
                                   Description))
   
-  # check_grep <- grep(regex("\\(Anguilla\\)|\\(Channa\\)", ignore_case = TRUE), x = hs_data$Description)
   hs_data <- hs_data %>%
     mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "\\(anguilla\\)"), 
                                  str_replace(hs_data$Description, pattern = "\\(anguilla\\)", replacement = "\\(anguilla spp.\\)"),
@@ -113,17 +107,6 @@ clean_hs <- function(hs_data_raw){
                                    Code == "030499" ~ str_replace(hs_data$Description, pattern = "swordfish \\(xiphias gladius\\) and toothfish \\(dissostichus spp.\\)", 
                                                                   replacement = "fish of heading 0304.9"),
                                    TRUE ~ Description))
-    
-    
-    # mutate(Description = if_else(str_detect(string = hs_data$Code, pattern = "030419"), 
-    #                              str_replace(hs_data$Description, pattern = "swordfish \\(xiphias gladius\\) and toothfish \\(dissostichus spp.\\)", 
-    #                                          replacement = "fish of heading 0304.1"),
-    #                              if_else(str_detect(string = hs_data$Code, pattern = "030429"), 
-    #                                      str_replace(hs_data$Description, pattern = "swordfish \\(xiphias gladius\\) and toothfish \\(dissostichus spp.\\)", 
-    #                                                  replacement = "fish of heading 0304.2"),
-    #                                      if_else(str_detect(string = hs_data$Code, pattern = "030499"),
-    #                                              str_replace())
-    #                                      Description)))
   
   # Description for Codes 030559 (specific to H4 Classification) breaks from rest of parent group 0305 by indicating species rather than heading number
   # Heading number is needed to identify codes where remaining possible_prod_taxa should be matched and then reset
@@ -135,7 +118,6 @@ clean_hs <- function(hs_data_raw){
                                              replacement = "n.e.c. in item no. 0305.5"),
                                  Description))
   
-  
   # Description for code 030890 is a "true" NEC code in that all taxa not matched to other codes in this parent group should go here
   # Change Description to have "NEC" pattern so that it fits into matching logic
   hs_data <- hs_data %>%
@@ -143,7 +125,6 @@ clean_hs <- function(hs_data_raw){
                                  str_replace(hs_data$Description, pattern = "other than crustaceans, molluscs, sea urchins, sea cucumbers and jellyfish", 
                                              replacement = "n.e.c. in heading 0308"),
                                  Description))
-  
   
   ##############################################################################################################
   # Deal with species names that are weirdly formatted (violates assumption of comma-delimited lists of species)
@@ -214,16 +195,6 @@ clean_hs <- function(hs_data_raw){
   # SHARKS defined as: (Order %in% c("carcharhiniformes", "heterodontiformes", "hexanchiformes", "lamniformes", "orectolobiformes", "pristiophoriformes", "squaliformes", "squantiniformes"))
   # Note: Descriptions with "dogfish" already included as part of squaliformes
   # Note: Do this replacement for both "sharks" and "shark fins" 
-  # OLD CODE:
-  # hs_data$Description[grep("sharks|shark fins", x = hs_data$Description)]
-  # hs_data <- hs_data %>% 
-  #   mutate(Description = if_else(grepl("sharks", hs_data$Description), 
-  #                                str_replace(hs_data$Description, pattern = "sharks", replacement = "sharks (carcharhiniformes, chimaeriformes, heterodontiformes, hexanchiformes, lamniformes, orectolobiformes, pristiophoriformes, squaliformes, squantiniformes)"),
-  #                                if_else(grepl("shark fins", hs_data$Description),
-  #                                        str_replace(hs_data$Description, pattern = "shark fins", replacement = "shark fins (carcharhiniformes, chimaeriformes, heterodontiformes, hexanchiformes, lamniformes, orectolobiformes, pristiophoriformes, squaliformes, squantiniformes)"),
-  #                                Description)))
-
-  # FASTER:
   hs_data <- hs_data %>% 
     mutate(Description = if_else(grepl("sharks|shark fins", hs_data$Description), 
                                  paste(hs_data$Description, " (carcharhiniformes, chimaeriformes, heterodontiformes, hexanchiformes, lamniformes, orectolobiformes, 
@@ -233,9 +204,6 @@ clean_hs <- function(hs_data_raw){
   
   # CARP defined as: "Cyprinus spp., Carassius spp., Ctenopharyngodon idellus, Hypophthalmichthys spp., Cirrhinus spp., Mylopharyngodon piceus, Catla catla, Labeo spp., Osteochilus hasselti, Leptobarbus hoeveni, Megalobrama spp."
   # Only insert definitions for those descriptions that don't already have a carp definition (i.e., Cyprinus == FALSE)
-  # FIX IT Note: HS code descriptions of carp change through time, sometimes more explicit about species vs. genera, sometimes just defined as "Carp (as specified by the WCO)"
-  # FIX IT One idea: write code to copy taxa definition (if it exists) from the same year
-  # check_grep <- (grepl("carp", hs_data$Description)==TRUE & grepl("Cyprinus", hs_data$Description)==FALSE)
   hs_data <- hs_data %>%
     mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "carp")==TRUE & str_detect(string = hs_data$Description, pattern = "cyprinus")==FALSE, 
                                  str_replace(hs_data$Description, pattern = "carp", 
@@ -443,8 +411,6 @@ clean_hs <- function(hs_data_raw){
                                  Description))
   
   # SNAILS - Class Gastropoda
-  # FIX IT - descriptions specify (other than sea snails), need to figure out how to differentiate freshwater vs marine
-  # hs_data$Description[grep("snail", hs_data$Description)] check which rows should be changed
   hs_data <- hs_data %>%
     mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "snails"), 
                                  str_replace(hs_data$Description, pattern = "snails", replacement = "snails \\(gastropoda\\)"), 
@@ -611,7 +577,6 @@ clean_hs <- function(hs_data_raw){
   hs_species <- na.omit(unique(unlist(hs_data$Species)))
   
   # reads and cleans Fishbase and Sealifebase synonym datasets
-  fb_slb_dir <- "/Volumes/jgephart/ARTIS/Data/fishbase_sealifebase"
   fb_df <- read_synonyms(file.path(fb_slb_dir, "synonyms_fishbase_20220518.csv"))
   slb_df <- read_synonyms(file.path(fb_slb_dir, "synonyms_sealifebase_20220525.csv"))
   
@@ -659,7 +624,6 @@ clean_hs <- function(hs_data_raw){
   hs_data$NEC[grepl(hs_data$Description, pattern="n.e.c.")] <- 1
   hs_data$NEC[grepl(hs_data$Description, pattern="n.e.s.")] <- 1 #In H0, n.e.s. is used instead of n.e.c.
   
-  
   # FINALLY, keep track of how hs_codes_clean will differ from original hs_data description
   # hs_data_raw$Description vs hs_data$Description
   hs_data$Modification <- NA
@@ -675,7 +639,6 @@ clean_hs <- function(hs_data_raw){
       hs_data$Modification[i] <- descript_diff
     }
   }
-  
   
   return(hs_data)
 }

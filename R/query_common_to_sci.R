@@ -1,8 +1,6 @@
 #' @import dplyr
 #' @export
 query_common_to_sci <- function(df, in_query) {
-  # DESCRIPTION
-  #       - 
   # INPUTS:
   #       - common to sciname data frame to be queried (DATA FRAME)
   #       - query string with a potential species synonym (STRING)

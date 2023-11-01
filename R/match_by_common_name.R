@@ -48,6 +48,5 @@ match_by_common_name <- function(hs_codes_row, possible_prod_taxa, match_code_ou
   } # end section if (grepl("shrimp", code_descript))
   
   return(list(match_code_output, possible_prod_taxa))
-  
 }
   

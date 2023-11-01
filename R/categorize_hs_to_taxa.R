@@ -1,6 +1,7 @@
 #' @export
 categorize_hs_to_taxa <- function(hs_taxa_match, coproduct_codes){
-  # Make Xq, matrix for controlling strength of species to product estimates in optimization problem (see transform_to_qp_with_python.R)
+  # Make Xq, matrix for controlling strength of species to product estimates in optimization problem 
+  # (see transform_to_qp_with_python.R)
   
   # Columns are species, Rows are products
   Xq <- hs_taxa_match %>%

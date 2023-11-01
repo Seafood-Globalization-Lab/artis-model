@@ -1,7 +1,6 @@
 #' @import dplyr
 #' @export
 make_v2 <- function(hs_hs_match = hs_hs_match, hs_taxa_CF_match = hs_taxa_CF_match, coproduct_codes){
-  
   CF_for_v2 <- hs_taxa_CF_match %>%
     filter(Code %in% coproduct_codes == FALSE) %>%
     group_by(Code) %>%

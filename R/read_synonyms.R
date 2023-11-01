@@ -19,7 +19,7 @@ read_synonyms <- function(fp) {
       Status == 'accepted name' ~ 'accepted', # change all accepted names into single word accepted
       TRUE ~ Status # leave the rest of the statuses the way they are - will get filtered out
     )) %>%
-    filter((Status == 'accepted' | Status == 'synonym')) %>% # & TaxonLevel == 'Species') %>% # filter just for accepted and synonyms
+    filter((Status == 'accepted' | Status == 'synonym')) %>% # filter just for accepted and synonyms
     select(c(synonym, status = Status, spec_code = SpecCode, syn_code = SynCode, taxon_level = TaxonLevel)) %>%
     mutate(synonym = gsub('\\.', '', synonym)) %>% # eliminate dots
     mutate(synonym = gsub(',', '', synonym)) %>% # eliminates commas

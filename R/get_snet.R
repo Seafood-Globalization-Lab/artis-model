@@ -1,6 +1,6 @@
 #' @export
 get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
-                     hs_version = NA, test_years = NA, prod_type = "FAO") {
+                     hs_version = NA, test_years = c(), prod_type = "FAO") {
   
   #-----------------------------------------------------------------------------
   # Step 0: Setup
@@ -50,7 +50,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     filter(HS_year == HS_year_rep)
   
   # Check if there is a specific test year to create an snet for
-  if (!is.na(test_years)) {
+  if (length(test_years) > 0) {
     analysis_years_rep <- analysis_years_rep %>%
       filter(analysis_year %in% test_years)
   }
@@ -203,7 +203,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
   W_all <- make_v2(hs_hs_match = hs_hs_match, hs_taxa_CF_match = hs_taxa_CF_match, coproduct_codes)
   V2 <- W_all[[1]]
   W_rows <- W_all[[2]]
-  W_cols <-W_all[[3]]
+  W_cols <- W_all[[3]]
   
   # Set a max for V2 to prevent gain of mass
   V2[V2>1] <- 1
@@ -242,7 +242,6 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
   
   write.csv(V2_long, file.path(outdir, paste("HS", hs_version, "/V2_long_HS", hs_version, ".csv", sep = "")), row.names = FALSE)
   #-------------------------------------------------------------------------------
-
   fao_pop <- read.csv(file.path(datadir, "fao_annual_pop.csv"))
   
   # Loop through all analysis years for a given HS version
@@ -268,13 +267,6 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
         if_else(str_detect(hs6, "^511"),
                 true = str_replace(hs6, pattern = "^511", replacement = "0511"),
                 false = hs6)))
-
-    # Filter production data to analysis_year
-    prod_data_analysis_year <- prod_data %>%
-      filter(year == analysis_year)
-
-    prod_data_analysis_year <- prod_data_analysis_year %>%
-      select(country_iso3_alpha, taxa_source, quantity)
 
     baci_data_analysis_year <- baci_data_analysis_year %>%
       select(importer_iso3c, exporter_iso3c, hs6, total_q)
@@ -330,7 +322,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
       }
     }
     saveRDS(country_est, file.path(hs_analysis_year_dir, paste(file.date, "_all-country-est_", analysis_year, "_HS", HS_year_rep, ".RDS", sep = "")))
-
+    # We don't believe the final product form provided by solve countries solutions for consumption
 
     #---------------------------------------------------------------------------
 
@@ -369,15 +361,8 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     # no solution, so using the original list causes error in lapply below
     countries_to_analyze <- names(country_est)
 
-    # writing reweighted X matrix as a dataframe for consumption and diversity calcs
-    # post completely built ARTIS
-    reweight_X_long <- data.frame()
-    for(i in 1:length(countries_to_analyze)){
-      tmp <- reweight_X(country_est, countries_to_analyze[i], V1, V2)
-      reweight_X_long <- reweight_X_long %>%
-        bind_rows(tmp)
-    }
-
+    reweight_X_long <- create_reweight_X_long(country_est, V1, V2)
+    
     reweight_X_long <- reweight_X_long %>%
       mutate(hs_version = paste("HS", HS_year_rep, sep = ""),
              year = analysis_year)
@@ -388,96 +373,14 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
                               HS_year_rep, ".csv", sep = "")),
               row.names = FALSE)
     
-    check_reweight_X_long <- reweight_X_long %>%
-      group_by(iso3c, hs6, year) %>%
-      summarize(reweighted_X = sum(reweighted_X, na.rm = TRUE)) %>%
-      ungroup() %>%
-      mutate(difference = 1 - reweighted_X) %>%
-      filter(abs(difference) > 1e-9)
-    
-    if (nrow(check_reweight_X_long)) {
-      warning("Reweighted X long proportions DO NOT sum to 1.")
-    }
-    
-    # Creating reweighted W long that finds proportion of hs6 processed codes that
-    # come from hs6 original codes outlines how much hs6 original code gets
-    # transferred to hs6 processed code
-    W_long <- data.frame()
-    # creating a cluster of cores to parallelize creating a dataframe for W long:
-    # hs6 processed, hs6 original, exporter_iso3c
-    w_long_cl <- makeCluster(num_cores, type="FORK")
-    registerDoParallel(w_long_cl) 
-    # Parallel approach to building W long
-    W_long <- foreach(i = 1:length(countries_to_analyze), .combine = rbind) %dopar% {
-      curr_country <- countries_to_analyze[i]
-      curr_W_long <- as.data.frame(country_est[[curr_country]]$W)
-      
-      curr_W_long %>%
-        # Reformat W as a long data frame
-        # Original imported product form is on the columns and
-        # processed form is on the rows
-        rownames_to_column(var = "hs6_processed") %>%
-        pivot_longer(2:(ncol(curr_W_long)+1), 
-                     names_to = "hs6_original", 
-                     values_to = "estimated_W") %>%
-        # Separate hs codes
-        mutate(hs6_original = str_extract(hs6_original, "[[:digit:]]+"),
-               hs6_processed = str_extract(hs6_processed, "[[:digit:]]+")) %>%
-        mutate(exporter_iso3c = curr_country) %>%
-        filter(estimated_W > 0)
-    }
-    # Free up clusters after use
-    stopCluster(w_long_cl)
+    W_long <- create_W_long(country_est, num_cores)
     
     # Restructure BACI data to specify that it handles product weight
     baci_data_analysis_year <- baci_data_analysis_year %>%
       rename(product_weight_t = total_q) %>%
       filter(!(hs6 %in% coproduct_codes))
     
-    # reweighted_W = proportion of hs6 processed that came from hs6 original
-    # estimated W = proportion of each imported hs6 going into
-    #               each processed hs6 which is available for export
-    reweight_W_long <- W_long %>%
-      # joining processing losses
-      left_join(
-        V2_long,
-        by = c("hs6_original"="from_hs6", "hs6_processed"="to_hs6")
-      ) %>%
-      # including processing losses in estimated W
-      mutate(estimated_W = estimated_W * (1/product_cf)) %>%
-      left_join(
-        # get total imports by country and hs6 code for weighting
-        baci_data_analysis_year %>%
-          group_by(importer_iso3c, hs6) %>%
-          summarize(product_weight_t = sum(product_weight_t)) %>%
-          ungroup() %>%
-          rename(iso3c = importer_iso3c),
-        by = c("exporter_iso3c"="iso3c", "hs6_original"="hs6")
-      ) %>%
-      # remove flows where country did not have imports of hs6 original products
-      filter(!is.na(product_weight_t)) %>%
-      # weight estimated W by the total imports of each hs6 original code by country
-      mutate(estimated_W = estimated_W * product_weight_t) %>%
-      select(-product_weight_t) %>%
-      # reweight estimated W such that you calculate the prop of hs6 processed
-      # that came from 'x' hs6 originals
-      group_by(exporter_iso3c, hs6_processed) %>%
-      mutate(row_sum = sum(estimated_W)) %>%
-      ungroup() %>%
-      mutate(reweighted_W = estimated_W / row_sum) %>%
-      # remove columns that are no longer needed
-      select(-c(row_sum, estimated_W))
-    
-    check_reweight_W <- reweight_W_long %>%
-      group_by(exporter_iso3c, hs6_processed) %>%
-      summarize(reweighted_W = sum(reweighted_W)) %>%
-      ungroup() %>%
-      mutate(difference = 1 - reweighted_W) %>%
-      filter(abs(difference) > 1e-9)
-    
-    if (nrow(check_reweight_W) > 0) {
-      warning("not all reweight W values group back up to 1.")
-    }
+    reweight_W_long <- create_reweight_W_long(W_long, baci_data_analysis_year)
     
     write.csv(reweight_W_long,
               file.path(hs_analysis_year_dir,
@@ -487,57 +390,39 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     
     # returns the export and consumption weights by
     #   iso3c, hs6, dom_source
-    source_weights_midpoint <- create_export_source_weights(
+    export_source_weights_midpoint <- create_export_source_weights(
       baci_data_analysis_year, countries_to_analyze, country_est, V1, V2, cc_m,
       coproduct_codes, dom_source_weight = "midpoint"
     )
     
-    source_weights_max <- create_export_source_weights(
+    export_source_weights_max <- create_export_source_weights(
       baci_data_analysis_year, countries_to_analyze, country_est, V1, V2, cc_m,
       coproduct_codes, dom_source_weight = "max"
     )
     
-    source_weights_min <- create_export_source_weights(
+    export_source_weights_min <- create_export_source_weights(
       baci_data_analysis_year, countries_to_analyze, country_est, V1, V2, cc_m,
       coproduct_codes, dom_source_weight = "min"
     )
     
-    # volumes by importer, exporter, hs6, dom_source
-    export_source_weights_mid <- source_weights_midpoint[[1]]
-    export_source_weights_max <- source_weights_max[[1]]
-    export_source_weights_min <- source_weights_min[[1]]
-    # consumption weighting by iso3c, hs6 and dom_source
-    consumption_source_weights_mid <- source_weights_midpoint[[2]] %>%
-      mutate(hs_version = HS_year_rep,
-             year = analysis_year)
-    consumption_source_weights_max <- source_weights_max[[2]] %>%
-      mutate(hs_version = HS_year_rep,
-             year = analysis_year)
-    consumption_source_weights_min <- source_weights_min[[2]] %>%
-      mutate(hs_version = HS_year_rep,
-             year = analysis_year)
-    
-    rm(source_weights_midpoint)
-    rm(source_weights_max)
-    rm(source_weights_min)
     gc()
     
-    s_net_midpoint <- create_snet(baci_data_analysis_year, export_source_weights_mid,
+    s_net_midpoint <- create_snet(baci_data_analysis_year, export_source_weights_midpoint,
                                   reweight_W_long, reweight_X_long, V1_long,
-                                  hs_clade_match, num_cores) %>%
-      mutate(hs_version = HS_year_rep,
+                                  hs_clade_match, num_cores, hs_analysis_year_dir) %>%
+      mutate(hs_version = paste("HS", HS_year_rep, sep = ""),
              year = analysis_year)
 
     s_net_max <- create_snet(baci_data_analysis_year, export_source_weights_max,
                              reweight_W_long, reweight_X_long, V1_long,
-                             hs_clade_match, num_cores) %>%
-      mutate(hs_version = HS_year_rep,
+                             hs_clade_match, num_cores, hs_analysis_year_dir) %>%
+      mutate(hs_version = paste("HS", HS_year_rep, sep = ""),
              year = analysis_year)
 
     s_net_min <- create_snet(baci_data_analysis_year, export_source_weights_min,
                              reweight_W_long, reweight_X_long, V1_long,
-                             hs_clade_match, num_cores) %>%
-      mutate(hs_version = HS_year_rep,
+                             hs_clade_match, num_cores, hs_analysis_year_dir) %>%
+      mutate(hs_version = paste("HS", HS_year_rep, sep = ""),
              year = analysis_year)
 
     # Save full s_net
@@ -557,55 +442,38 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     )
     write.csv(
       s_net_min,
-      file = file.path(hs_analysis_year_dir,
-                       paste(file.date, "_S-net_raw_min_", analysis_year, "_HS",
-                             HS_year_rep, ".csv", sep = "")),
+      file.path(hs_analysis_year_dir,
+                paste(file.date, "_S-net_raw_min_", analysis_year, "_HS",
+                      HS_year_rep, ".csv", sep = "")),
       row.names = FALSE
     )
-
-    write.csv(consumption_source_weights_mid,
-              file = file.path(
-                hs_analysis_year_dir,
-                paste(file.date, "consumption_raw_midpoint_", analysis_year, "_HS",
-                      HS_year_rep, ".csv", sep = "")),
-              row.names = FALSE)
     
-    write.csv(consumption_source_weights_max,
-              file = file.path(
-                hs_analysis_year_dir,
-                paste(file.date, "consumption_raw_max_", analysis_year, "_HS",
-                      HS_year_rep, ".csv", sep = "")),
-              row.names = FALSE)
+    # Create Confidence scores
+    create_confidence_scores(s_net_midpoint,
+                             prod_data %>%
+                               filter(year == analysis_year),
+                             V1_long,
+                             hs_analysis_year_dir,
+                             hs_version_in = hs_dir,
+                             year_in = analysis_year)
     
-    write.csv(consumption_source_weights_min,
-              file = file.path(
-                hs_analysis_year_dir,
-                paste(file.date, "consumption_raw_min_", analysis_year, "_HS",
-                      HS_year_rep, ".csv", sep = "")),
-              row.names = FALSE)
+    X_long <- create_X_long(country_est, num_cores)
     
     # Calculate consumption
-    calculate_consumption(consumption_source_weights_mid, s_net_midpoint,
-                          reweight_X_long, reweight_W_long, V1_long,
-                          fao_pop %>%
-                            filter(year == analysis_year),
-                          hs_analysis_year_dir,
+    calculate_consumption(s_net_midpoint, prod_data, analysis_year,
+                          X_long, reweight_X_long, reweight_W_long,
+                          V1_long, fao_pop, hs_analysis_year_dir,
                           estimate_type = "midpoint")
     
-    calculate_consumption(consumption_source_weights_min, s_net_min,
-                          reweight_X_long, reweight_W_long, V1_long,
-                          fao_pop %>%
-                            filter(year == analysis_year),
-                          hs_analysis_year_dir,
-                          estimate_type = "min")
-    
-    calculate_consumption(consumption_source_weights_max, s_net_max,
-                          reweight_X_long, reweight_W_long, V1_long,
-                          fao_pop %>%
-                            filter(year == analysis_year),
-                          hs_analysis_year_dir,
+    calculate_consumption(s_net_max, prod_data, analysis_year,
+                          X_long, reweight_X_long, reweight_W_long,
+                          V1_long, fao_pop, hs_analysis_year_dir,
                           estimate_type = "max")
     
+    calculate_consumption(s_net_min, prod_data, analysis_year,
+                          X_long, reweight_X_long, reweight_W_long,
+                          V1_long, fao_pop, hs_analysis_year_dir,
+                          estimate_type = "min")
     
     #---------------------------------------------------------------------------
     rm(list=ls()[!(ls() %in% c("analysis_setup", analysis_setup, "coproduct_codes",
@@ -615,6 +483,8 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     # Clear current analysis year and output directory before looping to the next analysis year
     rm(analysis_year)
     rm(hs_analysis_year_dir)
+    
+    gc()
   }
 
   #-------------------------------------------------------------------------------

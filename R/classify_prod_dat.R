@@ -175,7 +175,6 @@ classify_prod_dat <- function(datadir, filename,
              ) %>%
       mutate(SciName = tolower(SciName), CommonName = tolower(CommonName))
     
-    # FIX IT - what is column "comments_names" = "retired"
     sci_2_common <- read.csv(file.path(datadir, SAU_sci_2_common), stringsAsFactors = FALSE) %>%
       mutate(scientific_name = tolower(scientific_name))
     sci_2_commonh <- sci_2_common %>% 
@@ -195,9 +194,6 @@ classify_prod_dat <- function(datadir, filename,
       # Trim any leading/trailing whitespace
       mutate_all(str_trim) %>%
       filter(is.na(SciName)==FALSE) %>%
-      # FIX IT - taxon_key 509367 has no match in sci_2_common so becomes NA, filter out for now
-    
-      
       # THESE APPLY SPECIFICALLY TO SAU prod_ts
       # First do some cleaning of SciNames
       # List of fixes comes from finding SciNames that do not match to either the fishbase classification database or fishbase synonyms function in downstream code
@@ -419,14 +415,7 @@ classify_prod_dat <- function(datadir, filename,
     mutate(Phylum01 = 1) %>%
     select(-Other01)
   
-  # NO Kingdom matches
-  #prod_slb_kingdom <- prod_taxa_names %>% 
-  #  filter(Other01==1) %>%
-  #  inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily, Family, Order, Class, Phylum))), by=c("SciName" = "Kingdom")) %>%
-  #  mutate(Kingdom = SciName) %>%
-  #  distinct() %>%
-  #  mutate(Kingdom01 = 1) %>%
-  #  select(-Other01)
+  # NO Kingdom matches, so stop here with taxa matching
   
   # Only needed metadata columns (Species01, Genus01, etc) to match production data to fishbase and sealifebase classification; can now remove these 
   # Bind all matched data frames together
@@ -566,12 +555,6 @@ classify_prod_dat <- function(datadir, filename,
     left_join(slb_aquarium_relevant, by = c("SciName")) %>%
     rename(Fresh01 = Fresh, Brack01 = Brack, Saltwater01 = Saltwater) # to make it the same as previous version's code
   
-  # prod_fb_full <- prod_fb_full %>%
-  #   mutate(Aquarium = fb_aquarium_info$Aquarium,
-  #          Fresh01 = fb_aquarium_info$Fresh,
-  #          Brack01 = fb_aquarium_info$Brack,
-  #          Saltwater01 = fb_aquarium_info$Saltwater)
-  
   ## FINAL CLEANING STEPS and combine prod_fb_full, prod_slb_full, and prod_ncbi_full
   prod_taxa_classification <- prod_fb_full %>%
     full_join(prod_slb_full, by = intersect(names(prod_fb_full), names(prod_slb_full))) %>%
@@ -629,17 +612,7 @@ classify_prod_dat <- function(datadir, filename,
   
   # Replace all empty values with NAs for consistent reporting
   prod_ts[prod_ts == ""] <- NA
-  
-  # Pre processing if SAU data provided
-  # if (prod_data_source == "SAU") {
-  #   prod_ts <- prod_ts %>%
-  #     select(-c(class, comment_names, commercial, commercial_group_id, commercial_group_name, end_use_name, family, 
-  #               functional_group, functional_group_description, functional_group_id, Gear, genus, is_mariculture_only,
-  #               isscaap_id, lineage, order, phylum, reporting_status, Sector, species, sub_phylum, suborder_infraorder,
-  #               super_class, super_order, super_target, taxon_group_id, taxon_key, taxon_level_id)) %%
-  #     mutate(year = Year)
-  # }
-  # 
+
   # Final Formatting of Prod TS to match previous code version's types
   if (prod_data_source == "FAO") {
     prod_ts <- prod_ts %>%
@@ -655,41 +628,12 @@ classify_prod_dat <- function(datadir, filename,
              symbol_identifier = as.integer(symbol_identifier))
   }
   
-  # if (prod_data_source == "SAU") {
-  #   prod_ts <- prod_ts %>%
-  #     rename(year=Year) %>%
-  #     mutate(habitat = "marine",
-  #            prod_method = "CAPTURE")
-  # }
-  
-  
-  # Only sealifebase (but not fishbase) contains information on Phylum and Kingdom, fill in NAs for these columns:
-  # Check which taxa have missing phyla:
-  # prod_taxa_classification_clean %>%
-  #   filter(is.na(Phylum)) %>%
-  #   select(Class) %>%
-  #   distinct()
-  # 
-  # prod_taxa_classification_clean %>%
-  #   filter(is.na(Phylum)) %>%
-  #   filter(is.na(Class)) %>%
-  #   distinct() # Superclass osteichthyes also needs to Phylum filled in manually 
-  
   # Fill in Missing Phyla  
   prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
     mutate(Phylum = case_when(Class %in% c("actinopterygii", "elasmobranchii", "holocephali", "myxini", "cephalaspidomorphi", "sarcopterygii") ~ "chordata",
                               Superclass == "osteichthyes" ~ "chordata",
                               TRUE ~ Phylum))
-  
-  
-  # Check which taxa have missing kingdom
-  # prod_taxa_classification_clean %>%
-  #   filter(is.na(Kingdom)) %>%
-  #   select(Phylum) %>%
-  #   distinct() # all NAs are phyla chordatam
-  
-  # unique(prod_taxa_classification_clean$Kingdom) # all other entries are animalia so just mutate all to animalia
-  
+
   # Fill in missing Kingdom 
   prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
     mutate(Kingdom = "animalia")
@@ -697,15 +641,15 @@ classify_prod_dat <- function(datadir, filename,
   # Fill in missing rows for perciformes and bryozoa
   prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
     bind_rows(
-      data.frame(SciName = c("perciformes", "actinopterygii", "scorpaeniformes"),#, "mollusca", "echinodermata"),
-                 CommonName = c("tuna-like fishes nei", "ray-finned fishes", "mail-cheeked fishes"),#, "molluscs", "echinoderm"),
+      data.frame(SciName = c("perciformes", "actinopterygii", "scorpaeniformes"),
+                 CommonName = c("tuna-like fishes nei", "ray-finned fishes", "mail-cheeked fishes"),
                  Genus = NA,
                  Subfamily = NA,
                  Family = NA,
                  Order = c("perciformes", NA, NA),
                  Class = c("actinopterygii", NA, "actinopterygii"),
                  Superclass = NA,
-                 Phylum = c("chordata", "chordata", "chordata"),#, "", "echinodermata"),
+                 Phylum = c("chordata", "chordata", "chordata"),
                  Kingdom = "animalia",
                  Aquarium = NA,
                  Fresh01 = NA,
@@ -717,11 +661,6 @@ classify_prod_dat <- function(datadir, filename,
       SciName == "sipunculus nudus" ~ "annelida",
       TRUE ~ Phylum
     ))
-  
-  # setdiff(api_prod_classification, prod_taxa_classification_clean) # This should be empty!
-  # api_prod_ts[api_prod_ts == ""] <- NA
-  # setdiff(api_prod_ts, prod_ts) # This should be empty!
-  # setdiff(prod_ts, api_prod_ts) # This should be empty!
   
   missing_scinames <- unique(prod_ts$SciName)[!(unique(prod_ts$SciName) %in% unique(prod_taxa_classification_clean$SciName))]
   if (length(missing_scinames) > 0) {

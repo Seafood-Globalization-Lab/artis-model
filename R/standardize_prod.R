@@ -1,4 +1,4 @@
-#' export
+#' @export
 standardize_prod <- function(data, col_iso3, col_country_name) {
   
   cleaned_data <- data %>%
@@ -26,7 +26,7 @@ standardize_prod <- function(data, col_iso3, col_country_name) {
       .data[[col_country_name]] == "Channel Islands" ~ "GBR", # Channel Islands does not have an ISO3 code
       # France's territories----------------------------------------------------
       .data[[col_iso3]] == "PYF" ~ "FRA", # French Polynesia
-      .data[[col_iso3]] == "MYT" ~ "FRA", # Mayotte - mayotte might need to be part of comorros year <= 2002 and part of france year > 2002
+      .data[[col_iso3]] == "MYT" ~ "FRA", # Mayotte 
       .data[[col_iso3]] == "NCL" ~ "FRA", # New Caledonia
       .data[[col_iso3]] == "SPM" ~ "FRA", # St. Pierre & Miquelon
       .data[[col_iso3]] == "WLF" ~ "FRA", # Wallis and Futuna

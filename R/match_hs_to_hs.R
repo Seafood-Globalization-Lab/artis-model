@@ -8,30 +8,31 @@
 #' @importFrom dplyr left_join
 #' @importFrom stringr str_detect
 #' @export
-
-match_hs_to_hs <- function(hs_taxa_match, hs_version, threshold=0.0){ # FIXIT: old threshold = 0.01, potentially increase 0.05
+match_hs_to_hs <- function(hs_taxa_match, hs_version, prod_taxa_classification, threshold=0.0){ 
   
-  hs_codes <- hs_taxa_match 
+  hs_codes <- hs_taxa_match
+  
+  # Create a regex expression that identifies all possible scientific names
+  all_scinames <- unique(c(prod_taxa_classification$SciName,
+                           prod_taxa_classification$Genus,
+                           prod_taxa_classification$Subfamily,
+                           prod_taxa_classification$Family,
+                           prod_taxa_classification$Order,
+                           prod_taxa_classification$Class,
+                           prod_taxa_classification$Superclass,
+                           prod_taxa_classification$Phylum,
+                           prod_taxa_classification$Kingdom))
+  all_scinames <- all_scinames[!is.na(all_scinames)]
+  all_scinames <- lapply(all_scinames, FUN = function(x) { paste("(?:", x, ")", sep = "")})
+  all_scinames <- unique(unlist(all_scinames))
+  all_scinames_regexr <- paste(all_scinames, collapse = "|")
   
   # List of broad taxa (part of match_hs_to_taxa addendum) that shouldn't count towards whether or not HS codes have matching taxa
   # Otherwise taxa elasmbranchii would be shared between both shark and skate/ray HS codes allowing for product conversion between the two
-  # broad_taxa <- c("bivalvia", 
-  #                 "cephalopoda",
-  #                 "clupeiformes",
-  #                 "echinodermata",
-  #                 "echinoidea",
-  #                 "elasmobranchii",
-  #                 "gadiformes",
-  #                 "osteichthyes",
-  #                 "perciformes",
-  #                 "rajiformes",
-  #                 "siluriformes")
-  
   broad_taxa <- unique(hs_codes$SciName)[!str_detect(unique(hs_codes$SciName), " ")]
     
   # Set code list for different preparation and separation categories:
   # NOTE: lists below are based on hs_version = HS17; for earlier versions, see section on "VERSION CONTROL" 
-  
   
   # SEPARATIONS
   # fish separations: whole, fillet, other meat, livers and roes, other body parts, fats and oils, and flour/meal/pellets (inc. non fish varieties)
@@ -74,11 +75,6 @@ match_hs_to_hs <- function(hs_taxa_match, hs_version, threshold=0.0){ # FIXIT: o
     pull(Code) %>%
     unique()
   
-  #caviar_list <- hs_codes %>%
-  #  filter(str_detect(Code, pattern = "^16043")==TRUE) %>%
-  #  pull(Code) %>%
-  #  unique()
-  
   # We consider fats and oils vs flours/meals/pellets to be different levels of separation (but the same level of preparation - i.e., reduction fisheries)
   # fats and oils:
   fats_oils_list <- hs_codes %>%
@@ -89,9 +85,6 @@ match_hs_to_hs <- function(hs_taxa_match, hs_version, threshold=0.0){ # FIXIT: o
   # flours meals and pellets:
   fmp_list <- hs_codes %>% # fmp list includes codes that are both fit and unfit for human consumption (but consider these different levels or preparation)
     filter(str_detect(Code, pattern = "030510")==TRUE|
-             #str_detect(Code, pattern = "0306[1-9]9")==TRUE|
-             #str_detect(Code, pattern = "^03079")==TRUE|
-             #str_detect(Code, pattern = "030890")==TRUE|
              str_detect(Code, pattern = "051191")==TRUE|
              str_detect(Code, pattern = "230120")==TRUE) %>%
     pull(Code) %>%
@@ -112,7 +105,6 @@ match_hs_to_hs <- function(hs_taxa_match, hs_version, threshold=0.0){ # FIXIT: o
   # all categories cut across all commodity types
   # flours meals and pellets and fats and oils = reduction-fisheries
   # Note: list is NOT exhaustive, there are some ambiguous cases which are dealt with later
-  
   live_list <- hs_codes %>% 
     filter(str_detect(Code, pattern = "^0301")==TRUE) %>%
     pull(Code) %>%
@@ -166,7 +158,6 @@ match_hs_to_hs <- function(hs_taxa_match, hs_version, threshold=0.0){ # FIXIT: o
     pull(Code) %>%
     unique()
   
- 
   # Collapse hs_taxa_matches to create lists of taxa for each code
   # Will be using this to compare species list for each HS code
   taxa_lists <- hs_codes %>%
@@ -324,12 +315,41 @@ match_hs_to_hs <- function(hs_taxa_match, hs_version, threshold=0.0){ # FIXIT: o
                                  Prep_post == "not for humans" ~ 1,
                                  TRUE ~ 0)) %>%
     
+    # HS commodity group test
+    mutate(
+      HS_group_pre = case_when(
+        # Mentions any specific scientific name in description
+        str_detect(Description_pre, all_scinames_regexr) ~ "specific",
+        # Mentions "n.e.c"
+        str_detect(Description_pre, "n\\.e\\.c") ~ "NEC",
+        # Otherwise is classified as a broad code
+        TRUE ~ "broad"
+      ),
+      HS_group_post = case_when(
+        # Mentions any specific scientific name in description
+        str_detect(Description_post, all_scinames_regexr) ~ "specific",
+        # Mentions "n.e.c"
+        str_detect(Description_post, "n\\.e\\.c") ~ "NEC",
+        # Otherwise is classified as a broad code
+        TRUE ~ "broad"
+      )
+    ) %>%
+    mutate(HS_group_test = 0) %>%
+    mutate(HS_group_test = case_when(
+      HS_group_pre == HS_group_post ~ 1,
+      HS_group_pre == "specific" & HS_group_post == "broad" ~ 1,
+      HS_group_pre == "NEC" & HS_group_post == "broad" ~ 1,
+      TRUE ~ 0
+    )) %>%
     # CONVERSION TEST:
     # Also include the fact that any imported commodity can be exported as itself (Code_pre == Code_post)
     mutate(Conversion_test = case_when((Sep_test == 1 & Prep_test == 1 & Pct_shared_pre > threshold)|  # No difference between Pct_shared_pre > 0 and Pct_shared_post > 0 
                                          (Code_pre == Code_post) ~ 1,
                                        TRUE ~ 0)) %>%
-    
+    mutate(Conversion_test = case_when(
+      Conversion_test == 1 & HS_group_test == 1 ~ 1,
+      TRUE ~ 0
+    )) %>%
     # Out of those that already passed the conversion test to be processed into an FMFO, if it isn't a whole fish or if it isn't already a flour, meal, pellet, make it fail the conversion test - i.e., only FMFOs OR whole fish should be allowed to become FMFO
     mutate(Conversion_test = case_when(Code_post == 230120 & Conversion_test == 1 & (Sep_pre %in% c("whole", "flours, meals, pellets") == FALSE) ~ 0,
                                        # This was the 20220828 version of model_inputs:
@@ -340,33 +360,6 @@ match_hs_to_hs <- function(hs_taxa_match, hs_version, threshold=0.0){ # FIXIT: o
     # Filter to possible product to product conversions
     filter(Conversion_test==1)
   
-  ##### CODE FOR MAKING NETWORK DIAGRAM OF COMMOD TO COMMOD CONVERSIONS: 
-  # TOO DENSE if using HS CODES as the nodes, but maybe want to use separation/preparation states as nodes to create diagrams of conversion rules
-  ### GRAPH
-  #library(tidygraph)
-  #library(ggraph)
-  
-  #nodes <- output_df %>% 
-  #  select(Code_pre) %>%
-  #  unique() %>%
-  #  rename(id = Code_pre)
-  
-  #edges <- output_df %>%
-  #  filter(Conversion_test == 1) %>%
-  #  select(Code_pre, Code_post) %>%
-  #  rename(From = Code_pre,
-  #         To = Code_post)
-  
-  #routes_tidy <- tbl_graph(nodes = nodes, edges = edges, directed = TRUE)
-  
-  #p <- ggraph(routes_tidy, layout = "linear", circular = TRUE) + 
-  #  geom_node_point() +
-  #  geom_edge_link() + 
-  #  geom_node_text(aes(label = id), repel = TRUE) +
-  #  theme_graph()
-  
-  #print(p)
-
   return(output_df)
 }
 

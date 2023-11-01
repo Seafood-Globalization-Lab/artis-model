@@ -2,7 +2,6 @@
 #' @importFrom tidyr pivot_wider
 #' @export
 make_v1 <- function(hs_taxa_CF_match, coproduct_codes){
-  
   # Columns are species, Rows are products
   dat <- hs_taxa_CF_match %>%
     filter(Code %in% coproduct_codes == FALSE) %>%

@@ -1,6 +1,7 @@
 #' @export
 create_snet <- function(baci_data_analysis_year, export_source_weights,
-                        reweight_W_long, reweight_X_long, V1_long, hs_clade_match, num_cores, snet_threshold = 0.1) {
+                        reweight_W_long, reweight_X_long, V1_long, hs_clade_match, num_cores,
+                        outdir, snet_threshold = 0.1) {
   # Creates an ARTIS snet that goes back 2 stages in the supply chain
   # specifically further resolving foreign exports down
   
@@ -83,6 +84,12 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
   rm(first_resolved_exp)
   gc()
   
+  # write intermediate files
+  write.csv(first_dom_exp, file.path(outdir, "first_dom_exp.csv"), row.names = FALSE)
+  write.csv(first_error_exp, file.path(outdir, "first_error_exp.csv"), row.names = FALSE)
+  write.csv(first_foreign_exp, file.path(outdir, "first_foreign_exp.csv"), row.names = FALSE)
+  write.csv(first_unresolved_foreign_exp, file.path(outdir, "first_unresolved_foreign_exp.csv"), row.names = FALSE)
+  
   # Creating link between first and second stage of the supply chain
   foreign_export_original_link <- first_foreign_exp %>%
     # getting total by re exporter (intermediate exporter), current source country, hs6 original
@@ -116,6 +123,12 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
   
   rm(second_resolved_exp)
   gc()
+  
+  # write intermediate files
+  write.csv(second_dom_exp, file.path(outdir, "second_dom_exp.csv"), row.names = FALSE)
+  write.csv(second_error_exp, file.path(outdir, "second_error_exp.csv"), row.names = FALSE)
+  write.csv(second_foreign_exp, file.path(outdir, "second_foreign_exp.csv"), row.names = FALSE)
+  write.csv(second_unresolved_foreign_exp, file.path(outdir, "second_unresolved_foreign_exp.csv"), row.names = FALSE)
   
   # linking original importer re exporter and final source country
   # removes intermediate source country found in 1st foreign exports resolution
@@ -200,7 +213,6 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
     rename(exporter_iso3c = re_exporter_iso3c,
            hs6 = hs6_processed) %>%
     mutate(source_country_iso3c = "unknown")
-  
   
   # Re structuring second unresolved foreign export to 
   second_unresolved_foreign_exp <- second_unresolved_foreign_exp %>%

@@ -3,9 +3,10 @@
 combine_snet <- function(year_folders, hs_version, file.date, snet_type = "NA", outdir) {
   
   snet <- data.frame()
-  summary_consumption <- data.frame()
-  domestic_consumption <- data.frame()
-  foreign_consumption <- data.frame()
+  summary_consumption_raw <- data.frame()
+  complete_consumption_raw <- data.frame()
+  summary_consumption_100kg <- data.frame()
+  complete_consumption_100kg <- data.frame()
   
   # Go through all years within HS version and read in appropriate snet created
   for (i in 1:length(year_folders)) {
@@ -35,8 +36,23 @@ combine_snet <- function(year_folders, hs_version, file.date, snet_type = "NA", 
     
     #---------------------------------------------------------------------------
     # Consumption files
+    curr_summary_consumption_raw <- read.csv(
+      file.path(
+        curr_folder,
+        paste("summary_consumption_raw_", snet_type, ".csv", sep = "")
+      )
+    ) %>%
+      mutate(hs_version = hs_version)
     
-    curr_summary_consumption <- read.csv(
+    curr_complete_consumption_raw <- read.csv(
+      file.path(
+        curr_folder,
+        paste("complete_consumption_raw_", snet_type, ".csv", sep = "")
+      )
+    ) %>%
+      mutate(hs_version = hs_version)
+    
+    curr_summary_consumption_100kg <- read.csv(
       file.path(
         curr_folder,
         paste("summary_consumption_", snet_type, ".csv", sep = "")
@@ -44,50 +60,50 @@ combine_snet <- function(year_folders, hs_version, file.date, snet_type = "NA", 
     ) %>%
       mutate(hs_version = hs_version)
     
-    curr_foreign_consumption <- read.csv(
+    curr_complete_consumption_100kg <- read.csv(
       file.path(
         curr_folder,
-        paste("foreign_consumption_", snet_type, ".csv", sep = "")
+        paste("complete_consumption_100kg_per_capita_", snet_type, ".csv", sep = "")
       )
     ) %>%
       mutate(hs_version = hs_version)
     
-    curr_domestic_consumption <- read.csv(
-      file.path(
-        curr_folder,
-        paste("domestic_consumption_", snet_type, ".csv", sep = "")
-      )
-    ) %>%
-      mutate(hs_version = hs_version)
+    summary_consumption_raw <- summary_consumption_raw %>%
+      bind_rows(curr_summary_consumption_raw)
     
-    summary_consumption <- summary_consumption %>%
-      bind_rows(curr_summary_consumption) 
+    complete_consumption_raw <- complete_consumption_raw %>%
+      bind_rows(curr_complete_consumption_raw)
     
-    domestic_consumption <- domestic_consumption %>%
-      bind_rows(curr_domestic_consumption)
+    summary_consumption_100kg <- summary_consumption_100kg %>%
+      bind_rows(curr_summary_consumption_100kg)
     
-    foreign_consumption <- foreign_consumption %>%
-      bind_rows(curr_foreign_consumption)
+    complete_consumption_100kg <- complete_consumption_100kg %>%
+      bind_rows(curr_complete_consumption_100kg)
   }
   
   write.csv(
-    summary_consumption,
-    file.path(outdir, paste("summary_consumption_", snet_type, "_", hs_version, "_", ".csv", sep = "")),
+    summary_consumption_raw,
+    file.path(outdir, paste("summary_consumption_raw_", snet_type, "_", hs_version, ".csv", sep = "")),
     row.names = FALSE
   )
   
   write.csv(
-    domestic_consumption,
-    file.path(outdir, paste("domestic_consumption_", snet_type, "_", hs_version, "_", ".csv", sep = "")),
+    complete_consumption_raw,
+    file.path(outdir, paste("complete_consumption_raw_", snet_type, "_", hs_version, ".csv", sep = "")),
     row.names = FALSE
   )
   
   write.csv(
-    foreign_consumption,
-    file.path(outdir, paste("foreign_consumption_", snet_type, "_", hs_version, "_", ".csv", sep = "")),
+    summary_consumption_100kg,
+    file.path(outdir, paste("summary_consumption_", snet_type, "_", hs_version, ".csv", sep = "")),
     row.names = FALSE
   )
   
+  write.csv(
+    complete_consumption_100kg,
+    file.path(outdir, paste("complete_consumption_100kg_per_capita_", snet_type, "_", hs_version, ".csv", sep = "")),
+    row.names = FALSE
+  )
   
   # Fix habitat info
   
@@ -135,6 +151,5 @@ combine_snet <- function(year_folders, hs_version, file.date, snet_type = "NA", 
               # live_weight_t = sum(live_weight_t, na.rm = TRUE))
 
   write.csv(snet_habitat_prod, file.path(outdir, paste(snet_type, "_artis_habitat_prod_ts_", hs_version, ".csv", sep = "")), row.names = FALSE)
-  
-  
+
 }

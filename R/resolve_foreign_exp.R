@@ -6,7 +6,6 @@
 #   all flows that are less than the zero_threshold (default 1e-3 tonnes) will be removed
 resolve_foreign_exp <- function(foreign_exports_in, reweight_W_long, import_props,
                                 hs_clade_match, resolve_threshold = 1, zero_threshold = 1e-3) {
-  
   # find the origins (domestic/foreign/error exports) for all foreign exports
   exp_breakdown <- foreign_exports_in %>%
     # format to follow perspective of re exporter

@@ -15,6 +15,5 @@ read_common_to_sci <- function(fp) {
            ComName = tolower(ComName)) %>%
     rename(SciName = Species, CommonName = ComName, spec_code = SpecCode)
   
-  
   return(df)
 }

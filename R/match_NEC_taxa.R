@@ -28,5 +28,4 @@ match_NEC_taxa <- function(hs_codes_row, possible_hs_codes, parent_output_list, 
   match_code_output <- unique(match_code_output)
   
   return(match_code_output)
-  
 }

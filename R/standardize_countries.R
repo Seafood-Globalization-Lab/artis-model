@@ -9,14 +9,10 @@ standardize_countries <- function(df, data_source = NA) {
     standard_df <- standardize_prod(df,
                                     "country_iso3_alpha",
                                     "country_name_en") %>%
-      # left_join(
-      #   countries,
-      #   by = c("country_name_en","country_iso3_alpha"="iso3c", "year")
-      # ) %>%
-      # select(-c(country_name_en, iso3c)) %>%
-      # rename(country_iso3_alpha = artis_iso3c, country_name_en = artis_country_name_en) %>%
+      select(-c(country_iso3_alpha, country_name_en)) %>%
+      rename(country_iso3_alpha = artis_iso3c, country_name_en = artis_country_name) %>%
       mutate(country_iso3_numeric = countrycode(country_iso3_alpha, "iso3c", "iso3n")) %>%
-      group_by(country_iso3_alpha, country_iso3_numeric, country_name_en, SciName, CommonName, taxa_source, year, Species01, Genus01, Family01, Other01, habitat, prod_method) %>%
+      group_by(country_iso3_alpha, SciName, CommonName, taxa_source, year, Species01, Genus01, Family01, Other01, habitat, prod_method) %>%
       summarise(quantity = sum(quantity)) %>%
       ungroup() %>%
       # match the order of species in V_1
@@ -32,10 +28,13 @@ standardize_countries <- function(df, data_source = NA) {
       select(-c(importer_iso3c, importer_country)) %>%
       rename(importer_iso3c = artis_iso3,
              importer_country = artis_country_name) %>%
-      group_by(exporter_iso3c, exporter_country, importer_iso3c, importer_country, hs6, year, hs_version) %>%
+      # Removing country names so that territories do not get confused with their sovereign nations
+      group_by(exporter_iso3c, importer_iso3c, hs6, year, hs_version) %>%
       summarize(total_q = sum(total_q, na.rm = TRUE),
                 total_v = sum(total_v, na.rm = TRUE)) %>%
-      ungroup()
+      ungroup() %>%
+      # remove any circular flows because of country standardization
+      filter(exporter_iso3c != importer_iso3c)
       
   } else {
     standard_df <- data.frame()

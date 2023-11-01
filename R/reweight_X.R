@@ -1,6 +1,5 @@
 #' @export
 reweight_X <- function(country_est, country_j, V1, V2){
-  
   # Live weight conversion factors from live weight to product weight
   # maximum V1 values is 1
   V1_long <- data.frame(V1) %>%
