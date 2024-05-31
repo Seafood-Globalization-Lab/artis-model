@@ -1,7 +1,7 @@
 #' @import stringr
 #' @import dplyr 
 #' @export
-clean_hs <- function(hs_data_raw, fb_slb_dir = "/Volumes/jgephart/ARTIS/Data/fishbase_sealifebase"){
+clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealifebase"){
   # Run ALL HS codes through clean_hs function to:
   # 1 correct spelling mistakes in HS code descriptions
   # 2 standardize HS code descriptions: e.g., all genera should be written as <genera spp>, species-level names should be in parentheses separated by commas, etc

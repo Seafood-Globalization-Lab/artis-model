@@ -4,11 +4,13 @@
 # Set directories and file naming variables
 rm(list=ls())
 
-# K: drive directories for Mac:
-datadir <- "/Volumes/jgephart/ARTIS/Data"
-outdir <- "/Volumes/jgephart/ARTIS/Outputs/model_inputs"
-outdir <- "/Users/rahulab/Documents/Code/ARTIS/qa/model_inputs_20231010"
-tradedatadir <- "/Volumes/jgephart/Trade/Baci"
+# Set folder paths
+datadir <- "model_inputs_raw"
+outdir <- "model_imputs_clean"
+# If running this script, add raw bulk BACI data to this folder
+# CEPII BACI is available at: <http://www.cepii.fr/CEPII/en/bdd_modele/bdd_modele_item.asp?id=37>
+# Archived versions of the data are also available at the bottom of the same page
+tradedatadir <- "baci_data_inputs" 
 
 # Creating out folder if necessary
 if (!dir.exists(outdir)) {
@@ -592,7 +594,7 @@ clean_pop <- clean_pop %>%
   )
 
 # Standardizing Countries
-clean_fao <- read.csv("/Volumes/jgephart/ARTIS/Outputs/clean_metadata/standard_fao_countries.csv")
+clean_fao <- read.csv(file.path(model_inputs_raw, "standard_fao_countries.csv"))
 clean_pop <- clean_pop %>%
   filter(year <= 2020) %>%
   left_join(

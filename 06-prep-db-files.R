@@ -7,10 +7,10 @@ library(countrycode)
 rm(list=ls())
 
 # Directories and filenames
-datadir <- "/Volumes/jgephart/ARTIS/Outputs/model_inputs_20221129"
-clean_metadatadir <- "/Volumes/jgephart/ARTIS/Outputs/clean_metadata"
-snet_dir <- "/Volumes/jgephart/ARTIS/Outputs/S_net/snet_20221129"
-outdir <- "/Volumes/jgephart/ARTIS/Outputs/SQL_Database/20221129"
+datadir <- "model_inputs_clean"
+clean_metadatadir <- "model_outputs"
+# You can update this if you want to create a separate output folder for SQL database files
+outdir <- "model_outputs" 
 
 countries_filename <- "countries.csv"
 hs_codes_filename <- "All_HS_Codes.csv"
@@ -59,7 +59,7 @@ write.csv(code_max_resolved_taxa, file.path(outdir, "code_max_resolved.csv"), ro
 # hs codes, descriptions, FMFO status, product form
 
 # Read in list of HS codes found in K Drive Data folder
-products <- read.csv("/Volumes/jgephart/ARTIS/Data/All_HS_Codes.csv")
+products <- read.csv(file.path(datadir, "All_HS_Codes.csv"))
 
 products <- products %>%
   mutate(Code = as.character(Code)) %>%
@@ -178,7 +178,7 @@ countries <- data.frame(
   iso3c = unique(c(prod$iso3c, baci$exporter_iso3c, baci$importer_iso3c))
 )
 
-owid_region <- read.csv("/Volumes/jgephart/ARTIS/Data/owid_regions.csv")
+owid_region <- read.csv(file.path(datadir, "owid_regions.csv"))
 
 # Add metadata
 countries <- countries %>%
@@ -209,20 +209,3 @@ countries <- countries %>%
 
 # Writing out results
 write.csv(countries, file.path(outdir, "countries.csv"), row.names = FALSE)
-
-#-------------------------------------------------------------------------------
-# Prepare and Combine all Snets created (min, mid, max)
-snet <- read.csv(file.path(snet_dir, "custom_ts/mid_custom_ts.csv"))
-
-snet <- snet %>%
-  mutate(hs_version = as.character(hs_version),
-         hs6 = as.character(hs6)) %>%
-  mutate(hs6 = case_when(
-    str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
-    TRUE ~ hs6
-  )) %>%
-  rename(sciname = SciName,
-         habitat = environment)
-
-write.csv(snet, file.path(outdir, "snet.csv"), row.names=FALSE)
-#-------------------------------------------------------------------------------
