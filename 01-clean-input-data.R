@@ -26,7 +26,7 @@ library(countrycode)
 library(doParallel)
 
 # Step 1: Load and clean production data and HS codes---------------------------
-running_sau <- TRUE
+running_sau <- FALSE
 
 #-------------------------------------------------------------------------------
 # If running a test environment with specific codes scinames this variable should be true else false
@@ -34,7 +34,7 @@ test <- FALSE
 test_year <- 2018
 test_hs <- "12"
 
-test_scinames <- read.csv("demo/sciname_shrimps_prawns.csv") %>%
+test_scinames <- read.csv("demo/model_inputs/sciname_shrimps_prawns.csv") %>%
   select(sciname) %>%
   distinct() %>%
   pull(sciname)
@@ -46,8 +46,8 @@ hs_data_raw <- read.csv(file.path(datadir, "All_HS_Codes.csv"), colClasses = "ch
 
 # Clean scientific names and add classification info to production data: choose FAO or SAU
 # NOTE: warning message about data_frame() being deprecated is fixed in the development version of rfishbase: run remotes::install_github("ropensci/rfishbase") to implement the fixed version
-prod_list <- classify_prod_dat(datadir = datadir,
-                               filename = "GlobalProduction_2023.1.1.zip",
+prod_list <- classify_prod_dat(datadir = datadir, 
+                              filename = "GlobalProduction_2022.1.1.zip",
                                prod_data_source = "FAO")
 
 # Reassign to separate objects:
