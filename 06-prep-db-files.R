@@ -226,4 +226,3 @@ snet <- snet %>%
 
 write.csv(snet, file.path(outdir, "snet.csv"), row.names=FALSE)
 #-------------------------------------------------------------------------------
-

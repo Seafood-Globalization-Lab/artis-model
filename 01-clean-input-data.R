@@ -6,8 +6,8 @@ rm(list=ls())
 
 # K: drive directories for Mac:
 datadir <- "/Volumes/jgephart/ARTIS/Data"
-outdir <- "/Volumes/jgephart/ARTIS/Outputs/model_inputs_20221129_NEW"
-outdir <- "demo/model_inputs"
+outdir <- "/Volumes/jgephart/ARTIS/Outputs/model_inputs"
+outdir <- "/Users/rahulab/Documents/Code/ARTIS/qa/model_inputs_20231010"
 tradedatadir <- "/Volumes/jgephart/Trade/Baci"
 
 # Creating out folder if necessary
@@ -24,11 +24,11 @@ library(countrycode)
 library(doParallel)
 
 # Step 1: Load and clean production data and HS codes---------------------------
-running_sau <- FALSE
+running_sau <- TRUE
 
 #-------------------------------------------------------------------------------
 # If running a test environment with specific codes scinames this variable should be true else false
-test <- TRUE
+test <- FALSE
 test_year <- 2018
 test_hs <- "12"
 
@@ -39,16 +39,13 @@ test_scinames <- read.csv("demo/sciname_shrimps_prawns.csv") %>%
 
 test_codes <- c("030617", "160529", "160521", "030627", "030616", "030626")
 #-------------------------------------------------------------------------------
-
-fao_standard_countries <- read.csv("/Volumes/jgephart/ARTIS/Outputs/clean_metadata/standard_fao_countries.csv")
-
 # Load raw HS codes
 hs_data_raw <- read.csv(file.path(datadir, "All_HS_Codes.csv"), colClasses = "character") 
 
 # Clean scientific names and add classification info to production data: choose FAO or SAU
 # NOTE: warning message about data_frame() being deprecated is fixed in the development version of rfishbase: run remotes::install_github("ropensci/rfishbase") to implement the fixed version
 prod_list <- classify_prod_dat(datadir = datadir,
-                               filename = "GlobalProduction_2021.1.2.zip",
+                               filename = "GlobalProduction_2023.1.1.zip",
                                prod_data_source = "FAO")
 
 # Reassign to separate objects:
@@ -89,9 +86,14 @@ prod_data <- prod_data_raw %>%
                                 # If a species just exists in brackish water we classify as marine
                                 Brack01 == 1 & Fresh01 == 0 & Saltwater01 == 0 ~ "marine",
                                 TRUE ~ as.character(NA))) %>% # Taxa with fb_habitat = NA are higher order than species so habitat not necessarily universal 
-  # if fishbase (marine/inland) conflicts with FAOs (marine/inalnd) then use Fishbase designation
+  # if fishbase (marine/inland) conflicts with FAOs (marine/inland) then use Fishbase designation
   mutate(habitat = case_when(str_detect(SciName, pattern = " ") & fb_habitat != fao_habitat & fb_habitat %in% c("inland", "marine") ~ fb_habitat,
-                                 TRUE ~ fao_habitat)) # ELSE, use FAO's habitat designation, including for all non species-level data
+                                 TRUE ~ fao_habitat)) %>% # ELSE, use FAO's habitat designation, including for all non species-level data
+  # UPDATE taxa source to match structure in get country solutions
+  mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_")) %>%
+  group_by(country_iso3_alpha, country_name_en, CommonName, SciName, taxa_source, habitat, prod_method, year, Fresh01, Saltwater01, Brack01, Species01, Genus01, Family01, Other01, isscaap_group) %>%
+  summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
+  ungroup()
 
 # Changing class name based on FAO 2022 species list
 # some sources call actinopterygii a class others call it a superclass (might need to change with osteichthyes instead)
@@ -115,7 +117,7 @@ if (test) {
 write.csv(prod_data, file = file.path(outdir, "clean_fao_prod.csv"), row.names = FALSE)
 write.csv(prod_taxa_classification, file = file.path(outdir, "clean_fao_taxa.csv"), row.names = FALSE)
 
-prod_data <- standardize_countries(prod_data, fao_standard_countries, "FAO")
+prod_data <- standardize_countries(prod_data, "FAO")
 write.csv(prod_data, file = file.path(outdir, "standardized_fao_prod.csv"), row.names = FALSE)
 
 rm(prod_list)
@@ -134,7 +136,7 @@ if (running_sau) {
     filter(year > 1995)
   
   prod_data_sau <- prod_data_sau %>%
-    select(colnames(prod_data_sau)[colnames(prod_data_sau) %in% colnames(prod_data)]) %>%
+    select(colnames(prod_data_sau)[colnames(prod_data_sau) %in% c("country_name_en", colnames(prod_data))]) %>%
     mutate(habitat = "marine",
            prod_method = "capture") %>%
     mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_"))
@@ -177,7 +179,7 @@ if (running_sau) {
     mutate(country_iso3_numeric = countrycode(country_iso3_alpha, origin = 'iso3c', destination = 'iso3n'))
   
   # standardize countries for SAU production
-  prod_data_sau <- standardize_countries(prod_data_sau, fao_standard_countries, "FAO")
+  prod_data_sau <- standardize_countries(prod_data_sau, "FAO")
   
   write.csv(prod_data_sau, file.path(outdir, 'standardized_sau_prod.csv'), row.names = FALSE)
   
@@ -218,8 +220,8 @@ hs_data_clean <- clean_hs(hs_data_raw = read.csv(file.path(datadir, "All_HS_Code
 # Getting list of fmfo species
 fmfo_species <- get_fmfo_species(
   datadir,
-  file.path(datadir, 'SAU_Production_Data.csv'),
-  file.path(datadir, 'TaxonFunctionalCommercial_Clean.csv')
+  sau_fp = file.path(datadir, 'SAU_Production_Data.csv'),
+  taxa_fp = file.path(datadir, 'TaxonFunctionalCommercial_Clean.csv')
 )
 
 write.csv(fmfo_species, file.path(datadir, 'fmfo_species_list.csv'), row.names = FALSE)
@@ -229,10 +231,9 @@ HS_year <- c("96", "02", "07", "12", "17")
 
 if (test) {
   HS_year <- HS_year[HS_year %in% test_hs]
-  # hs_data_clean <- hs_data_clean %>%
-  #   filter(Code %in% test_codes)
+  hs_data_clean <- hs_data_clean %>%
+    filter(Code %in% test_codes)
 }
-
 
 for(i in 1:length(HS_year)){
   
@@ -284,7 +285,7 @@ for(i in 1:length(HS_year)){
   habitat_threshold <- 0 
   tmp <- tmp %>%
     mutate(habitat_classification = "") %>%
-    # if there are any species of a habitat add this habitat tp the code's habitat classification
+    # if there are any species of a habitat add this habitat to the code's habitat classification
     mutate(habitat_classification = case_when(
       inland > habitat_threshold ~ paste(habitat_classification, "inland", sep = "."),
       TRUE ~ habitat_classification
@@ -379,10 +380,10 @@ for(i in 1:length(HS_year)){
     select(-habitat_test) %>%
     rename(sciname_habitat = habitat, code_habitat = habitat_classification)
   
-  if (test) {
-    hs_taxa_match <- hs_taxa_match %>%
-      filter(Code %in% test_codes)
-  }
+  # if (test) {
+  #   hs_taxa_match <- hs_taxa_match %>%
+  #     filter(Code %in% test_codes)
+  # }
   
   # SAVE HS TAXA MATCH OUTPUT:
   write.csv(hs_taxa_match, file = file.path(outdir, paste("hs-taxa-match_", hs_version, ".csv", sep="")), row.names = FALSE)
@@ -390,7 +391,8 @@ for(i in 1:length(HS_year)){
   
   # Determine which HS codes can be processed and turned into another HS code
   hs_hs_match <- match_hs_to_hs(hs_taxa_match = hs_taxa_match,
-                                hs_version = hs_version) #Can use any HS code year
+                                hs_version = hs_version,
+                                prod_taxa_classification) #Can use any HS code year
   
   # SAVE HS TO HS MATCH OUTPUT
   hs_hs_match_file <- paste("hs-hs-match_", hs_version, ".csv", sep="")
@@ -437,7 +439,8 @@ for(i in 1:length(HS_year)){
                                  eumofa_data = read.csv(file.path(datadir, "EUMOFA_compiled.csv"), stringsAsFactors = FALSE),
                                  hs_hs_match,
                                  hs_version,
-                                 match_criteria = set_match_criteria)
+                                 match_criteria = set_match_criteria,
+                                 fb_slb_dir = file.path(datadir, "fishbase_sealifebase"))
   
   # Check that everything in HS taxa match has a conversion factor value
   hs_taxa_matches <- hs_taxa_match %>%
@@ -492,9 +495,6 @@ if (test) {
 ###############################################################################
 # Load data file and filter for fish codes (i = exporter, j = importer, hs6 = HS code)
 # Note on warning message "Some values were not matched unambiguously: NULL" means all values were matched
-
-baci_standard_countries <- read.csv("/Volumes/jgephart/ARTIS/Outputs/clean_metadata/standard_baci_countries.csv")
-
 for (i in 1:nrow(df_years)){
   HS_year <- df_years[i,]$HS_year
   analysis_year <- df_years[i,]$analysis_year
@@ -514,23 +514,16 @@ for (i in 1:nrow(df_years)){
     baci_country_codes = read.csv(file.path(tradedatadir, "country_codes_V202201.csv"))
   )
   
-  if (test) {
-    baci_data <- baci_data %>%
-      filter(hs6 %in% test_codes)
-  }
+  # if (test) {
+  #   baci_data <- baci_data %>%
+  #     filter(hs6 %in% test_codes)
+  # }
   
   baci_data <- baci_data %>%
     mutate(year = analysis_year,
            hs_version = paste("HS", HS_year, sep = ""))
   
-  # write.csv(
-  #   baci_data %>%
-  #     select(-c(total_v, unit_v)),
-  #   file.path(outdir, paste("baci_seafood_hs", HS_year, "_y", analysis_year, ".csv", sep = "")),
-  #   row.names = FALSE
-  # )
-  
-  baci_data <- standardize_countries(baci_data, baci_standard_countries, "BACI")
+  baci_data <- standardize_countries(baci_data, "BACI")
   
   # BACI output used to generate ARTIS (keeps legacy dataframe format)
   write.csv(
@@ -549,7 +542,6 @@ for (i in 1:nrow(df_years)){
 }
 
 # Clean FAO population data
-datadir <- "/Volumes/jgephart/ARTIS/Data"
 pop_raw <- read.csv(file.path(datadir, "Population_E_All_Data/Population_E_All_Data_NOFLAG.csv"))
 
 clean_pop <- pop_raw %>%
@@ -609,7 +601,7 @@ clean_pop <- clean_pop %>%
   ) %>%
   select(-c(country_name, iso3c)) %>%
   rename(iso3c = artis_iso3c, country_name = artis_country_name) %>%
-  group_by(iso3c, country_name, year) %>%
+  group_by(iso3c, year) %>%
   summarize(pop = sum(pop, na.rm = TRUE))
 
 if (test) {
@@ -617,6 +609,6 @@ if (test) {
     filter(year == test_year)
 }
 
-write.csv(clean_pop, file.path("demo/model_inputs", "fao_annual_pop.csv"), row.names = FALSE)
+write.csv(clean_pop, file.path(outdir, "fao_annual_pop.csv"), row.names = FALSE)
 
 

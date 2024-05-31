@@ -37,7 +37,7 @@ create_export_source_weights <- function(baci_data_analysis_year, countries_to_a
       rownames_to_column(var = "hs6") %>% 
       mutate(hs6 = str_extract(hs6, "[[:digit:]]+")) %>% 
       # Calculate the max exports from domestic and imported sources
-      mutate(exports_domestic_max = pmin(domestic_prod, exports), 
+      mutate(exports_domestic_max = pmin(domestic_prod, exports),
              exports_import_max = pmin(import_prod, exports)) %>%
       # Get remaining exports from domestic and imported
       mutate(

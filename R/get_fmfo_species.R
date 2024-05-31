@@ -32,7 +32,7 @@ get_fmfo_species <- function(datadir, sau_fp, taxa_fp, threshold = 1) {
   
   
   # Get a list of standardized species names
-  non_standard_scinames <- tolower(unique(fmfo_species$scientific_name))
+  non_standard_scinames <- unique(tolower(sau$scientific_name))
   accepted_scinames <- rep(NA, length(non_standard_scinames))
   
   # Species name standardizing (just for true species)
@@ -54,7 +54,6 @@ get_fmfo_species <- function(datadir, sau_fp, taxa_fp, threshold = 1) {
         }
       }
     }
-    
   }
   
   scinames_translated <- data.frame(
@@ -66,7 +65,8 @@ get_fmfo_species <- function(datadir, sau_fp, taxa_fp, threshold = 1) {
   scinames_translated <- scinames_translated %>%
     left_join(
       taxa %>%
-        select(scientific_name, taxon_level_id),
+        select(scientific_name, taxon_level_id) %>%
+        distinct(),
       by = c("sciname" = "scientific_name")
     ) %>%
     mutate(accepted_sciname = case_when(

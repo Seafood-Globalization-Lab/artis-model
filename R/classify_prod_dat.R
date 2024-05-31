@@ -131,7 +131,7 @@ classify_prod_dat <- function(datadir, filename,
                                  SciName == "maguimithrax spinosissimus" ~ "mithrax spp", # This is a type species of mithrax, sea spiders
                                  SciName == "macroramphosidae" ~ "centriscidae", # bellowfish, macroramphosidae used to be classified as a subfamily of centriscidae
                                  SciName == "austrofusus glans" ~ "buccinum spp", # whelk
-      
+                                 
                                  # Tribe to genus name
                                  SciName == "thunnini" ~ "thunnus spp",
                                  
@@ -161,7 +161,7 @@ classify_prod_dat <- function(datadir, filename,
              year = as.integer(year)) %>%
       filter(year > 1995) %>%
       filter(quantity > 0)
-
+    
   }
   
   
@@ -172,7 +172,7 @@ classify_prod_dat <- function(datadir, filename,
              CommonName = common_name,
              SciName = scientific_name,
              country_name_en = fishing_entity,
-             ) %>%
+      ) %>%
       mutate(SciName = tolower(SciName), CommonName = tolower(CommonName))
     
     sci_2_common <- read.csv(file.path(datadir, SAU_sci_2_common), stringsAsFactors = FALSE) %>%
@@ -264,7 +264,7 @@ classify_prod_dat <- function(datadir, filename,
           SciName == 'venerupis' ~ 1, # marine bivalve molluscs in family veneridae
           SciName == 'azurina' ~ 1,
           TRUE ~ Genus01
-          ),
+        ),
         Family01 = case_when(
           SciName == 'cardiidae' ~ 1, # Giant Clams
           SciName == 'merlucciidae' ~ 1, # hakes
@@ -513,7 +513,7 @@ classify_prod_dat <- function(datadir, filename,
   # Figure out which species are still missing
   post_match_missing_species <- nomatch_species[!(nomatch_species %in% prod_fb_full$SciName)]
   post_match_missing_species <- post_match_missing_species[!(post_match_missing_species %in% prod_slb_full$SciName)]
-
+  
   # Only species names were screened for synonyms, get all the non-matching, non-species names
   nomatch_non_species <- nomatch_fb_and_slb[grepl(nomatch_fb_and_slb, pattern = " ") == FALSE]
   
@@ -612,7 +612,7 @@ classify_prod_dat <- function(datadir, filename,
   
   # Replace all empty values with NAs for consistent reporting
   prod_ts[prod_ts == ""] <- NA
-
+  
   # Final Formatting of Prod TS to match previous code version's types
   if (prod_data_source == "FAO") {
     prod_ts <- prod_ts %>%
@@ -633,7 +633,7 @@ classify_prod_dat <- function(datadir, filename,
     mutate(Phylum = case_when(Class %in% c("actinopterygii", "elasmobranchii", "holocephali", "myxini", "cephalaspidomorphi", "sarcopterygii") ~ "chordata",
                               Superclass == "osteichthyes" ~ "chordata",
                               TRUE ~ Phylum))
-
+  
   # Fill in missing Kingdom 
   prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
     mutate(Kingdom = "animalia")
@@ -646,8 +646,8 @@ classify_prod_dat <- function(datadir, filename,
                  Genus = NA,
                  Subfamily = NA,
                  Family = NA,
-                 Order = c("perciformes", NA, NA),
-                 Class = c("actinopterygii", NA, "actinopterygii"),
+                 Order = c("perciformes", NA, "scorpaeniformes"),
+                 Class = c("actinopterygii", "actinopterygii", "actinopterygii"),
                  Superclass = NA,
                  Phylum = c("chordata", "chordata", "chordata"),
                  Kingdom = "animalia",
@@ -671,7 +671,5 @@ classify_prod_dat <- function(datadir, filename,
   return(list(prod_ts, prod_taxa_classification_clean))
   
   # NOTE: resulting tibble is allowed to have duplicate scientific names (but each should have a different CommonName)
-
+  
 }
-
-

@@ -3,7 +3,7 @@
 #' @importFrom readxl read_excel
 #' @import stringr
 #' @export
-rebuild_fao_2021_dat <- function(datadir, filename){
+rebuild_fao_2023_dat <- function(datadir, filename){
   unzip_folder <- file.path(datadir, str_remove(filename, ".zip"))
   # Test if file was already unzipped
   if (dir.exists(unzip_folder)==FALSE){
@@ -32,7 +32,7 @@ rebuild_fao_2021_dat <- function(datadir, filename){
     mutate(Concept_id_simple = str_replace(Concept_id_simple, pattern = "\\_.*", replacement = "")) %>%
     # Convert all relevant columns to lowercase to avoid errors in matching upper/lowercase
     mutate(Concept_id_simple = tolower(Concept_id_simple))
-
+  
   # Multiple CL files have the following column names in common: "Identifier" and "Code"
   # Which means after merge, below, you get "Identifier.x" and "Identifier.y", etc.
   # To disambiguate, Append Codelist with a simplified version of Concept_id
@@ -43,9 +43,8 @@ rebuild_fao_2021_dat <- function(datadir, filename){
   ds$Codelist_Code_id <- tolower(ds$Codelist_Code_id)
   
   # read in time series.csv
-  time_file <- fish_files[grep("QUANTITY", fish_files)] # Was labeled as "TS" for time series in 2020 version
+  time_file <- fish_files[grep("quantity", fish_files, ignore.case = TRUE)] # Was labeled as "TS" for time series in 2020 version
   time_series <- read.csv(file.path(unzip_folder, time_file))
-  
   
   # IMPORTANT: row ORDER (ABCDEF) in DSD file should match columns ABCDEF in time series for looping to work below
   # Change "Measure" to "Unit" and "Staus" to "Symbol" to match 2020 version
@@ -55,7 +54,6 @@ rebuild_fao_2021_dat <- function(datadir, filename){
     # REORDER to match order of DSD rows
     select(all_of(ds$Concept_id))
   names(time_series_join) <- tolower(names(time_series_join))
-  
   
   for (i in 1:nrow(ds)) {
     # TRUE/FALSE: is there a filename listed in Codelist_id?
@@ -78,7 +76,7 @@ rebuild_fao_2021_dat <- function(datadir, filename){
         cl_i[[merge_col]]<-as.character(cl_i[[merge_col]])
         time_series_join[[names(time_series_join)[i]]]<-as.character(time_series_join[[names(time_series_join)[i]]])
       }
-  
+      
       # Merge by column name
       # Note: the following code does not work: #time_series_join<-left_join(time_series, cl_i, by = c(names(time_series)[i] = merge_col))
       # To make the argument "by" dynamic for each loop, it should be formatted as a named character as shown below
@@ -97,13 +95,10 @@ rebuild_fao_2021_dat <- function(datadir, filename){
   # Clean up column names to match ARTIS code developed for 2020 data
   time_series_join <- time_series_join %>%
     rename(country = country.un_code,
-           species_major_group = species_major_group_en,
            isscaap_group = isscaap_group_en,
            quantity = value,
            year = period,
            # Standardize production and habitat columns for function: add_prod_source.R
            prod_method = production_source_det.code,
            habitat = inlandmarine_group_en)
-  
-  return(time_series_join)
 }

@@ -8,11 +8,13 @@ library(janitor)
 # Set directories
 datadir <- "/Volumes/jgephart/ARTIS/Data"
 inputsdir <- "/Volumes/jgephart/ARTIS/Outputs/model_inputs_20221129"
+inputsdir <- "/Users/rahulab/Documents/Code/ARTIS/qa/model_inputs_20230911"
 outdir <- "/Volumes/jgephart/ARTIS/Outputs/clean_metadata"
-
+outdir <- "/Users/rahulab/Documents/Code/ARTIS/qa/clean_metadata_20230920"
 
 # Load production data
-prod <- read.csv(file.path(inputsdir, "clean_fao_prod.csv")) %>%
+# prod <- read.csv(file.path(inputsdir, "clean_fao_prod.csv"))
+prod <- prod %>%
   rename(sciname = SciName, common_name = CommonName,
          method = prod_method)
 
@@ -23,7 +25,6 @@ taxa <- read.csv(file.path(inputsdir, "clean_fao_taxa.csv")) %>%
 
 # Load nutrient data
 # Note that values are all expressed per 100 g
-#nutrient_old <- read.csv(file.path(datadir, "unique_taxa_list_20220106_nutrients.csv"))
 # Nutrient data for FAO 2020 version
 nutrient <- read.csv(file.path(datadir, "ARTIS_spp_nutrients.csv"))
 
@@ -170,15 +171,6 @@ taxa_metadata <- taxa %>%
 
 taxa_metadata <- taxa_metadata %>%
   left_join(isscaap_metadata, by = "sciname")
-# FIX IT: This is adding extra rows - remove for now
-#   # Join species codes
-#   left_join(prod %>%
-#               select(sciname, "species_alpha_3_code" = "species.alpha_3_code", species_taxonomic_code) %>%
-#               distinct(), by = "sciname") %>%
-#   # Join FAO Yearbook group
-#   left_join(prod %>% 
-#               select(sciname, yearbook_group_en) %>%
-#               distinct(), by = "sciname")
 
 write.csv(taxa_metadata, file.path(outdir, "sciname_metadata.csv"), row.names = FALSE)
 
@@ -357,8 +349,6 @@ write.csv(nceas_groups, file.path(outdir, "sciname_habitat_method_metadata.csv")
 #___________________________________________________________________________________________________________________#
 # Create commodity metadata
 #___________________________________________________________________________________________________________________#
-
-
 hs_taxa_match <- data.frame(Code = integer(),
                             SciName = character(),
                             Match_category = character(),
@@ -403,7 +393,7 @@ hs_clade_match <- hs_clade_match %>%
   rename("code_taxa_level" = "classification_level")
 
 prod_taxa_classification <- taxa %>%
-  select(-common_name) %>% 
+  select(-common_name) %>%
   unique() %>% 
   mutate(
     prod_taxa_level = case_when(
@@ -436,9 +426,9 @@ code_max_resolved_taxa <- hs_taxa_match %>%
     code_taxa_level == "Subfamily" ~ 3,
     code_taxa_level == "Family" ~ 4,
     code_taxa_level == "Order" ~ 5, 
-    code_taxa_level == "Phylum" ~ 6, 
-    code_taxa_level == "Class" ~ 7, 
-    code_taxa_level == "Superclass" ~ 8,
+    code_taxa_level == "Class" ~ 6, 
+    code_taxa_level == "Superclass" ~ 7,
+    code_taxa_level == "Phylum" ~ 8,
     code_taxa_level == "Kingdom" ~ 9
   )) %>%
   mutate(prod_taxa_level_numeric = case_when(
@@ -447,9 +437,9 @@ code_max_resolved_taxa <- hs_taxa_match %>%
     prod_taxa_level == "Subfamily" ~ 3,
     prod_taxa_level == "Family" ~ 4,
     prod_taxa_level == "Order" ~ 5, 
-    prod_taxa_level == "Phylum" ~ 6, 
-    prod_taxa_level == "Class" ~ 7, 
-    prod_taxa_level == "Superclass" ~ 8,
+    prod_taxa_level == "Class" ~ 6,
+    prod_taxa_level == "Superclass" ~ 7,
+    code_taxa_level == "Phylum" ~ 8,
     prod_taxa_level == "Kingdom" ~ 9
   )) %>%
   mutate(hs_clade = as.character(hs_clade)) %>%
@@ -469,4 +459,3 @@ code_max_resolved_taxa <- hs_taxa_match %>%
          hs6 = as.character(hs6))
 
 write.csv(code_max_resolved_taxa, file.path(outdir, "code_max_resolved_taxa.csv"), row.names = FALSE)
-

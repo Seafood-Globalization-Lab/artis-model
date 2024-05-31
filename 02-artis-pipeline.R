@@ -8,7 +8,7 @@ rm(list=ls())
 # High Performance Computing (Zorro) Setup
 # Uncomment the line below if creating the full ARTIS database and outputs on
 # the Zorro High Performance computing system
-# source("00-zorro-hpc-setup.R")
+# source("/project/ARTIS/Package/00-zorro-hpc-setup.R")
 
 # Local Machine Setup
 # Uncomment the line below if creating the ARTIS database and outputs on a
@@ -18,8 +18,14 @@ rm(list=ls())
 # Demo Setup
 # Uncomment the line below if you are running the ARTIS demo
 # Note: you do not need to run the local machine setup if you are running the demo
-source("00-demo-setup.R")
+#source("00-demo-setup.R")
 
+#-------------------------------------------------------------------------------
+# Set production data type variable
+prod_data_type <- "FAO"
+
+# Set up Start date for finding no solution countries
+start_date <- Sys.Date()
 #-------------------------------------------------------------------------------
 # This section generates the solutions for the mass balance problem for all
 # countries across all years and HS versions
@@ -56,19 +62,18 @@ if (!demo_run) {
     datadir,
     outdir_quadprog,
     hs_version = hs_version_run,
-    prod_type = "FAO"
+    prod_type = prod_data_type
   )
 } else {
   get_country_solutions(
     datadir,
     outdir_quadprog,
     hs_version = hs_version_run,
-    prod_type = "FAO",
+    prod_type = prod_data_type,
     test_year = test_years,
     num_cores = 3
   )
 }
-
 
 # Depending on the HS version and year, some mass balance problems were not
 # solved by the quadprog solver. This function goes through all years for a
@@ -104,7 +109,7 @@ if (!hpc_run) {
 # cvxopt solver will only find solutions for the country mass balance problems,
 # that were not solved by the quadprog solver
 if (nrow(no_solve_countries) > 0) {
-  
+
   # Formats and prepares all inputs for the country-level mass balance problems,
   # and passes them into the python cvxopt solver. All solutions are saved in the
   # cvxopt solver output folder.
@@ -115,7 +120,7 @@ if (nrow(no_solve_countries) > 0) {
       hs_version = hs_version_run,
       solver_type = "cvxopt",
       no_solve_countries = no_solve_countries,
-      prod_type = "FAO"
+      prod_type = prod_data_type
     )
   } else {
     get_country_solutions(
@@ -124,7 +129,7 @@ if (nrow(no_solve_countries) > 0) {
       hs_version = hs_version_run,
       solver_type = "cvxopt",
       no_solve_countries = no_solve_countries,
-      prod_type = "FAO",
+      prod_type = prod_data_type,
       test_year = test_years,
       num_cores = 3
     )
@@ -133,7 +138,7 @@ if (nrow(no_solve_countries) > 0) {
 
 #-------------------------------------------------------------------------------
 # This section takes the solutions for each mass balance problem and runs the
-# calculations to create the final ARTIS database
+# calculations to create the final ARTIS trade and consumption tables
 
 # Path for collecting ARTIS database files
 outdir_snet <- file.path(outdir, "snet")
@@ -158,7 +163,7 @@ if (!demo_run) {
     outdir_snet,
     num_cores = 10,
     hs_version = hs_version_run,
-    prod_type = "FAO"
+    prod_type = prod_data_type
   )
 } else {
   get_snet(
@@ -168,7 +173,21 @@ if (!demo_run) {
     outdir_snet,
     num_cores = 3,
     hs_version = hs_version_run,
-    prod_type = "FAO",
+    prod_type = prod_data_type,
     test_years = test_years
   )
 }
+
+#-------------------------------------------------------------------------------
+# This section gathers all ARTIS output data separated across multiple HS version
+# and years into one file by output type (trade/consumption) and estimate type (max/midpoint/min)
+
+final_outdir <- file.path(outdir, "artis_outputs")
+
+if (!dir.exists(final_outdir)) { dir.create(final_outdir) }
+
+build_artis_data(outdir_snet,
+                 final_outdir)
+
+
+

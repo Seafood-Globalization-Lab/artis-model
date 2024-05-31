@@ -1,8 +1,6 @@
 #' @export
 create_X_long <- function(country_est, num_cores) {
-  # Creating reweighted W long that finds proportion of hs6 processed codes that
-  # come from hs6 original codes outlines how much hs6 original code gets
-  # transferred to hs6 processed code
+
   X_long <- data.frame()
 
   for (i in 1:length(names(country_est))) {

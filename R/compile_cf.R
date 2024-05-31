@@ -324,7 +324,6 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
       pull(Common.name)
     
     # reads in common name matching
-    fb_slb_dir <- "/Volumes/jgephart/ARTIS/Data/fishbase_sealifebase"
     common_names_fp <- file.path(fb_slb_dir, "common_to_sci_fishbase_20220527.csv")
     common_names_df <- read_common_to_sci(common_names_fp)
     
@@ -455,6 +454,8 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
     hs_cf_match <- hs_cf_full_match %>%
       full_join(hs_cf_loose_match, by = intersect(names(hs_cf_full_match), names(hs_cf_loose_match))) %>%
       arrange(Code, Taxa) %>%
+      mutate(n_cf_full = as.numeric(n_cf_full),
+             n_cf_loose = as.numeric(n_cf_loose)) %>%
       # min and max functions return -Inf and Inf when there are missing values; replace these with NAs
       mutate_if(is.numeric, list(~na_if(., Inf))) %>% 
       mutate_if(is.numeric, list(~na_if(., -Inf))) %>%
@@ -462,7 +463,7 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
       mutate(CF_match = if_else(is.na(mean_cf_full)==FALSE, true = mean_cf_full, false = NaN),
              CF_max = if_else(is.na(max_cf_full)==FALSE, true = max_cf_full, false = NaN),
              CF_min = if_else(is.na(min_cf_full)==FALSE, true = min_cf_full, false = NaN),
-             CF_n = if_else(is.na(mean_cf_full)==FALSE, true = n_cf_full, false = as.integer(NA)), # NOTE: for CF_n need to test is.na(mean_cf_full) instead of is.na(n_cf_full), since n_cf_full is never NA
+             CF_n = if_else(is.na(mean_cf_full)==FALSE, true = n_cf_full, false = NaN), # NOTE: for CF_n need to test is.na(mean_cf_full) instead of is.na(n_cf_full), since n_cf_full is never NA
              match_notes = if_else(is.na(CF_match)==FALSE, true = "full_match", false = "no_cf_match")) %>%
       mutate(CF_match = if_else(is.na(mean_cf_loose)==FALSE & is.na(CF_match), true = mean_cf_loose, false = CF_match),
              CF_max = if_else(is.na(max_cf_loose)==FALSE & is.na(CF_max), true = max_cf_loose, false = CF_max),
@@ -562,7 +563,7 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
       max_EUMOFA == 0 ~ 0,
       is.na(CF_n) ~ mean_EUMOFA,
       TRUE ~ ((CF_max + CF_min) / 2) * (CF_n / (CF_n + n_EUMOFA)) + ((max_EUMOFA + min_EUMOFA) / 2) * (n_EUMOFA / (CF_n + n_EUMOFA))
-    )) %>% 
+    )) %>%
     mutate(CF_calc = case_when(str_detect(Code, "^0301") ~ 1, # LIVE/WHOLE FISH
                                # FISH OILS
                                str_detect(Code, "^1504") ~ 0,
@@ -571,10 +572,10 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
                                str_detect(Code, pattern = "0306[1-9]9") ~ 1/(fm_rate+fo_rate) * (fm_rate/(fm_rate+fo_rate)),
                                str_detect(Code, pattern = "^03079") ~ 1/(fm_rate+fo_rate) * (fm_rate/(fm_rate+fo_rate)),
                                str_detect(Code, pattern = "030890") ~ 1/(fm_rate+fo_rate) * (fm_rate/(fm_rate+fo_rate)),
-                               str_detect(Code, pattern = "051191") ~ 1/(fm_rate+fo_rate) * (fm_rate/(fm_rate+fo_rate)),
                                str_detect(Code, pattern = "230120") ~ 1/(fm_rate+fo_rate) * (fm_rate/(fm_rate+fo_rate)),
                                # CAVIAR:
                                str_detect(Description, pattern = "caviar") ~ 0,
+                               str_detect(Code, pattern = "051191") ~ 0, # includes eggs and other (waste)
                                TRUE ~ CF_calc)) %>%
     mutate(calc_notes = if_else(is.na(CF_calc) == FALSE, true = "assign", false = "no_CF")) %>%
     mutate(CF_live_to_commod = 1/CF_calc)

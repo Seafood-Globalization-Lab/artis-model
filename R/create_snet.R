@@ -1,7 +1,7 @@
 #' @export
 create_snet <- function(baci_data_analysis_year, export_source_weights,
                         reweight_W_long, reweight_X_long, V1_long, hs_clade_match, num_cores,
-                        outdir, snet_threshold = 0.1) {
+                        outdir, snet_threshold = 0.1, estimate_type = "midpoint") {
   # Creates an ARTIS snet that goes back 2 stages in the supply chain
   # specifically further resolving foreign exports down
   
@@ -73,7 +73,7 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
   
   # Resolving foreign exports 1 step back in the supply chain
   first_resolved_exp <- resolve_foreign_exp(foreign_exports, reweight_W_long, import_props,
-                                            hs_clade_match)
+                                            hs_clade_match, zero_threshold = 1e-3)
   
   first_dom_exp <- first_resolved_exp[[1]]
   first_error_exp <- first_resolved_exp[[2]]
@@ -85,10 +85,10 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
   gc()
   
   # write intermediate files
-  write.csv(first_dom_exp, file.path(outdir, "first_dom_exp.csv"), row.names = FALSE)
-  write.csv(first_error_exp, file.path(outdir, "first_error_exp.csv"), row.names = FALSE)
-  write.csv(first_foreign_exp, file.path(outdir, "first_foreign_exp.csv"), row.names = FALSE)
-  write.csv(first_unresolved_foreign_exp, file.path(outdir, "first_unresolved_foreign_exp.csv"), row.names = FALSE)
+  write.csv(first_dom_exp, file.path(outdir, paste("first_dom_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
+  write.csv(first_error_exp, file.path(outdir, paste("first_error_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
+  write.csv(first_foreign_exp, file.path(outdir, paste("first_foreign_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
+  write.csv(first_unresolved_foreign_exp, file.path(outdir, paste("first_unresolved_foreign_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
   
   # Creating link between first and second stage of the supply chain
   foreign_export_original_link <- first_foreign_exp %>%
@@ -114,7 +114,7 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
   
   # Resolving foreign exports at 2 steps back in supply chain
   second_resolved_exp <- resolve_foreign_exp(reformatted_foreign_exports, reweight_W_long,
-                                             import_props, hs_clade_match)
+                                             import_props, hs_clade_match, zero_threshold = 1e-3)
   
   second_dom_exp <- second_resolved_exp[[1]]
   second_error_exp <- second_resolved_exp[[2]]
@@ -125,10 +125,10 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
   gc()
   
   # write intermediate files
-  write.csv(second_dom_exp, file.path(outdir, "second_dom_exp.csv"), row.names = FALSE)
-  write.csv(second_error_exp, file.path(outdir, "second_error_exp.csv"), row.names = FALSE)
-  write.csv(second_foreign_exp, file.path(outdir, "second_foreign_exp.csv"), row.names = FALSE)
-  write.csv(second_unresolved_foreign_exp, file.path(outdir, "second_unresolved_foreign_exp.csv"), row.names = FALSE)
+  write.csv(second_dom_exp, file.path(outdir, paste("second_dom_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
+  write.csv(second_error_exp, file.path(outdir, paste("second_error_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
+  write.csv(second_foreign_exp, file.path(outdir, paste("second_foreign_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
+  write.csv(second_unresolved_foreign_exp, file.path(outdir, paste("second_unresolved_foreign_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
   
   # linking original importer re exporter and final source country
   # removes intermediate source country found in 1st foreign exports resolution

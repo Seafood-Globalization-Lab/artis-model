@@ -223,6 +223,3 @@ write.csv(foreign_mid, file.path(outdir_custom_ts, "foreign_consumption_min.csv"
 domestic_min <- read.csv(file.path(outdir_building_blocks, "domestic_consumption_min.csv"))
 domestic_min <- prep_custom_ts(domestic_min)
 write.csv(domestic_mid, file.path(outdir_custom_ts, "domestic_consumption_min.csv"), row.names = FALSE)
-
-
-

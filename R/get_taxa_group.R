@@ -4,7 +4,7 @@ get_taxa_group <- function(hs_code_row, prod_taxa_classification){
   
   fish_classes <- c("actinopterygii", "cephalaspidomorphi", "elasmobranchii", "holocephali", "myxini", "sarcopterygii")
   crustacea_classes <- c("branchiopoda", "malacostraca", "maxillopoda", "merostomata")
-  aqua_inverts_classes <- c("ascidiacea", "asteroidea", "echinoidea", "holothuroidea", "polyplacophora", "scyphozoa", "thaliacea", "polychaeta", "sipunculidea")
+  aqua_inverts_classes <- c("ascidiacea", "asteroidea", "echinoidea", "holothuroidea", "polyplacophora", "scyphozoa", "thaliacea", "polychaeta", "sipunculidea", "demospongiae")
   
   possible_scinames <- NULL
   

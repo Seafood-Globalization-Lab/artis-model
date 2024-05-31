@@ -21,11 +21,11 @@ if not os.path.isdir(submit_folder):
 for hs_version in hs_versions:
   
   new_zorro_setup_content = re.sub('hs_version_run <- \"17\"', 'hs_version_run <- \"' + hs_version + '\"', zorro_setup_content)
-  new_artis_content = re.sub('# source\(\"00-zorro-hpc-setup.R\"\)', 'source("00-zorro-hpc-setup_HS' + hs_version +'.R")', artis_file_content)
+  new_artis_content = re.sub('# source\(\"/project/ARTIS/Package/00-zorro-hpc-setup.R\"\)', 'source("/project/ARTIS/Package/00-zorro-hpc-setup_HS' + hs_version +'.R")', artis_file_content)
   new_artis_content = re.sub('source\(\"00-demo-setup.R\"\)', '# source\(\"00-demo-setup.R\"\)', new_artis_content)
   
   # create new Zorro setup file
-  curr_setup_filename = '00-zorro-setup_HS' + hs_version + '.R'
+  curr_setup_filename = '00-zorro-hpc-setup_HS' + hs_version + '.R'
   curr_setup_fp = os.path.join(submit_folder, curr_setup_filename)
   curr_setup_f = open(curr_setup_fp, 'w')
   curr_setup_f.write(new_zorro_setup_content)

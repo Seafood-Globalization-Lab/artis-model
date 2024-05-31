@@ -67,7 +67,7 @@ transform_to_qp_with_python <- function(country_j, V1, V2, baci_data_clean, prod
   # Create X: NA for unknowns (where conversion factors are retained in V_X) and 0 otherwise
   X <- array(0, dim(V_X))
   X[V_X != 0] <- NA
-
+  
   X_unknowns <- Xq[!null_consumption, !null_production , drop = FALSE]
   X_unknowns <- c(X_unknowns)
   X_unknowns <- X_unknowns[X_unknowns!=0]
@@ -142,7 +142,7 @@ transform_to_qp_with_python <- function(country_j, V1, V2, baci_data_clean, prod
   # Convert to dense matrix
   Ab <- as.matrix(Ab)
   ## END PYTHON SECTION
-
+  
   # Reticulate can create memory leakage, run gc() here to prevent R from crashing
   gc() 
   
@@ -187,6 +187,6 @@ transform_to_qp_with_python <- function(country_j, V1, V2, baci_data_clean, prod
               # Outputs for eX_unknownsloring results
               imports = imports,
               exports = exports
-              ))
+  ))
   
 }
