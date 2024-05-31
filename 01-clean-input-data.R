@@ -10,7 +10,7 @@ outdir <- "model_imputs_clean"
 # If running this script, add raw bulk BACI data to this folder
 # CEPII BACI is available at: <http://www.cepii.fr/CEPII/en/bdd_modele/bdd_modele_item.asp?id=37>
 # Archived versions of the data are also available at the bottom of the same page
-tradedatadir <- "baci_data_inputs" 
+tradedatadir <- "model_inputs_baci" 
 
 # Creating out folder if necessary
 if (!dir.exists(outdir)) {

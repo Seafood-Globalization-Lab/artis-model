@@ -5,7 +5,7 @@
 .DS_Store
 demo/outputs
 venv/
-model_imputs_raw/*
-baci_data_inputs/*
+model_inputs_raw/*
+model_inputs_baci/*
 model_inputs_clean/*
 model_outputs/*
