@@ -87,7 +87,7 @@ Please find below descriptions of main files:
 ## High level overview
 The following diagrams describes how ARTIS trade records are obtained.
 
-![Disaggregating Trade Records](documentation/workflow_diagrams/disaggregating_trade_records.png)
+![Disaggregating Trade Records](/documentation/workflow_diagrams/disaggregating_trade_records.png)
 ![Aggregating Trade Records back up](documentation/workflow_diagrams/building_trade_records_back_up.png)
 ![Consumption Workflow](documentation/workflow_diagrams/consumption_workflow.png)
 
