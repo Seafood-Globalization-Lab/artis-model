@@ -67,12 +67,12 @@ Note that you only need to install the solvers the first time you run this code.
 2. Click on the dropdown arrow in the "Install" subtab within the "Build" window.
 3. Click the option "Configure Build Tools..."
 4. Make sure options mirror the image below and click OK.
-![Build configuration options](documentation/artis_r_build_config_options.png)
+![Build configuration options](./images/artis_r_build_config_options.png)
 5. Click on the dropdown arrow in the "Install" subtab and select the option "Clean and Install"
 
 # Running the model 
 
-Running the demo for the ARTIS model should take approximately 10 minutes. To run the demo for ARTIS run the 02-artis-pipeline.R script and then run the 04-build-artis-timeseries.R script.
+Running the demo for the ARTIS model should take approximately 10 minutes. To run the demo for ARTIS run the `02-artis-pipeline.R` script and then run the `04-build-artis-timeseries.R` script.
 
 # Outputs
 
@@ -87,15 +87,15 @@ Please find below descriptions of main files:
 ## High level overview
 The following diagrams describes how ARTIS trade records are obtained.
 
-![Disaggregating Trade Records](documentation/workflow_diagrams/disaggregating_trade_records.png)
-![Aggregating Trade Records back up](documentation/workflow_diagrams/building_trade_records_back_up.png)
-![Consumption Workflow](documentation/workflow_diagrams/consumption_workflow.png)
+![Disaggregating Trade Records](./images/disaggregating_trade_records.png)
+![Aggregating Trade Records back up](./images/building_trade_records_back_up.png)
+![Consumption Workflow](./images/consumption_workflow.png)
 
 ## Code workflows
 The following diagrams describe the how the codebase follows the workflow illustrated above.
 
-![Cleaning data diagram](documentation/workflow_diagrams/model_inputs_creation.png)
-![Mass balance solutions](documentation/workflow_diagrams/country_mass_balance_solution_creation.png)
-![Creating ARTIS codeflow](documentation/workflow_diagrams/create_artis_codeflow.png)
+![Cleaning data diagram](./images/model_inputs_creation.png)
+![Mass balance solutions](./images/country_mass_balance_solution_creation.png)
+![Creating ARTIS codeflow](./images/create_artis_codeflow.png)
 
 
