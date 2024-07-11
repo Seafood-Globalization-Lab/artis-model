@@ -6,6 +6,6 @@
 demo/outputs
 venv/
 model_inputs_raw/*
-baci/*
+baci_raw/*
 model_inputs/*
 outputs/*
