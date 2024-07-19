@@ -10,9 +10,7 @@ library(reticulate)
 library(slam)
 library(tidyverse)
 library(doParallel)
-
-# Clear environment
-rm(list=ls())
+library(aws.s3)
 
 # Getting the start date to identify files generated in this ARTIS run
 start_date <- as.character(Sys.Date())

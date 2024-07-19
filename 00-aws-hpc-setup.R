@@ -24,6 +24,11 @@ use_virtualenv("/usr/src/ARTIS/venv", required = TRUE)
 artis_bucket <- "s3://artis-s3-bucket/"
 artis_bucket_region <- "us-east-1"
 
+# HS version being run
+hs_version_run <- "07"
+
+test_years <- c(2018)
+
 datadir <- "model_inputs"
 outdir <- "outputs"
 

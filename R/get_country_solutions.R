@@ -4,7 +4,7 @@ get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = 
                                   no_solve_countries = data.frame(), num_cores = 10,
                                   run_env = "aws", s3_bucket_name = "", s3_region = "") {
   
-  setup_values <- initial_variable_setup(datadir, outdir, hs_version, test_year, prod_type,
+  setup_values <- initial_variable_setup(datadir, outdir, hs_version, test_year, prod_type, run_env,
                                          s3_bucket_name = s3_bucket_name, s3_region = s3_region)
   full_analysis_start <- setup_values[[1]]
   file.date <- setup_values[[2]]
@@ -262,7 +262,7 @@ convert = TRUE)
     mclapply(countries_to_analyze,
              solve_country,
              solver_to_use = solver_type,
-             run_env = "aws",
+             run_env = run_env,
              s3_bucket_name = s3_bucket_name,
              mc.cores = num_cores,
              mc.preschedule = FALSE)

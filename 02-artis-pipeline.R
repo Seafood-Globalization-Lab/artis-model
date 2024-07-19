@@ -5,35 +5,32 @@
 # Start with a clean working environment
 rm(list=ls())
 
-# Local Machine Setup
-# Uncomment the line below if creating the ARTIS database and outputs on a
-# local machine
-# source("00-local-machine-setup.R")
-
-# Demo Setup
-# Uncomment the line below if you are running the ARTIS demo
-# Note: you do not need to run the local machine setup if you are running the demo
-#source("00-demo-setup.R")
-
 #-------------------------------------------------------------------------------
-# Set production data type variable
-prod_data_type <- "FAO"
-
-run_env <- "aws"
+run_env <- "demo"
 
 if (run_env == "aws") {
   # High Performance Computing on AWS Setup
   source("00-aws-hpc-setup.R")
+} else if (run_env == "demo") {
+  
+  # Demo Setup
+  # Uncomment the line below if you are running the ARTIS demo
+  # Note: you do not need to run the local machine setup if you are running the demo
+  source("00-demo-setup.R")
+} else {
+  # Local Machine Setup
+  # Uncomment the line below if creating the ARTIS database and outputs on a
+  # local machine
+  source("00-local-machine-setup.R")
 }
+
+# Set production data type variable
+prod_data_type <- "FAO"
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()
 
-# HS version being run
-hs_version_run <- "07"
-
-test_years <- c()
-#-------------------------------------------------------------------------------
+#--------------------------------------------------------
 # This section generates the solutions for the mass balance problem for all
 # countries across all years and HS versions
 

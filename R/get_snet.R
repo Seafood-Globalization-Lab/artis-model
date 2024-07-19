@@ -3,7 +3,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
                      hs_version = NA, test_years = c(), prod_type = "FAO",
                      run_env = "aws", s3_bucket_name = "", s3_region = "") {
   
-  setup_values <- initial_variable_setup(datadir, outdir, hs_version, test_years, prod_type,
+  setup_values <- initial_variable_setup(datadir, outdir, hs_version, test_years, prod_type, run_env,
                                          s3_bucket_name = s3_bucket_name, s3_region = s3_region)
   full_analysis_start <- setup_values[[1]]
   file.date <- setup_values[[2]]
