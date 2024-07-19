@@ -7,11 +7,17 @@ library(janitor)
 
 # Set directories
 datadir <- "model_inputs_raw"
-inputsdir <- "model_inputs_clean"
-outdir <- "model_outputs"
+
+# Get most recent model inputs directory
+# Assumption: all model inputs are located in the project folder
+model_inputs_dir <- get_most_recent_dir(".", "model_inputs")
+inputsdir <- model_inputs_dir$directory
+
+# Attach model inputs run date to clean metadata directory path
+outdir <- paste("clean_metadata_", model_inputs_dir$dir_date, sep = "")
 
 # Load production data
-prod <- read.csv(file.path(inputsdir, "clean_fao_prod.csv"))
+# prod <- read.csv(file.path(inputsdir, "clean_fao_prod.csv"))
 prod <- prod %>%
   rename(sciname = SciName, common_name = CommonName,
          method = prod_method)
@@ -24,7 +30,7 @@ taxa <- read.csv(file.path(inputsdir, "clean_fao_taxa.csv")) %>%
 # Load nutrient data
 # Note that values are all expressed per 100 g
 # Nutrient data for FAO 2020 version
-# nutrient <- read.csv(file.path(datadir, "ARTIS_spp_nutrients.csv"))
+nutrient <- read.csv(file.path(datadir, "ARTIS_spp_nutrients.csv"))
 
 # Load NCEAS group files
 #nceas_marine_capture <- read.csv(file.path(datadir, "nceas_marine_capture_groups.csv"))
@@ -46,28 +52,28 @@ sau_functional_groups <- read.csv(file.path(datadir, "sau_species.csv"))
 # - Discussing options for connecting data for both live weight and different product forms
 #   * Likely focus on using edible portion 
 
-# # Format nutrient data
-# nutrient <- nutrient %>%
-#   # Clean nutrient names to make them better for pivoting wider
-#   mutate(nutrient = case_when(
-#     nutrient == "Calcium" ~ "calcium",
-#     nutrient == "Iron" ~ "iron",
-#     nutrient == "Protein" ~ "protein",
-#     nutrient == "DHA+EPA" ~ "fattyacids",
-#     nutrient == "Vitamin A" ~ "vitamina",
-#     nutrient == "Vitamin B12" ~ "vitaminb12",
-#     nutrient == "Zinc" ~ "zinc"
-#   )) %>%
-#   mutate(nutrient = paste(nutrient, nutrient_units, sep = "_")) %>%
-#   select(-c("nutrient_units", "ssd", "count", "se", "lower_ci", "upper_ci", "taxa_match")) %>%
-#   pivot_wider(names_from = nutrient, values_from = value)
-# 
-# # Format nutrient data to write out metadata file
-# nutrient <- nutrient %>%
-#   select(sciname, calcium_mg, iron_mg, protein_g, fattyacids_g, 
-#          vitamina_mcg, vitaminb12_mcg, zinc_mg)
-# 
-# write.csv(nutrient, file.path(outdir, "nutrient_metadata.csv"), row.names = FALSE)
+# Format nutrient data
+nutrient <- nutrient %>%
+  # Clean nutrient names to make them better for pivoting wider
+  mutate(nutrient = case_when(
+    nutrient == "Calcium" ~ "calcium",
+    nutrient == "Iron" ~ "iron",
+    nutrient == "Protein" ~ "protein",
+    nutrient == "DHA+EPA" ~ "fattyacids",
+    nutrient == "Vitamin A" ~ "vitamina",
+    nutrient == "Vitamin B12" ~ "vitaminb12",
+    nutrient == "Zinc" ~ "zinc"
+  )) %>%
+  mutate(nutrient = paste(nutrient, nutrient_units, sep = "_")) %>%
+  select(-c("nutrient_units", "ssd", "count", "se", "lower_ci", "upper_ci", "taxa_match")) %>%
+  pivot_wider(names_from = nutrient, values_from = value)
+
+# Format nutrient data to write out metadata file
+nutrient <- nutrient %>%
+  select(sciname, calcium_mg, iron_mg, protein_g, fattyacids_g, 
+         vitamina_mcg, vitaminb12_mcg, zinc_mg)
+
+write.csv(nutrient, file.path(outdir, "nutrient_metadata.csv"), row.names = FALSE)
 
 #___________________________________________________________________________________________________________________#
 # Clean scientific name information

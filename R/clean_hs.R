@@ -577,8 +577,8 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
   hs_species <- na.omit(unique(unlist(hs_data$Species)))
   
   # reads and cleans Fishbase and Sealifebase synonym datasets
-  fb_df <- read_synonyms(file.path(fb_slb_dir, "synonyms_fishbase_20220518.csv"))
-  slb_df <- read_synonyms(file.path(fb_slb_dir, "synonyms_sealifebase_20220525.csv"))
+  fb_df <- read.csv(file.path(fb_slb_dir, "fb_synonyms_clean.csv"))
+  slb_df <- read.csv(file.path(fb_slb_dir, "slb_synonyms_clean.csv"))
   
   
   # Create df for storing synonym queries and results

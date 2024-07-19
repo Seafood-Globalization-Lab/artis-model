@@ -1,9 +1,11 @@
 #' @export
 get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = c(),
                                   prod_type = "FAO", solver_type = "quadprog",
-                                  no_solve_countries = data.frame(), num_cores = 10) {
+                                  no_solve_countries = data.frame(), num_cores = 10,
+                                  run_env = "aws", s3_bucket_name = "", s3_region = "") {
   
-  setup_values <- initial_variable_setup(datadir, outdir, hs_version, test_year, prod_type)
+  setup_values <- initial_variable_setup(datadir, outdir, hs_version, test_year, prod_type,
+                                         s3_bucket_name = s3_bucket_name, s3_region = s3_region)
   full_analysis_start <- setup_values[[1]]
   file.date <- setup_values[[2]]
   analysis_info <- setup_values[[3]]
@@ -55,10 +57,19 @@ get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = 
     
     #-----------------------------------------------------------------------------  
     # Step 4: Load trade (BACI) data and standardize countries between production and trade data
-    baci_data_analysis_year <- read.csv(
-      file.path(datadir,
-                paste("standardized_baci_seafood_hs", 
-                  HS_year_rep, "_y", analysis_year, ".csv", sep = ""))) %>%
+    baci_fp <- file.path(datadir,
+                         paste("standardized_baci_seafood_hs", 
+                               HS_year_rep, "_y", analysis_year, ".csv", sep = ""))
+    
+    if (run_env == "aws") {
+      save_object(
+        baci_fp,
+        bucket = s3_bucket_name,
+        file = baci_fp
+      )
+    }
+    
+    baci_data_analysis_year <- read.csv(baci_fp) %>%
       # pad hs6 with 0s
       mutate(hs6 = as.character(hs6)) %>%
       mutate(hs6 = if_else(
@@ -83,12 +94,21 @@ get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = 
     # (solve mass balance problem using solve_qp in python)
     
     # SAVE FULL WORKSPACE
-    save.image(
-      file.path(
-        hs_analysis_year_dir,
-        paste(file.date,
-              "_all-data-prior-to-solve-country_",
-              analysis_year, "_HS", HS_year_rep, ".RData", sep = "")))
+    workspace_image_fp <- file.path(
+      hs_analysis_year_dir,
+      paste(file.date,
+            "_all-data-prior-to-solve-country_",
+            analysis_year, "_HS", HS_year_rep, ".RData", sep = ""))
+    
+    save.image(workspace_image_fp)
+    
+    if (run_env == "aws") {
+      put_object(
+        file = workspace_image_fp,
+        object = workspace_image_fp,
+        bucket = s3_bucket_name
+      )
+    }
     
     # Clear workspace other than what"s needed for solve_qp
     rm(list=ls()[!(ls() %in% c("prod_data_analysis_year", "baci_data_analysis_year",
@@ -134,9 +154,13 @@ get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = 
          append = FALSE)
     cat(paste("country", "condition_number\n", sep=","))
     sink()
+    
+    print(ls())
+    
     # Create function to mass balance an individual country,
     # then use mclapply to parallelize the function
-    solve_country <- function(i, solver_to_use){
+    solve_country <- function(i, solver_to_use, run_env = "aws", s3_bucket_name = ""){
+      print(paste("start of ", i, " solution"), sep = "")
       qp_inputs <- transform_to_qp_with_python(country_j = i, V1 = V1, V2 = V2, 
                                                baci_data_clean = baci_data_analysis_year, 
                                                prod_data_clean = prod_data_analysis_year, 
@@ -209,7 +233,18 @@ convert = TRUE)
                                 analysis_year, "_HS", HS_year_rep, ".RDS", sep = "")
       
       # Save country_output one country at a time to avoid memory issues
-      saveRDS(country_est_i, file.path(hs_analysis_year_dir, country_est_file))
+      country_est_fp <- file.path(hs_analysis_year_dir, country_est_file)
+      saveRDS(country_est_i, country_est_fp)
+      
+      if (run_env == "aws") {
+        put_object(
+          file = country_est_fp,
+          object = country_est_fp,
+          bucket = s3_bucket_name
+        )
+      }
+      
+      print(paste("end of ", i, " solution"))
       
       # Since all the outputs were assigned to the global environment,
       # clear workspace before starting next country
@@ -224,9 +259,13 @@ convert = TRUE)
     }
     
     # Parallelize solution to country mass balance problems:
-    mclapply(countries_to_analyze, solve_country,
+    mclapply(countries_to_analyze,
+             solve_country,
              solver_to_use = solver_type,
-             mc.cores = num_cores, mc.preschedule = FALSE)
+             run_env = "aws",
+             s3_bucket_name = s3_bucket_name,
+             mc.cores = num_cores,
+             mc.preschedule = FALSE)
 
     # This needs to contain ALL files across quadprog and cvxopt solutions
     # Read in individual country solutions and combine into a list
@@ -271,11 +310,21 @@ convert = TRUE)
         rownames(country_est[[names(country_est)[i]]]$W) <- paste(names(country_est)[i],W_rows,sep="_")
       }
     }
-    saveRDS(country_est,
-            file.path(
-              hs_analysis_year_dir,
-              paste(file.date, "_all-country-est_", analysis_year, "_HS",
-                    HS_year_rep, ".RDS", sep = "")))
+    
+    all_country_est_fp <- file.path(
+      hs_analysis_year_dir,
+      paste(file.date, "_all-country-est_", analysis_year, "_HS",
+            HS_year_rep, ".RDS", sep = "")
+      )
+    saveRDS(country_est, all_country_est_fp)
+    
+    if (run_env == "aws") {
+      put_object(
+        file = all_country_est_fp,
+        object = all_country_est_fp,
+        bucket = s3_bucket_name
+      )
+    }
     
     # End time 
     solve_country_end <- Sys.time()
@@ -293,13 +342,26 @@ convert = TRUE)
     
     # Output list of countries that did not pass solve_qp
     no_sol_countries <- setdiff(unlist(countries_to_analyze), names(country_est))
-    sink(
-      file.path(hs_analysis_year_dir,
-                paste(file.date,
-                      "_analysis-documentation_countries-with-no-solve-qp-solution_",
-                      analysis_year, "_HS", HS_year_rep, ".txt", sep = "")))
+    no_solve_qp_fp <- file.path(hs_analysis_year_dir,
+                                paste(file.date,
+                                      "_analysis-documentation_countries-with-no-solve-qp-solution_",
+                                      analysis_year, "_HS", HS_year_rep, ".txt", sep = ""))
+    sink(no_solve_qp_fp)
     print(no_sol_countries)
     sink()
+    
+    if (run_env == "aws") {
+      put_object(
+        file = no_solve_qp_fp,
+        object = no_solve_qp_fp,
+        bucket = s3_bucket_name
+      )
+    }
+    
+    # Delete all files created in the AWS worker node if on AWS to free up storage space
+    # Note: All these files have been placed in the S3 bucket at this point.
+    #       We are just deleting the local copies on the AWS server
+    if (run_env == "aws") { unlink(hs_analysis_year_dir) }
     
     rm(list=ls()[!(ls() %in% c("analysis_setup", analysis_setup, "coproduct_codes",
                                "no_solve_countries", "countries_to_analyze",
@@ -309,5 +371,10 @@ convert = TRUE)
     rm(analysis_year)
     rm(hs_analysis_year_dir)
   }
+  
+  # Delete all model data from AWS server to free up storage space
+  # Delete all output data generated from AWS server to free up storage space
+  # Note: this will be downloaded in other functions if needed
+  if (run_env == "aws") { unlink(datadir) }
 }
 

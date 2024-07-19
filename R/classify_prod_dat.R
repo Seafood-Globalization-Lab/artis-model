@@ -6,7 +6,8 @@
 
 classify_prod_dat <- function(datadir, filename, 
                               prod_data_source="FAO",
-                              SAU_sci_2_common = NA) {
+                              SAU_sci_2_common = NA,
+                              fb_slb_dir = "model_inputs_raw/fishbase_sealifebase") {
   
   # NOTE: final prod_data output does not aggregate to taxa level - i.e., does not do: group_by(country_iso3, SciName) %>% summarise(quantity = sum(quantity))
   # instead retains distinctions within SciName for different inlandmarine_group, source_name_en, and ISSCAAP group
@@ -303,12 +304,12 @@ classify_prod_dat <- function(datadir, filename,
   
   # Load Fishbase and Sealifebase Databases 
   # Fishbase and Sealifebase Taxa Datasets
-  fishbase <- read.csv(file.path(datadir, "/fishbase_sealifebase/fishbase_full_database_20220517.csv"))
-  sealifebase <- read.csv(file.path(datadir, "/fishbase_sealifebase/sealifebase_full_database_20220517.csv"))
+  fishbase <- read.csv(file.path(fb_slb_dir, "fb_taxa_info.csv"))
+  sealifebase <- read.csv(file.path(fb_slb_dir, "slb_taxa_info.csv"))
   
   # reads and cleans Fishbase and Sealifebase synonym datasets
-  fb_df <- read_synonyms(file.path(datadir, "fishbase_sealifebase/synonyms_fishbase_20220518.csv"))
-  slb_df <- read_synonyms(file.path(datadir, "fishbase_sealifebase/synonyms_sealifebase_20220525.csv"))
+  fb_df <- read.csv(file.path(fb_slb_dir, "fb_synonyms_clean.csv"))
+  slb_df <- read.csv(file.path(fb_slb_dir, "slb_synonyms_clean.csv"))
   
   # Standardize fishbase and sealifebase:
   fishbase <- fishbase %>% 
@@ -333,7 +334,7 @@ classify_prod_dat <- function(datadir, filename,
   fishbase <- as.data.frame(fishbase)
   sealifebase <- as.data.frame(sealifebase)
   
-  prod_fb_species <- prod_taxa_names %>% 
+  prod_fb_species <- prod_taxa_names %>%
     filter(Species01==1) %>%
     inner_join(fishbase, by=c("SciName" = "Species")) 
   
@@ -456,7 +457,7 @@ classify_prod_dat <- function(datadir, filename,
   for (i in 1:length(nomatch_species)) {
     
     next_sciname <- nomatch_species[i]
-    
+
     # Run scientific name through synonym databases in fishbase and sealifebase
     name_fb_status <- query_synonyms(fb_df, next_sciname)
     name_slb_status <- query_synonyms(slb_df, next_sciname)
@@ -529,27 +530,17 @@ classify_prod_dat <- function(datadir, filename,
   
   # Get aquarium trade and habitat (Fresh, Brackish, Saltwater) info from fishbase: use this to classify ornamental trade species
   #fb_aquarium_info <- rfishbase::species(str_to_sentence(prod_fb_full$SciName))
-  fb_aquarium_info <- read.csv(file.path(datadir, "/fishbase_sealifebase/fishbase_species_20220518.csv")) %>% select(-X)
-  fb_aquarium_info <- fb_aquarium_info %>%
-    rename(SciName = Species) %>%
-    mutate(SciName = tolower(SciName)) %>%
+  fb_aquarium_info <- read.csv(file.path(fb_slb_dir, "fb_aquarium.csv"))
+  fb_aquarium_relevant <- fb_aquarium_info %>%
     filter(SciName %in% prod_fb_full$SciName)
-  
-  fb_aquarium_relevant <- fb_aquarium_info %>% 
-    select(c(SciName, Aquarium, Fresh, Brack, Saltwater))
   
   prod_fb_full <- prod_fb_full %>%
     left_join(fb_aquarium_relevant, by = "SciName") %>%
     rename(Fresh01 = Fresh, Brack01 = Brack, Saltwater01 = Saltwater) # to make it the same as previous version's code
   
-  slb_aquarium_info <- read.csv(file.path(datadir, "fishbase_sealifebase/sealifebase_species_20220518.csv")) %>% select(-X)
-  slb_aquarium_info <- slb_aquarium_info %>%
-    rename(SciName = Species) %>%
-    mutate(SciName = tolower(SciName)) %>%
-    filter(SciName %in% unique(prod_slb_full$SciName))
-  
+  slb_aquarium_info <- read.csv(file.path(fb_slb_dir, "slb_aquarium.csv"))
   slb_aquarium_relevant <- slb_aquarium_info %>%
-    select(c("SciName", "Aquarium", "Fresh", "Brack", "Saltwater"))
+    filter(SciName %in% unique(prod_slb_full$SciName))
   
   prod_slb_full <- prod_slb_full %>%
     left_join(slb_aquarium_relevant, by = c("SciName")) %>%

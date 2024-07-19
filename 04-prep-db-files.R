@@ -7,10 +7,18 @@ library(countrycode)
 rm(list=ls())
 
 # Directories and filenames
-datadir <- "model_inputs_clean"
-clean_metadatadir <- "model_outputs"
-# You can update this if you want to create a separate output folder for SQL database files
-outdir <- "model_outputs" 
+# Get most recent model inputs directory
+# Assumption: all model inputs are located in the project folder
+model_inputs_raw <- "model_inputs_raw"
+model_inputs_dir <- get_most_recent_dir(".", "model_inputs")
+datadir <- model_inputs_dir$directory
+clean_metadatadir <- paste("clean_metadata_", model_inputs_dir$dir_date, sep = "")
+
+
+snet_dir_info <- get_most_recent_dir(".", "snet")
+snet_dir <- snet_dir_info$directory
+
+outdir <- paste("SQL_Database_", model_inputs_dir$dir_date, sep = "")
 
 countries_filename <- "countries.csv"
 hs_codes_filename <- "All_HS_Codes.csv"
@@ -59,7 +67,7 @@ write.csv(code_max_resolved_taxa, file.path(outdir, "code_max_resolved.csv"), ro
 # hs codes, descriptions, FMFO status, product form
 
 # Read in list of HS codes found in K Drive Data folder
-products <- read.csv(file.path(datadir, "All_HS_Codes.csv"))
+products <- read.csv(file.path(model_inputs_raw, "All_HS_Codes.csv"))
 
 products <- products %>%
   mutate(Code = as.character(Code)) %>%
@@ -178,7 +186,7 @@ countries <- data.frame(
   iso3c = unique(c(prod$iso3c, baci$exporter_iso3c, baci$importer_iso3c))
 )
 
-owid_region <- read.csv(file.path(datadir, "owid_regions.csv"))
+owid_region <- read.csv(file.path(model_inputs_raw, "owid_regions.csv"))
 
 # Add metadata
 countries <- countries %>%
@@ -209,3 +217,20 @@ countries <- countries %>%
 
 # Writing out results
 write.csv(countries, file.path(outdir, "countries.csv"), row.names = FALSE)
+
+#-------------------------------------------------------------------------------
+# Prepare and Combine all Snets created (min, mid, max)
+snet <- read.csv(file.path(snet_dir, "custom_ts/mid_custom_ts.csv"))
+
+snet <- snet %>%
+  mutate(hs_version = as.character(hs_version),
+         hs6 = as.character(hs6)) %>%
+  mutate(hs6 = case_when(
+    str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
+    TRUE ~ hs6
+  )) %>%
+  rename(sciname = SciName,
+         habitat = environment)
+
+write.csv(snet, file.path(outdir, "snet.csv"), row.names=FALSE)
+#-------------------------------------------------------------------------------

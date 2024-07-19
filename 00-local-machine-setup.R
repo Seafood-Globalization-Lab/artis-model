@@ -18,13 +18,9 @@ rm(list=ls())
 start_date <- as.character(Sys.Date())
 
 # Directory for inputs to create the ARTIS database
-datadir <- "model_inputs_clean"
+datadir <- ""
 # Directory where ARTIS database will be generated
-outdir <- "model_outputs"
-# Creating model outputs folder if necessary
-if(!dir.exists(outdir)) {
-  dir.create(outdir)
-}
+outdir <- ""
 
 # HS version for trade records and timespan for ARTIS
 # ie HS12 will generate all trade records from 2012 - 2020

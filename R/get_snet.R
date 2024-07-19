@@ -1,8 +1,10 @@
 #' @export
 get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
-                     hs_version = NA, test_years = c(), prod_type = "FAO") {
+                     hs_version = NA, test_years = c(), prod_type = "FAO",
+                     run_env = "aws", s3_bucket_name = "", s3_region = "") {
   
-  setup_values <- initial_variable_setup(datadir, outdir, hs_version, test_years, prod_type)
+  setup_values <- initial_variable_setup(datadir, outdir, hs_version, test_years, prod_type,
+                                         s3_bucket_name = s3_bucket_name, s3_region = s3_region)
   full_analysis_start <- setup_values[[1]]
   file.date <- setup_values[[2]]
   analysis_info <- setup_values[[3]]
@@ -37,7 +39,9 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     # Transform conversion factors to represent conversion from product to live
     mutate(live_weight_cf = 1/live_weight_cf)
   
-  write.csv(V1_long, file.path(outdir, paste("HS", hs_version, "/V1_long_HS", hs_version, ".csv", sep = "")), row.names = FALSE)
+  V1_long_fp <- file.path(outdir, paste("HS", hs_version, "/V1_long_HS", hs_version, ".csv", sep = ""))
+  
+  write.csv(V1_long, V1_long_fp, row.names = FALSE)
   
   # Product-to-Product
   # This is going from original product weight to new product weight
@@ -48,10 +52,45 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     mutate(from_hs6 = substr(from_hs6, 2, str_length(from_hs6))) %>%
     filter(product_cf > 0)
   
-  write.csv(V2_long, file.path(outdir, paste("HS", hs_version, "/V2_long_HS", hs_version, ".csv", sep = "")), row.names = FALSE)
+  V2_long_fp <- file.path(outdir, paste("HS", hs_version, "/V2_long_HS", hs_version, ".csv", sep = ""))
+  
+  write.csv(V2_long, V2_long_fp, row.names = FALSE)
+  
+  if (run_env == "aws") {
+    put_object(
+      file = V1_long_fp,
+      object = V1_long_fp,
+      bucket = s3_bucket_name
+    )
+    
+    put_object(
+      file = V2_long_fp,
+      object= V2_long_fp,
+      bucket = s3_bucket_name
+    )
+  }
   #-------------------------------------------------------------------------------
-  fao_pop <- read.csv(file.path(datadir, "fao_annual_pop.csv"))
-  code_max_resolved <- read.csv(file.path(datadir, "code_max_resolved.csv"))
+  pop_fp <- file.path(datadir, "fao_annual_pop.csv")
+  code_max_resolved_fp <- file.path(datadir, "code_max_resolved.csv")
+  
+  if (run_env == "aws") {
+    save_object(
+      object = pop_fp,
+      bucket = s3_bucket_name,
+      region = s3_region,
+      file = pop_fp
+    )
+    
+    save_object(
+      object = code_max_resolved_fp,
+      bucket = s3_bucket_name,
+      region = s3_region,
+      file = code_max_resolved_fp
+    )
+  }
+  
+  fao_pop <- read.csv(pop_fp)
+  code_max_resolved <- read.csv(code_max_resolved_fp)
   
   # Non-human codes
   non_human_codes <- c("230120", "051191", "030110", "030111", "030119")
@@ -65,12 +104,19 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
 
     #-----------------------------------------------------------------------------
     # Step 4: Load trade (BACI) data and standardize countries between production and trade data
-    baci_data_analysis_year <- read.csv(
-      file.path(
-        datadir,
-        paste("standardized_baci_seafood_hs",
-              HS_year_rep, "_y", analysis_year, ".csv", sep = "")
-      )) %>%
+    baci_fp <- file.path(datadir,
+                         paste("standardized_baci_seafood_hs", 
+                               HS_year_rep, "_y", analysis_year, ".csv", sep = ""))
+    
+    if (run_env == "aws") {
+      save_object(
+        baci_fp,
+        bucket = s3_bucket_name,
+        file = baci_fp
+      )
+    }
+    
+    baci_data_analysis_year <- read.csv(baci_fp) %>%
       # pad hs6 with 0s
       mutate(hs6 = as.character(hs6)) %>%
       mutate(hs6 = if_else(
@@ -83,14 +129,54 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     baci_data_analysis_year <- baci_data_analysis_year %>%
       select(importer_iso3c, exporter_iso3c, hs6, total_q)
     #-----------------------------------------------------------------------------
+    
+    # File paths for quadprog country solutions
+    quadprog_solutions_dir <- file.path(quadprog_dir, hs_dir, analysis_year)
+    cvxopt_solutions_dir <- file.path(cvxopt_dir, hs_dir, analysis_year)
+    
+    if (run_env == "aws") {
+      # Download in all quadprog country solutions from AWS
+      quadprog_solution_files <- get_bucket_df(
+        bucket = s3_bucket_name,
+        region = s3_region,
+        prefix = quadprog_solutions_dir,
+        max = Inf
+      ) %>%
+        filter(str_detect(Key, "_country-est_")) %>%
+        pull(Key) %>%
+        unique()
+      
+      cvxopt_solution_files <- get_bucket_df(
+        bucket = s3_bucket_name,
+        region = s3_region,
+        prefix = cvxopt_solutions_dir,
+        max = Inf
+      ) %>%
+        filter(str_detect(Key, "_country-est_")) %>%
+        pull(Key) %>%
+        unique()
+      
+      country_solution_files <- c(quadprog_solution_files, cvxopt_solution_files)
+      
+      if (length(country_solution_files) > 0) {
+        for (i in 1:length(country_solution_files)) {
+          save_object(
+            object = country_solution_files[i],
+            bucket = s3_bucket_name,
+            file = country_solution_files[i]
+          )
+        }
+      }
+    }
+    
 
     # Read in individual country solutions and combine into a list
-    quadprog_output_files <- list.files(file.path(quadprog_dir, hs_dir, analysis_year))
+    quadprog_output_files <- list.files(quadprog_solutions_dir)
     quadprog_output_files <- lapply(quadprog_output_files,
                                     FUN = function(x) file.path(
                                       quadprog_dir, hs_dir, analysis_year, x))
 
-    cvxopt_output_files <- list.files(file.path(cvxopt_dir, hs_dir, analysis_year))
+    cvxopt_output_files <- list.files(cvxopt_solutions_dir)
     cvxopt_output_files <- lapply(cvxopt_output_files,
                                   FUN = function(x) file.path(
                                     cvxopt_dir, hs_dir, analysis_year, x))
@@ -133,7 +219,18 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
         rownames(country_est[[names(country_est)[i]]]$W) <- paste(names(country_est)[i],W_rows,sep="_")
       }
     }
-    saveRDS(country_est, file.path(hs_analysis_year_dir, paste(file.date, "_all-country-est_", analysis_year, "_HS", HS_year_rep, ".RDS", sep = "")))
+    
+    all_country_est_fp <- file.path(hs_analysis_year_dir, paste(file.date, "_all-country-est_", analysis_year, "_HS", HS_year_rep, ".RDS", sep = ""))
+    saveRDS(country_est, all_country_est_fp)
+    
+    if (run_env == "aws") {
+      put_object(
+        file = all_country_est_fp,
+        object = all_country_est_fp,
+        bucket = s3_bucket_name
+      )
+    }
+    
     # We don't believe the final product form provided by solve countries solutions for consumption
 
     #---------------------------------------------------------------------------
@@ -168,9 +265,15 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
       # Filter down to just the codes in cc_m (recreated above from country_est)
       filter(Code %in% cc_m)
     
-    write.csv(hs_clade_match,
-              file.path(hs_analysis_year_dir, "hs_clade_match.csv"),
-              row.names = FALSE)
+    hs_clade_match_fp <- file.path(hs_analysis_year_dir, "hs_clade_match.csv")
+    write.csv(hs_clade_match, hs_clade_match_fp, row.names = FALSE)
+    if (run_env == "aws") {
+      put_object(
+        file = hs_clade_match_fp,
+        object = hs_clade_match_fp,
+        bucket = s3_bucket_name
+      )
+    }
 
     # Create new list of countries_to_analyze using only countries with
     # solve_qp solutions (i.e., names(country_est)), some countries have
@@ -182,19 +285,32 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     reweight_X_long <- reweight_X_long %>%
       mutate(hs_version = paste("HS", HS_year_rep, sep = ""),
              year = analysis_year)
+    
+    reweight_X_long_fp <- file.path(hs_analysis_year_dir,
+                                    paste("reweight_X_long_", analysis_year, "_HS",
+                                          HS_year_rep, ".csv", sep = ""))
 
-    write.csv(reweight_X_long, 
-              file.path(hs_analysis_year_dir,
-                        paste("reweight_X_long_", analysis_year, "_HS",
-                              HS_year_rep, ".csv", sep = "")),
-              row.names = FALSE)
+    write.csv(reweight_X_long, reweight_X_long_fp, row.names = FALSE)
+    if (run_env == "aws") {
+      put_object(
+        file = reweight_X_long_fp,
+        object = reweight_X_long_fp,
+        bucket = s3_bucket_name
+      )
+    }
     
     W_long <- create_W_long(country_est, num_cores)
+    W_long_fp <- file.path(hs_analysis_year_dir,
+                           paste("W_long_", analysis_year, "_HS", HS_year_rep, ".csv", sep = ""))
+    write.csv(W_long, W_long_fp, row.names = FALSE)
     
-    write.csv(W_long,
-              file.path(hs_analysis_year_dir,
-                        paste("W_long_", analysis_year, "_HS", HS_year_rep, ".csv", sep = "")),
-              row.names = FALSE)
+    if (run_env == "aws") {
+      put_object(
+        file = W_long_fp,
+        object = W_long_fp,
+        bucket = s3_bucket_name
+      )
+    }
     
     # Restructure BACI data to specify that it handles product weight
     baci_data_analysis_year <- baci_data_analysis_year %>%
@@ -202,12 +318,17 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
       filter(!(hs6 %in% coproduct_codes))
     
     reweight_W_long <- create_reweight_W_long(W_long, baci_data_analysis_year)
-    
-    write.csv(reweight_W_long,
-              file.path(hs_analysis_year_dir,
-                        paste("reweight_W_long_", analysis_year, "_HS",
-                              HS_year_rep, ".csv", sep = "")),
-              row.names = FALSE)
+    reweight_W_long_fp <- file.path(hs_analysis_year_dir,
+                                    paste("reweight_W_long_", analysis_year, "_HS",
+                                          HS_year_rep, ".csv", sep = ""))
+    write.csv(reweight_W_long, reweight_W_long_fp, row.names = FALSE)
+    if (run_env == "aws") {
+      put_object(
+        file = reweight_W_long_fp,
+        object = reweight_W_long_fp,
+        bucket = s3_bucket_name
+      )
+    }
     
     # returns the export and consumption weights by
     #   iso3c, hs6, dom_source
@@ -230,48 +351,67 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     
     s_net_midpoint <- create_snet(baci_data_analysis_year, export_source_weights_midpoint,
                                   reweight_W_long, reweight_X_long, V1_long,
-                                  hs_clade_match, num_cores, hs_analysis_year_dir, estimate_type = "midpoint") %>%
+                                  hs_clade_match, num_cores, hs_analysis_year_dir, estimate_type = "midpoint",
+                                  run_env = run_env, s3_bucket_name = s3_bucket_name, s3_region = s3_region) %>%
       mutate(hs_version = paste("HS", HS_year_rep, sep = ""),
              year = analysis_year)
 
     s_net_max <- create_snet(baci_data_analysis_year, export_source_weights_max,
                              reweight_W_long, reweight_X_long, V1_long,
-                             hs_clade_match, num_cores, hs_analysis_year_dir, estimate_type = "max") %>%
+                             hs_clade_match, num_cores, hs_analysis_year_dir, estimate_type = "max",
+                             run_env = run_env, s3_bucket_name = s3_bucket_name, s3_region = s3_region) %>%
       mutate(hs_version = paste("HS", HS_year_rep, sep = ""),
              year = analysis_year)
 
     s_net_min <- create_snet(baci_data_analysis_year, export_source_weights_min,
                              reweight_W_long, reweight_X_long, V1_long,
-                             hs_clade_match, num_cores, hs_analysis_year_dir, estimate_type = "min") %>%
+                             hs_clade_match, num_cores, hs_analysis_year_dir, estimate_type = "min",
+                             run_env = run_env, s3_bucket_name = s3_bucket_name, s3_region = s3_region) %>%
       mutate(hs_version = paste("HS", HS_year_rep, sep = ""),
              year = analysis_year)
 
     # Save full s_net
-    write.csv(
-      s_net_midpoint,
-      file.path(hs_analysis_year_dir,
-                paste(file.date, "_S-net_raw_midpoint_", analysis_year, "_HS",
-                      HS_year_rep, ".csv", sep = "")),
-      row.names = FALSE
-    )
-    write.csv(
-      s_net_max,
-      file.path(hs_analysis_year_dir,
-                paste(file.date, "_S-net_raw_max_", analysis_year, "_HS",
-                      HS_year_rep, ".csv", sep = "")),
-      row.names = FALSE
-    )
-    write.csv(
-      s_net_min,
-      file.path(hs_analysis_year_dir,
-                paste(file.date, "_S-net_raw_min_", analysis_year, "_HS",
-                      HS_year_rep, ".csv", sep = "")),
-      row.names = FALSE
-    )
+    snet_mid_fp <- file.path(hs_analysis_year_dir,
+                             paste(file.date, "_S-net_raw_midpoint_", analysis_year, "_HS",
+                                   HS_year_rep, ".csv", sep = ""))
+    snet_max_fp <- file.path(hs_analysis_year_dir,
+                             paste(file.date, "_S-net_raw_max_", analysis_year, "_HS",
+                                   HS_year_rep, ".csv", sep = ""))
+    snet_min_fp <- file.path(hs_analysis_year_dir,
+                             paste(file.date, "_S-net_raw_min_", analysis_year, "_HS",
+                                   HS_year_rep, ".csv", sep = ""))
+    write.csv(s_net_midpoint, snet_mid_fp, row.names = FALSE)
+    write.csv(s_net_max, snet_max_fp, row.names = FALSE)
+    write.csv(s_net_min, snet_min_fp, row.names = FALSE)
     
+    X_long_fp <- file.path(hs_analysis_year_dir, "X_long.csv")
     X_long <- create_X_long(country_est, num_cores)
+    write.csv(X_long, X_long_fp, row.names = FALSE)
     
-    write.csv(X_long, file.path(hs_analysis_year_dir, "X_long.csv"), row.names = FALSE)
+    if (run_env == "aws") {
+      put_object(
+        file = X_long_fp,
+        object = X_long_fp,
+        bucket = s3_bucket_name
+      )
+      
+      put_object(
+        file = snet_mid_fp,
+        object = snet_mid_fp,
+        bucket = s3_bucket_name
+      )
+      put_object(
+        file = snet_max_fp,
+        object = snet_max_fp,
+        bucket = s3_bucket_name
+      )
+      put_object(
+        file = snet_min_fp,
+        object = snet_min_fp,
+        bucket = s3_bucket_name
+      )
+    }
+    
     
     # Calculate consumption-----------------------------------------------------
     prod_data_analysis_year <- prod_data %>%
@@ -282,43 +422,61 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     pop <- fao_pop %>%
       filter(year == analysis_year)
     
-    consumption_mid <- calculate_consumption(s_net_mid, prod_data_analysis_year,
+    consumption_mid <- calculate_consumption(s_net_midpoint, prod_data_analysis_year,
                                              analysis_year, curr_hs, W_long, X_long,
                                              pop, code_max_resolved)
     
-    write.csv(consumption_mid,
-              file.path(
-                hs_analysis_year_dir,
-                paste(file.date, "_consumption_midpoint_", analysis_year,
-                      "_HS", HS_year_rep, ".csv", sep = "")),
-              row.names = FALSE)
+    consumption_mid_fp <- file.path(
+      hs_analysis_year_dir,
+      paste(file.date, "_consumption_midpoint_", analysis_year,
+            "_HS", HS_year_rep, ".csv", sep = ""))
+    consumption_max_fp <- file.path(
+      hs_analysis_year_dir,
+      paste(file.date, "_consumption_max_", analysis_year,
+            "_HS", HS_year_rep, ".csv", sep = ""))
+    consumption_min_fp <- file.path(
+      hs_analysis_year_dir,
+      paste(file.date, "_consumption_min_", analysis_year,
+            "_HS", HS_year_rep, ".csv", sep = ""))
+    
+    write.csv(consumption_mid, consumption_mid_fp, row.names = FALSE)
     
     consumption_max <- calculate_consumption(s_net_max, prod_data_analysis_year,
                                              analysis_year, curr_hs, W_long, X_long,
                                              pop, code_max_resolved)
     
-    write.csv(consumption_max,
-              file.path(
-                hs_analysis_year_dir,
-                paste(file.date, "_consumption_max_", analysis_year,
-                      "_HS", HS_year_rep, ".csv", sep = "")),
-              row.names = FALSE)
+    write.csv(consumption_max, consumption_max_fp, row.names = FALSE)
     
     consumption_min <- calculate_consumption(s_net_min, prod_data_analysis_year,
                                              analysis_year, curr_hs, W_long, X_long,
                                              pop, code_max_resolved)
     
-    write.csv(consumption_min,
-              file.path(
-                hs_analysis_year_dir,
-                paste(file.date, "_consumption_min_", analysis_year,
-                      "_HS", HS_year_rep, ".csv", sep = "")),
-              row.names = FALSE)
+    write.csv(consumption_min, consumption_min_fp, row.names = FALSE)
+    
+    if (run_env == "aws") {
+      put_object(
+        file = consumption_mid_fp,
+        object = consumption_mid_fp,
+        bucket = s3_bucket_name
+      )
+      put_object(
+        file = consumption_max_fp,
+        object = consumption_max_fp,
+        bucket = s3_bucket_name
+      )
+      put_object(
+        file = consumption_min_fp,
+        object = consumption_min_fp,
+        bucket = s3_bucket_name
+      )
+    }
     
     #---------------------------------------------------------------------------
     rm(list=ls()[!(ls() %in% c("analysis_setup", analysis_setup, "coproduct_codes",
                                "V1_long", "analysis_info", analysis_info,
                                "fao_pop", "hs_dir"))])
+    
+    if (run_env == "aws") { unlink(hs_analysis_year_dir) }
 
     # Clear current analysis year and output directory before looping to the next analysis year
     rm(analysis_year)

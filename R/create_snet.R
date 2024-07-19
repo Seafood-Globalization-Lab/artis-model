@@ -1,7 +1,9 @@
 #' @export
 create_snet <- function(baci_data_analysis_year, export_source_weights,
                         reweight_W_long, reweight_X_long, V1_long, hs_clade_match, num_cores,
-                        outdir, snet_threshold = 0.1, estimate_type = "midpoint") {
+                        outdir, snet_threshold = 0.1, estimate_type = "midpoint",
+                        run_env = "aws", s3_bucket_name = "", s3_region = "") {
+  
   # Creates an ARTIS snet that goes back 2 stages in the supply chain
   # specifically further resolving foreign exports down
   
@@ -85,10 +87,42 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
   gc()
   
   # write intermediate files
-  write.csv(first_dom_exp, file.path(outdir, paste("first_dom_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
-  write.csv(first_error_exp, file.path(outdir, paste("first_error_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
-  write.csv(first_foreign_exp, file.path(outdir, paste("first_foreign_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
-  write.csv(first_unresolved_foreign_exp, file.path(outdir, paste("first_unresolved_foreign_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
+  first_dom_exp_fp <- file.path(outdir, paste("first_dom_exp_", estimate_type, ".csv", sep = ""))
+  first_error_exp_fp <- file.path(outdir, paste("first_error_exp_", estimate_type, ".csv", sep = ""))
+  first_foreign_exp_fp <- file.path(outdir, paste("first_foreign_exp_", estimate_type, ".csv", sep = ""))
+  first_unresolved_foreign_exp_fp <- file.path(outdir, paste("first_unresolved_foreign_exp_", estimate_type, ".csv", sep = ""))
+  
+  write.csv(first_dom_exp, first_dom_exp_fp, row.names = FALSE)
+  write.csv(first_error_exp, first_error_exp_fp, row.names = FALSE)
+  write.csv(first_foreign_exp, first_foreign_exp_fp, row.names = FALSE)
+  write.csv(first_unresolved_foreign_exp, first_unresolved_foreign_exp_fp, row.names = FALSE)
+  
+  if (run_env == "aws") {
+    
+    put_object(
+      first_dom_exp_fp,
+      bucket = s3_bucket_name,
+      file = first_dom_exp_fp
+    )
+    
+    put_object(
+      first_error_exp_fp,
+      bucket = s3_bucket_name,
+      file = first_error_exp_fp
+    )
+    
+    put_object(
+      first_foreign_exp_fp,
+      bucket = s3_bucket_name,
+      file = first_foreign_exp_fp
+    )
+    
+    put_object(
+      first_unresolved_foreign_exp_fp,
+      bucket = s3_bucket_name,
+      file = first_unresolved_foreign_exp_fp
+    )
+  }
   
   # Creating link between first and second stage of the supply chain
   foreign_export_original_link <- first_foreign_exp %>%
@@ -125,10 +159,41 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
   gc()
   
   # write intermediate files
-  write.csv(second_dom_exp, file.path(outdir, paste("second_dom_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
-  write.csv(second_error_exp, file.path(outdir, paste("second_error_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
-  write.csv(second_foreign_exp, file.path(outdir, paste("second_foreign_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
-  write.csv(second_unresolved_foreign_exp, file.path(outdir, paste("second_unresolved_foreign_exp_", estimate_type, ".csv", sep = "")), row.names = FALSE)
+  second_dom_exp_fp <- file.path(outdir, paste("second_dom_exp_", estimate_type, ".csv", sep = ""))
+  second_error_exp_fp <- file.path(outdir, paste("second_error_exp_", estimate_type, ".csv", sep = ""))
+  second_foreign_exp_fp <- file.path(outdir, paste("second_foreign_exp_", estimate_type, ".csv", sep = ""))
+  second_unresolved_foreign_exp_fp <- file.path(outdir, paste("second_unresolved_foreign_exp_", estimate_type, ".csv", sep = ""))
+  
+  write.csv(second_dom_exp, second_dom_exp_fp, row.names = FALSE)
+  write.csv(second_error_exp, second_error_exp_fp, row.names = FALSE)
+  write.csv(second_foreign_exp, second_foreign_exp_fp, row.names = FALSE)
+  write.csv(second_unresolved_foreign_exp, second_unresolved_foreign_exp_fp, row.names = FALSE)
+  
+  if (run_env == "aws") {
+    put_object(
+      second_dom_exp_fp,
+      bucket = s3_bucket_name,
+      file = second_dom_exp_fp
+    )
+    
+    put_object(
+      second_error_exp_fp,
+      bucket = s3_bucket_name,
+      file = second_error_exp_fp
+    )
+    
+    put_object(
+      second_foreign_exp_fp,
+      bucket = s3_bucket_name,
+      file = second_foreign_exp_fp
+    )
+    
+    put_object(
+      second_unresolved_foreign_exp_fp,
+      bucket = s3_bucket_name,
+      file = second_unresolved_foreign_exp_fp
+    )
+  }
   
   # linking original importer re exporter and final source country
   # removes intermediate source country found in 1st foreign exports resolution

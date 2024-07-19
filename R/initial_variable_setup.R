@@ -1,6 +1,8 @@
 #' @export
 initial_variable_setup <- function(datadir, outdir, hs_version = NA, test_years = c(),
-                                   prod_type = "FAO") {
+                                   prod_type = "FAO",
+                                   run_env = "aws", s3_bucket_name = "", s3_region = "") {
+  
   
   #-----------------------------------------------------------------------------
   # Step 0: Setup
@@ -13,12 +15,15 @@ initial_variable_setup <- function(datadir, outdir, hs_version = NA, test_years 
   
   # List of variables to retain in memory when environment is cleared
   analysis_info <- c("outdir", "datadir", "file.date", "full_analysis_start",
-                     "HS_year_rep", "hs_dir", "df_years", "analysis_year",
-                     "hs_analysis_year_dir", "solver_type", "num_cores")
+                     "hs_version", "HS_year_rep", "hs_dir", "df_years", "analysis_year",
+                     "hs_analysis_year_dir", "solver_type", "num_cores",
+                     "quadprog_dir", "cvxopt_dir", "test_years",
+                     "run_env", "s3_bucket_name", "s3_region")
   
   analysis_setup <- c("prod_data", "V1", "V2", "sc_n", "cc_m", "X_cols",
                       "X_rows", "W_cols", "W_rows", "Xq", "analysis_years_rep",
-                      "HS_year_rep", "no_solve_countries")
+                      "HS_year_rep", "no_solve_countries", "non_human_codes",
+                      "code_max_resolved")
   
   #-----------------------------------------------------------------------------
   # Step 1: Load production data used for all years
@@ -31,6 +36,24 @@ initial_variable_setup <- function(datadir, outdir, hs_version = NA, test_years 
   } else {
     prod_filename <- "standardized_combined_prod.csv"
     prod_taxa_filename <- "clean_taxa_combined.csv"
+  }
+  
+  if (run_env == "aws") {
+    # bring data into local environment first
+    
+    save_object(
+      object = file.path(datadir, prod_filename),
+      bucket = s3_bucket_name,
+      region = s3_region,
+      file = file.path(datadir, prod_filename)
+    )
+    
+    save_object(
+      object = file.path(datadir, prod_taxa_filename),
+      bucket = s3_bucket_name,
+      region = s3_region,
+      file = file.path(datadir, prod_taxa_filename)
+    )
   }
   
   prod_data <- read.csv(file.path(datadir, prod_filename))
@@ -57,9 +80,38 @@ initial_variable_setup <- function(datadir, outdir, hs_version = NA, test_years 
   
   #-----------------------------------------------------------------------------  
   # Load hs_taxa_match for appropriate HS year
-  hs_taxa_match <- read.csv(
-    file.path(datadir, paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = ""))
-  ) %>%
+  hs_taxa_match_fp <- file.path(datadir, paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = ""))
+  hs_taxa_cf_fp <- file.path(datadir,
+                             paste("hs-taxa-CF_strict-match_HS", HS_year_rep, ".csv", sep = ""))
+  hs_hs_match_fp <- file.path(datadir,
+                              paste("hs-hs-match_HS", HS_year_rep, ".csv", sep=""))
+  
+  if (run_env == "aws") {
+    # bring into local file system from s3 bucket
+    save_object(
+      object = hs_taxa_match_fp,
+      bucket = s3_bucket_name,
+      region = s3_region,
+      file = hs_taxa_match_fp
+    )
+    
+    save_object(
+      object = hs_taxa_cf_fp,
+      bucket = s3_bucket_name,
+      region = s3_region,
+      file = hs_taxa_cf_fp
+    )
+    
+    save_object(
+      object = hs_hs_match_fp,
+      bucket = s3_bucket_name,
+      region = s3_region,
+      file = hs_hs_match_fp
+    )
+  }
+  
+  
+  hs_taxa_match <- read.csv(hs_taxa_match_fp) %>%
     # pad HS codes with zeroes
     mutate(Code = as.character(Code)) %>%
     mutate(Code = if_else(
@@ -88,10 +140,7 @@ initial_variable_setup <- function(datadir, outdir, hs_version = NA, test_years 
     select(-c(sciname_habitat, code_habitat))
   
   # Load hs_taxa_CF_match for appropriate HS year
-  hs_taxa_CF_match <- read.csv(
-    file.path(datadir,
-              paste("hs-taxa-CF_strict-match_HS", HS_year_rep, ".csv", sep = ""))
-  ) %>%
+  hs_taxa_CF_match <- read.csv(hs_taxa_cf_fp) %>%
     # pad HS codes with zeroes
     mutate(Code = as.character(Code)) %>%
     mutate(
@@ -125,10 +174,7 @@ initial_variable_setup <- function(datadir, outdir, hs_version = NA, test_years 
     )
   
   # Load hs-hs match for appropriate HS year
-  hs_hs_match <- read.csv(
-    file.path(datadir,
-              paste("hs-hs-match_HS", HS_year_rep, ".csv", sep=""))
-  ) %>% 
+  hs_hs_match <- read.csv(hs_hs_match_fp) %>% 
     # pad HS codes with zeroes
     mutate(Code_pre = as.character(Code_pre)) %>%
     mutate(
@@ -211,6 +257,21 @@ initial_variable_setup <- function(datadir, outdir, hs_version = NA, test_years 
   
   # Create all output directories for HS version and each year
   hs_dir <- paste("HS", HS_year_rep, sep = "")
+  
+  if (run_env == "aws") {
+    put_folder(
+      file.path(outdir, hs_dir),
+      bucket = s3_bucket_name
+    )
+    
+    for (analysis_year in analysis_years_rep$analysis_year){
+      put_folder(
+        file.path(outdir, hs_dir, analysis_year),
+        bucket = s3_bucket_name
+      )
+    }
+  }
+  
   dir.create(file.path(outdir, hs_dir))
   for (analysis_year in analysis_years_rep$analysis_year){
     dir.create(file.path(outdir, hs_dir, analysis_year))

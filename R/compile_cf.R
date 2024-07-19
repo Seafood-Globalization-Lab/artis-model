@@ -324,8 +324,11 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
       pull(Common.name)
     
     # reads in common name matching
-    common_names_fp <- file.path(fb_slb_dir, "common_to_sci_fishbase_20220527.csv")
-    common_names_df <- read_common_to_sci(common_names_fp)
+    fb_common_names <- read.csv(file.path(fb_slb_dir, "fb_common_to_sci.csv"))
+    slb_common_names <- read.csv(file.path(fb_slb_dir, "slb_common_to_sci.csv"))
+    
+    common_names_df <- fb_common_names %>%
+      bind_rows(slb_common_names)
     
     common_sci_match <- data.frame()
     for (i in 1:length(no_sci_name)){
@@ -360,8 +363,8 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
     nomatch_species_post <- nomatch_species_post[grepl(nomatch_species_post, pattern = " ")]
     
     # Reading in fishbase and sealifebase synonym databases for matches
-    fb_df <- read_synonyms(file.path(fb_slb_dir, "synonyms_fishbase_20220518.csv"))
-    slb_df <- read_synonyms(file.path(fb_slb_dir, "synonyms_sealifebase_20220525.csv"))
+    fb_df <- read.csv(file.path(fb_slb_dir, "fb_synonyms_clean.csv"))
+    slb_df <- read.csv(file.path(fb_slb_dir, "slb_synonyms_clean.csv"))
     
     fb_switches <- 0
     slb_switches <- 0

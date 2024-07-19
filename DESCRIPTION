@@ -2,6 +2,6 @@ Package: artis
 Version: 0.1.0
 RoxygenNote: 7.3.1
 Encoding: UTF-8
-Author@R: person("Jessica", "Gephart", email = "gephart@uw.edu", role = c("aut", "cre"))
+Author@R: person("Jessica", "Gephart", email = "jgephart@american.edu", role = c("aut", "cre"))
 Description: Creates the Aquatic Resource Trade in Species (ARTIS) database, which estimates trade flows in seafood species between all countries from 1994 to 2016.
 License: CC0

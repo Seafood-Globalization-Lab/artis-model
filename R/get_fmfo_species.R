@@ -1,5 +1,7 @@
 #' @export
-get_fmfo_species <- function(datadir, sau_fp, taxa_fp, threshold = 1) {
+get_fmfo_species <- function(datadir, sau_fp, taxa_fp,
+                             fb_slb_dir = "model_inputs_raw/fishbase_sealifebase",
+                             threshold = 1) {
   # Percent threshold default is 1% of production going to FM
   
   #-----------------------------------------------------------------------------
@@ -27,9 +29,8 @@ get_fmfo_species <- function(datadir, sau_fp, taxa_fp, threshold = 1) {
   # standardize fmfo species names
   
   # reads and cleans fishbase and sealifebase synonym datasets
-  fb_df <- read_synonyms(file.path(datadir, "fishbase_sealifebase/synonyms_fishbase_20220518.csv"))
-  slb_df <- read_synonyms(file.path(datadir, "fishbase_sealifebase/synonyms_sealifebase_20220525.csv"))
-  
+  fb_df <- read.csv(file.path(fb_slb_dir, "fb_synonyms_clean.csv"))
+  slb_df <- read.csv(file.path(fb_slb_dir, "slb_synonyms_clean.csv"))
   
   # Get a list of standardized species names
   non_standard_scinames <- unique(tolower(sau$scientific_name))
