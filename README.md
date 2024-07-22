@@ -1,6 +1,6 @@
 # ARTIS Model
 
-The ARTIS model codebase.
+The ARTIS model codebase. This repository contains the demo version and the full model.
 
 ## Installation Guide
 
@@ -9,6 +9,9 @@ This project uses Python 3.10.9 which can be downloaded [here](https://www.pytho
 It should take approximately 10 minutes to run this full installation.
 
 ## Creating python virtual environment
+
+*NOTE*: This protocol may not be successful for every individual local machine. The interaction in package versions and computer architecture (*i.e.* arm64 M1, M2 chips) may complicate this virtual environment set up. We are working on setting up a portable docker image to increase the reproducibility of this code.
+
 1. Open the artis-model repository in RStudio.
 2. Click on the terminal tab.
 3. Type `pwd` in the terminal.
@@ -22,7 +25,7 @@ It should take approximately 10 minutes to run this full installation.
 9. Type `deactivate` in terminal.
 10. Click on the Console tab.
 
-Note that you only need to install the solvers the first time you run this code. Warnings about the latest version of pip may also appear during the installation - these are okay, but errors are not.
+*Note*: You only need to install the solvers the first time you run this code. Warnings about the latest version of pip may also appear during the installation - these are okay, but errors are not.
 
 ## R installation instructions
 1. Click "Build" on the build tab on the top right hand side corner of RStudio.
@@ -34,7 +37,7 @@ Note that you only need to install the solvers the first time you run this code.
 </p>
 5. Click on the dropdown arrow in the "Install" subtab and select the option "Clean and Install"
 
-## Running the model 
+## Running the model demo
 
 Running the demo for the ARTIS model should take approximately 10 minutes. To run the demo for ARTIS run the `02-artis-pipeline.R` script and then run the `04-build-artis-timeseries.R` script.
 
