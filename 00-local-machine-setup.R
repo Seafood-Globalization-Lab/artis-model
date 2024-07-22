@@ -25,8 +25,11 @@ outdir <- ""
 hs_version_run <- "17"
 
 # Linking python environment set up during installation for use in the pipeline
-python_path <- file.path(getwd(), "venv", "bin", "python3")
-use_python(python_path, required = TRUE)
+#python_path <- file.path(getwd(), "venv", "bin", "python3")
+#use_python(python_path, required = TRUE)
+
+python_path <- file.path(getwd(), "venv")
+use_virtualenv(python_path, required = TRUE)
 
 # Will determine if the ARTIS pipeline functions are run with the demo variables
 # or to run functions to create the ARTIS database for all years and HS versions
