@@ -5,8 +5,8 @@
 rm(list=ls())
 
 # Set folder paths
-datadir <- "model_inputs_raw_old"
-outdir <- "qa/model_inputs_20240710_test"
+datadir <- "model_inputs_raw"
+outdir <- "model_inputs_sau"
 baci_version <- "202201"
 tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
 
@@ -25,7 +25,7 @@ library(doParallel)
 library(rfishbase)
 
 # Step 1: Load and clean production data and HS codes---------------------------
-running_sau <- FALSE
+running_sau <- TRUE
 
 #-------------------------------------------------------------------------------
 # If running a test environment with specific codes scinames this variable should be true else false
@@ -142,7 +142,8 @@ if (running_sau) {
   prod_list_sau <- classify_prod_dat(datadir = datadir,
                                      filename = 'SAU_Production_Data.csv',
                                      prod_data_source = 'SAU',
-                                     SAU_sci_2_common = "TaxonFunctionalCommercial_Clean.csv")
+                                     SAU_sci_2_common = "TaxonFunctionalCommercial_Clean.csv",
+                                     fb_slb_dir = current_fb_slb_dir)
   
   prod_data_sau <- prod_list_sau[[1]] %>%
     mutate(year = as.numeric(year)) %>%
