@@ -16,6 +16,19 @@ build_artis_data <- function(artis_dir, outdir,
   write.csv(trade_midpoint, trade_mid_fp, row.names = FALSE)
   print("Done..writing trade midpoint")
   
+  if (run_env == "aws") {
+    print("Uploading snet (midpoint) to AWS S3 bucket")
+    put_object(
+      file = trade_mid_fp,
+      object = trade_mid_fp,
+      bucket = s3_bucket_name
+    )
+    
+    # remove files to preserve space
+    file.remove(trade_mid_fp)
+    gc()
+  }
+  
   print("Collecting trade max data")
   snet_max_regexr <- "S-net_raw_max"
   trade_max <- collect_data(artis_dir, snet_max_regexr,
@@ -25,9 +38,22 @@ build_artis_data <- function(artis_dir, outdir,
   write.csv(trade_max, trade_max_fp, row.names = FALSE)
   print("Done..writing trade max")
   
+  if (run_env == "aws") {
+    print("Uploading snet (max) to AWS S3 bucket")
+    put_object(
+      file = trade_max_fp,
+      object = trade_max_fp,
+      bucket = s3_bucket_name
+    )
+    
+    # remove files to preserve space
+    file.remove(trade_max_fp)
+    gc()
+  }
+  
   print("Collecting trade min data")
   snet_min_regexr <- "S-net_raw_min"
-  trade_max <- collect_data(artis_dir, snet_min_regexr,
+  trade_min <- collect_data(artis_dir, snet_min_regexr,
                             run_env = "aws", s3_bucket_name, s3_region)
   
   print("Writing trade min data")
@@ -35,17 +61,7 @@ build_artis_data <- function(artis_dir, outdir,
   print("Done..writing trade min")
   
   if (run_env == "aws") {
-    print("Uploading trade files to AWS S3 bucket")
-    put_object(
-      file = trade_mid_fp,
-      object = trade_mid_fp,
-      bucket = s3_bucket_name
-    )
-    put_object(
-      file = trade_max_fp,
-      object = trade_max_fp,
-      bucket = s3_bucket_name
-    )
+    print("Uploading trade (min) to AWS S3 bucket")
     put_object(
       file = trade_min_fp,
       object = trade_min_fp,
@@ -53,9 +69,8 @@ build_artis_data <- function(artis_dir, outdir,
     )
     
     # remove files to preserve space
-    file.remove(trade_mid_fp)
-    file.remove(trade_max_fp)
     file.remove(trade_min_fp)
+    gc()
   }
   
   
@@ -67,12 +82,26 @@ build_artis_data <- function(artis_dir, outdir,
                                        run_env = "aws", s3_bucket_name, s3_region)
   
   consumption_mid_fp <- file.path(outdir, "consumption_midpoint_all_hs_all_years.csv")
-  consumption_max_fp <- file.path(outdir, "consumption_max_all_hs_all_years.csv")
-  consumption_min_fp <- file.path(outdir, "consumption_min_all_hs_all_years.csv")
   
   print("Writing consumption midpoint")
   write.csv(consumption_midpoint, consumption_mid_fp, row.names = FALSE)
   print("Done...writing consumption midpoint")
+  
+  if (run_env == "aws") {
+    print("Uploading consumption (midpoint) to AWS S3")
+    put_object(
+      file = consumption_mid_fp,
+      object = consumption_mid_fp,
+      bucket = s3_bucket_name
+    )
+    
+    # remove files to preserve space
+    file.remove(consumption_mid_fp)
+    gc()
+  }
+  
+  
+  consumption_max_fp <- file.path(outdir, "consumption_max_all_hs_all_years.csv")
   
   print("Collecting consumption max")
   consumption_max_regexr <- "consumption_max"
@@ -82,6 +111,21 @@ build_artis_data <- function(artis_dir, outdir,
   print("Writing consumption max")
   write.csv(consumption_max, consumption_max_fp, row.names = FALSE)
   print("Done...writing consumption max")
+  
+  if (run_env == "aws") {
+    print("Uploading consumption (max) to AWS S3")
+    put_object(
+      file = consumption_max_fp,
+      object = consumption_max_fp,
+      bucket = s3_bucket_name
+    )
+    
+    # remove files to preserve space
+    file.remove(consumption_max_fp)
+    gc()
+  }
+  
+  consumption_min_fp <- file.path(outdir, "consumption_min_all_hs_all_years.csv")
   
   print("Collecting consumption min")
   consumption_min_regexr <- "consumption_min"
@@ -93,17 +137,7 @@ build_artis_data <- function(artis_dir, outdir,
   print("Done...writing consumption min")
   
   if (run_env == "aws") {
-    print("Uploading consumption files to AWS S3")
-    put_object(
-      file = consumption_mid_fp,
-      object = consumption_mid_fp,
-      bucket = s3_bucket_name
-    )
-    put_object(
-      file = consumption_max_fp,
-      object = consumption_max_fp,
-      bucket = s3_bucket_name
-    )
+    print("Uploading consumption (min) to AWS S3")
     put_object(
       file = consumption_min_fp,
       object = consumption_min_fp,
@@ -111,8 +145,7 @@ build_artis_data <- function(artis_dir, outdir,
     )
     
     # remove files to preserve space
-    file.remove(consumption_mid_fp)
-    file.remove(consumption_max_fp)
     file.remove(consumption_min_fp)
+    gc()
   }
 }

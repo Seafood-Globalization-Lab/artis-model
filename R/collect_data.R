@@ -6,7 +6,7 @@ collect_data <- function(artis_dir,
   
   # Get list of AWS files to download
   if (run_env == "aws") {
-    no_solve_files <- get_bucket_df(
+    df_files <- get_bucket_df(
       bucket = s3_bucket_name,
       region = s3_region,
       prefix = artis_dir,
@@ -44,6 +44,7 @@ collect_data <- function(artis_dir,
     
     # delete file from local server to preserve space
     file.remove(df_files[i])
+    gc()
   }
   
   print(paste("Done...collecting all files with pattern", file_pattern))
