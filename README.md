@@ -1,6 +1,71 @@
-# artis-model
+# ARTIS Model
 
-# System Requirements
+The ARTIS model codebase. This repository contains the demo version and the full model.
+
+## Installation Guide
+
+This project uses Python 3.10.9 which can be downloaded [here](https://www.python.org/downloads/release/python-3109/) and RStudio which can be downloaded [here](https://posit.co/download/rstudio-desktop/).
+
+It should take approximately 10 minutes to run this full installation.
+
+## Creating python virtual environment
+
+*NOTE*: This protocol may not be successful for every individual local machine. The interaction in package versions and computer architecture (*i.e.* arm64 M1, M2 chips) may complicate this virtual environment set up. We are working on setting up a portable docker image to increase the reproducibility of this code.
+
+1. Open the artis-model repository in RStudio.
+2. Click on the terminal tab.
+3. Type `pwd` in the terminal.
+4. Copy the result of the "pwd" terminal command.
+5. Type `python3 -m venv [RESULT FROM pwd]/venv` (ie. `python3 -m venv /home/artis-model/venv`)
+6. Type `source venv/bin/activate` in terminal.
+7. Type `pip3 install qpsolvers` in terminal.
+6. Type `pip3 install quadprog` in terminal.
+7. Type `pip3 install cvxopt` in terminal.
+8. Confirm you have successfully installed the packages qpsolvers, quadprog, cvxopt by running `pip list`.
+9. Type `deactivate` in terminal.
+10. Click on the Console tab.
+
+*Note*: You only need to install the solvers the first time you run this code. Warnings about the latest version of pip may also appear during the installation - these are okay, but errors are not.
+
+## R installation instructions
+1. Click "Build" on the build tab on the top right hand side corner of RStudio.
+2. Click on the dropdown arrow in the "Install" subtab within the "Build" window.
+3. Click the option "Configure Build Tools..."
+4. Make sure options mirror the image below and click OK.
+<p align="center">
+  <img src="./images/artis_r_build_config_options.png" alt="drawing" width="75%"/>
+</p>
+5. Click on the dropdown arrow in the "Install" subtab and select the option "Clean and Install"
+
+## Running the model demo
+
+Running the demo for the ARTIS model should take approximately 10 minutes. To run the demo for ARTIS run the `02-artis-pipeline.R` script and then run the `04-build-artis-timeseries.R` script.
+
+## Outputs
+
+The outputs of the demo will appear in the `demo/outputs` directory. Within this folder `demo/outputs/custom_ts` will contain all the final files that if run on the full model inputs would be used to create the results of the ARTIS research paper.
+
+Please find below descriptions of main files:
+- `demo/outputs/custom_ts/mid_custom_ts.csv`: This is the demo version of the main ARTIS trade records table.
+- `demo/outputs/custom_ts/summary_consumption_midpoint.csv`: This is the demo version of the main ARTIS seafood consumption records table.
+
+## Methods and Workflow
+
+### High level overview
+The following diagrams describes how ARTIS trade records are obtained.
+
+![Disaggregating Trade Records](./images/disaggregating_trade_records.png)
+![Aggregating Trade Records back up](./images/building_trade_records_back_up.png)
+![Consumption Workflow](./images/consumption_workflow.png)
+
+### Code workflows
+The following diagrams describe the how the codebase follows the workflow illustrated above.
+
+![Cleaning data diagram](./images/model_inputs_creation.png)
+![Mass balance solutions](./images/country_mass_balance_solution_creation.png)
+![Creating ARTIS codeflow](./images/create_artis_codeflow.png)
+
+## System Requirements
 - Platform: x86_64-apple-darwin17.0 (64-bit)
 - Running under: macOS Ventura 13.3.1
 - R version 4.2.2
@@ -39,63 +104,3 @@
   - scipy      1.10.1
   - scs        3.2.3
   - setuptools 65.6.3
-
-# Installation Guide
-
-This project uses Python 3.10.9 which can be downloaded [here](https://www.python.org/downloads/release/python-3109/) and RStudio which can be downloaded [here](https://posit.co/download/rstudio-desktop/).
-
-It should take approximately 10 minutes to run this full installation.
-
-## Creating python virtual environment
-1. Open the artis-model repository in RStudio.
-2. Click on the terminal tab.
-3. Type "pwd" in the terminal.
-4. Copy the result of the "pwd" terminal command.
-5. Type "python3 -m venv [RESULT FROM pwd]/venv" (ie. "python3 -m venv /home/artis-model/venv")
-6. Type "source venv/bin/activate" in terminal.
-7. Type "pip3 install qpsolvers" in terminal.
-6. Type "pip3 install quadprog" in terminal.
-7. Type "pip3 install cvxopt" in terminal.
-8. Confirm you have successfully installed the packages qpsolvers, quadprog, cvxopt by running "pip list".
-9. Type "deactivate" in terminal.
-10. Click on the Console tab.
-
-Note that you only need to install the solvers the first time you run this code. Warnings about the latest version of pip may also appear during the installation - these are okay, but errors are not.
-
-# R installation instructions
-1. Click "Build" on the build tab on the top right hand side corner of RStudio.
-2. Click on the dropdown arrow in the "Install" subtab within the "Build" window.
-3. Click the option "Configure Build Tools..."
-4. Make sure options mirror the image below and click OK.
-![Build configuration options](./images/artis_r_build_config_options.png)
-5. Click on the dropdown arrow in the "Install" subtab and select the option "Clean and Install"
-
-# Running the model 
-
-Running the demo for the ARTIS model should take approximately 10 minutes. To run the demo for ARTIS run the `02-artis-pipeline.R` script and then run the `04-build-artis-timeseries.R` script.
-
-# Outputs
-
-The outputs of the demo will appear in the "demo/outputs" directory. Within this folder "demo/outputs/custom_ts" will contain all the final files that if run on the full model inputs would be used to create the results of the ARTIS research paper.
-
-Please find below descriptions of main files:
-- "demo/outputs/custom_ts/mid_custom_ts.csv": This is the demo version of the main ARTIS trade records table.
-- "demo/outputs/custom_ts/summary_consumption_midpoint.csv": This is the demo version of the main ARTIS seafood consumption records table.
-
-# Methods and Workflow
-
-## High level overview
-The following diagrams describes how ARTIS trade records are obtained.
-
-![Disaggregating Trade Records](./images/disaggregating_trade_records.png)
-![Aggregating Trade Records back up](./images/building_trade_records_back_up.png)
-![Consumption Workflow](./images/consumption_workflow.png)
-
-## Code workflows
-The following diagrams describe the how the codebase follows the workflow illustrated above.
-
-![Cleaning data diagram](./images/model_inputs_creation.png)
-![Mass balance solutions](./images/country_mass_balance_solution_creation.png)
-![Creating ARTIS codeflow](./images/create_artis_codeflow.png)
-
-
