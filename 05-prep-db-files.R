@@ -10,15 +10,10 @@ rm(list=ls())
 # Get most recent model inputs directory
 # Assumption: all model inputs are located in the project folder
 model_inputs_raw <- "model_inputs_raw"
-model_inputs_dir <- get_most_recent_dir(".", "model_inputs")
-datadir <- model_inputs_dir$directory
-clean_metadatadir <- paste("clean_metadata_", model_inputs_dir$dir_date, sep = "")
+model_inputs_dir <- "model_inputs"
+clean_metadatadir <- "outputs/clean_metadata"
 
-
-snet_dir_info <- get_most_recent_dir(".", "snet")
-snet_dir <- snet_dir_info$directory
-
-outdir <- paste("SQL_Database_", model_inputs_dir$dir_date, sep = "")
+outdir <- "sql_database"
 
 countries_filename <- "countries.csv"
 hs_codes_filename <- "All_HS_Codes.csv"
@@ -80,11 +75,11 @@ products <- products %>%
 # code_pre, code_post, presentation_pre, presentation_post, state_pre, state_post
 
 # Get list of all hs-hs-match files
-prep_state_files <- list.files(path=datadir, pattern="hs-hs-match", include.dirs=FALSE)
+prep_state_files <- list.files(path=model_inputs_dir, pattern="hs-hs-match", include.dirs=FALSE)
 prep_state <- data.frame()
 
 for (i in 1:length(prep_state_files)) {
-  curr_file <- file.path(datadir, prep_state_files[i])
+  curr_file <- file.path(model_inputs_dir, prep_state_files[i])
   curr_prep_state <- read.csv(curr_file)
   
   curr_prep_state <- curr_prep_state %>%
@@ -123,14 +118,16 @@ write.csv(products, file.path(outdir, "products.csv"), row.names=FALSE)
 #-------------------------------------------------------------------------------
 # Cleaning BACI data
 
-baci_files <- list.files(path=datadir, pattern="standardized_baci_seafood_hs", include.dirs=FALSE)
+baci_files <- list.files(path=model_inputs_dir, pattern="standardized_baci_seafood_hs", include.dirs=FALSE)
+# Select only files without value (could select those with value instead)
+baci_files <- baci_files[str_detect(baci_files, pattern = "value", negate = TRUE)]
 
 baci <- data.frame()
 
 for (i in 1:length(baci_files)) {
   curr_baci_filename <- baci_files[i]
   print(curr_baci_filename)
-  curr_baci <- read.csv(file.path(datadir, curr_baci_filename))
+  curr_baci <- read.csv(file.path(model_inputs_dir, curr_baci_filename))
   
   curr_hs <- toupper(substring(curr_baci_filename, nchar(curr_baci_filename) - 13, nchar(curr_baci_filename) - 10))
   curr_year <- as.integer(substring(curr_baci_filename, nchar(curr_baci_filename) - 7, nchar(curr_baci_filename) - 4))
@@ -145,17 +142,18 @@ for (i in 1:length(baci_files)) {
     bind_rows(curr_baci)
 }
 
-baci <- baci %>%
-  filter(
-    # Use HS96 from 1996-2003 (inclusive)
-    ((hs_version == "HS96") & (year <= 2003)) |
-      # Use HS02 from 2004-2009 (inclusive)
-      ((hs_version == "HS02") & (year >= 2004 & year <= 2009)) |
-      # Use HS07 from 2010-2012 (inclusive)
-      ((hs_version == "HS07") & (year >= 2010 & year <= 2012)) |
-      # Use HS12 from 2013-2019 (inclusive)
-      ((hs_version == "HS12") & (year >= 2013 & year <= 2020))
-  )
+# # Filter to custom hs version-year combinations
+# baci <- baci %>%
+#   filter(
+#     # Use HS96 from 1996-2003 (inclusive)
+#     ((hs_version == "HS96") & (year <= 2003)) |
+#       # Use HS02 from 2004-2009 (inclusive)
+#       ((hs_version == "HS02") & (year >= 2004 & year <= 2009)) |
+#       # Use HS07 from 2010-2012 (inclusive)
+#       ((hs_version == "HS07") & (year >= 2010 & year <= 2012)) |
+#       # Use HS12 from 2013-2019 (inclusive)
+#       ((hs_version == "HS12") & (year >= 2013 & year <= 2020))
+#   )
 
 write.csv(baci, file.path(outdir, "baci.csv"), row.names = FALSE)
 
@@ -163,9 +161,9 @@ write.csv(baci, file.path(outdir, "baci.csv"), row.names = FALSE)
 # Cleaning Production data
 
 # clean fao file found in Outputs/model_inputs on K Drive
-prod <- read.csv(file.path(datadir, "standardized_fao_prod.csv"))
+prod <- read.csv(file.path(model_inputs_dir, "standardized_fao_prod.csv"))
 
-# Filtering down to relevant columns (no duplications with other tables)
+# Filtering down to relevant columns (no duplicates with other tables)
 prod <- prod %>%
   select(c(country_iso3_alpha, SciName, prod_method, habitat, quantity, year)) %>%
   rename(
@@ -217,20 +215,3 @@ countries <- countries %>%
 
 # Writing out results
 write.csv(countries, file.path(outdir, "countries.csv"), row.names = FALSE)
-
-#-------------------------------------------------------------------------------
-# Prepare and Combine all Snets created (min, mid, max)
-snet <- read.csv(file.path(snet_dir, "custom_ts/mid_custom_ts.csv"))
-
-snet <- snet %>%
-  mutate(hs_version = as.character(hs_version),
-         hs6 = as.character(hs6)) %>%
-  mutate(hs6 = case_when(
-    str_length(hs6) == 5 ~ paste("0", hs6, sep = ""),
-    TRUE ~ hs6
-  )) %>%
-  rename(sciname = SciName,
-         habitat = environment)
-
-write.csv(snet, file.path(outdir, "snet.csv"), row.names=FALSE)
-#-------------------------------------------------------------------------------
