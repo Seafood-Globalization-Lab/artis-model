@@ -7,17 +7,11 @@ library(janitor)
 
 # Set directories
 datadir <- "model_inputs_raw"
-
-# Get most recent model inputs directory
-# Assumption: all model inputs are located in the project folder
-model_inputs_dir <- get_most_recent_dir(".", "model_inputs")
-inputsdir <- model_inputs_dir$directory
-
-# Attach model inputs run date to clean metadata directory path
-outdir <- paste("clean_metadata_", model_inputs_dir$dir_date, sep = "")
+inputsdir <- "model_inputs"
+outdir <- "outputs/clean_metadata"
 
 # Load production data
-# prod <- read.csv(file.path(inputsdir, "clean_fao_prod.csv"))
+prod <- read.csv(file.path(inputsdir, "clean_fao_prod.csv"))
 prod <- prod %>%
   rename(sciname = SciName, common_name = CommonName,
          method = prod_method)
@@ -30,7 +24,7 @@ taxa <- read.csv(file.path(inputsdir, "clean_fao_taxa.csv")) %>%
 # Load nutrient data
 # Note that values are all expressed per 100 g
 # Nutrient data for FAO 2020 version
-nutrient <- read.csv(file.path(datadir, "ARTIS_spp_nutrients.csv"))
+#nutrient <- read.csv(file.path(datadir, "ARTIS_spp_nutrients.csv")) #FIX IT: update nutrient file and add it
 
 # Load NCEAS group files
 #nceas_marine_capture <- read.csv(file.path(datadir, "nceas_marine_capture_groups.csv"))
@@ -42,8 +36,6 @@ sau_functional_groups <- read.csv(file.path(datadir, "sau_species.csv"))
 #___________________________________________________________________________________________________________________#
 # Nutrient data
 #___________________________________________________________________________________________________________________#
-# Load nutrient data from Daniel Viana
-
 # Nutrient merge notes
 # - Standardizing names to join them across the data sets
 # - Deciding how best to aggregate up to broader taxonomic groups
@@ -52,28 +44,28 @@ sau_functional_groups <- read.csv(file.path(datadir, "sau_species.csv"))
 # - Discussing options for connecting data for both live weight and different product forms
 #   * Likely focus on using edible portion 
 
-# Format nutrient data
-nutrient <- nutrient %>%
-  # Clean nutrient names to make them better for pivoting wider
-  mutate(nutrient = case_when(
-    nutrient == "Calcium" ~ "calcium",
-    nutrient == "Iron" ~ "iron",
-    nutrient == "Protein" ~ "protein",
-    nutrient == "DHA+EPA" ~ "fattyacids",
-    nutrient == "Vitamin A" ~ "vitamina",
-    nutrient == "Vitamin B12" ~ "vitaminb12",
-    nutrient == "Zinc" ~ "zinc"
-  )) %>%
-  mutate(nutrient = paste(nutrient, nutrient_units, sep = "_")) %>%
-  select(-c("nutrient_units", "ssd", "count", "se", "lower_ci", "upper_ci", "taxa_match")) %>%
-  pivot_wider(names_from = nutrient, values_from = value)
-
-# Format nutrient data to write out metadata file
-nutrient <- nutrient %>%
-  select(sciname, calcium_mg, iron_mg, protein_g, fattyacids_g, 
-         vitamina_mcg, vitaminb12_mcg, zinc_mg)
-
-write.csv(nutrient, file.path(outdir, "nutrient_metadata.csv"), row.names = FALSE)
+# # Format nutrient data
+# nutrient <- nutrient %>%
+#   # Clean nutrient names to make them better for pivoting wider
+#   mutate(nutrient = case_when(
+#     nutrient == "Calcium" ~ "calcium",
+#     nutrient == "Iron" ~ "iron",
+#     nutrient == "Protein" ~ "protein",
+#     nutrient == "DHA+EPA" ~ "fattyacids",
+#     nutrient == "Vitamin A" ~ "vitamina",
+#     nutrient == "Vitamin B12" ~ "vitaminb12",
+#     nutrient == "Zinc" ~ "zinc"
+#   )) %>%
+#   mutate(nutrient = paste(nutrient, nutrient_units, sep = "_")) %>%
+#   select(-c("nutrient_units", "ssd", "count", "se", "lower_ci", "upper_ci", "taxa_match")) %>%
+#   pivot_wider(names_from = nutrient, values_from = value)
+# 
+# # Format nutrient data to write out metadata file
+# nutrient <- nutrient %>%
+#   select(sciname, calcium_mg, iron_mg, protein_g, fattyacids_g, 
+#          vitamina_mcg, vitaminb12_mcg, zinc_mg)
+# 
+# write.csv(nutrient, file.path(outdir, "nutrient_metadata.csv"), row.names = FALSE)
 
 #___________________________________________________________________________________________________________________#
 # Clean scientific name information
@@ -175,6 +167,20 @@ taxa_metadata <- taxa %>%
 
 taxa_metadata <- taxa_metadata %>%
   left_join(isscaap_metadata, by = "sciname")
+
+# Add missing scinames from SAU
+sau_taxa <- read.csv("model_inputs_sau/clean_sau_taxa.csv") %>%
+  rename(sciname = SciName, common_name = CommonName) %>%
+  distinct() %>%
+  filter(!(sciname %in% taxa_metadata$sciname))
+
+taxa_metadata <- taxa_metadata %>%
+  bind_rows(sau_taxa) %>%
+  distinct() %>%
+  ungroup() %>%
+  mutate(sum_na = rowSums(is.na(.))) %>%
+  group_by(sciname) %>%
+  slice_min(order_by = sum_na, n = 1, with_ties = FALSE)
 
 write.csv(taxa_metadata, file.path(outdir, "sciname_metadata.csv"), row.names = FALSE)
 
@@ -381,11 +387,29 @@ for(i in c("96", "02", "07", "12", "17")){
                                   false = Code))) %>%
     mutate(hs_version = HS_year_rep)
   
+  # Add SAU matches
+  hs_taxa_match_sau_i <- read.csv(file.path("model_inputs_sau", paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = "")))
+  
+  hs_clade_match_sau_i <- match_hs_to_clade(hs_taxa_match = hs_taxa_match_sau_i ,
+                                        prod_taxa_classification = taxa %>%
+                                          rename(CommonName = common_name, SciName = sciname),
+                                        match_to_prod = FALSE) %>% 
+    # pad HS codes with zeroes
+    mutate(Code = as.character(Code)) %>%
+    mutate(Code = if_else(str_detect(Code, "^30"), true = str_replace(Code, pattern = "^30", replacement = "030"),
+                          if_else(str_detect(Code, "^511"), true = str_replace(Code, pattern = "^511", replacement = "0511"),
+                                  false = Code))) %>%
+    mutate(hs_version = HS_year_rep)
+  
   hs_clade_match <- hs_clade_match %>% 
-    bind_rows(hs_clade_match_i)
+    bind_rows(hs_clade_match_i) %>%
+    bind_rows(hs_clade_match_sau_i) %>%
+    distinct()
   
   hs_taxa_match <- hs_taxa_match %>%
-    bind_rows(hs_taxa_match_i)
+    bind_rows(hs_taxa_match_i) %>%
+    bind_rows(hs_taxa_match_sau_i) %>%
+    distinct()
 }
 
 hs_clade_match <- hs_clade_match %>%
@@ -396,7 +420,7 @@ hs_clade_match <- hs_clade_match %>%
          hs_version = as.integer(hs_version)) %>%
   rename("code_taxa_level" = "classification_level")
 
-prod_taxa_classification <- taxa %>%
+prod_taxa_classification <- taxa_metadata %>%
   select(-common_name) %>%
   unique() %>% 
   mutate(
@@ -460,6 +484,7 @@ code_max_resolved_taxa <- hs_taxa_match %>%
   )) %>%
   select("hs_version" = "HS_version", hs6, sciname, sciname_hs_modified) %>%
   mutate(hs_version = as.integer(parse_number(hs_version)),
-         hs6 = as.character(hs6))
+         hs6 = as.character(hs6)) %>%
+  distinct()
 
 write.csv(code_max_resolved_taxa, file.path(outdir, "code_max_resolved_taxa.csv"), row.names = FALSE)
