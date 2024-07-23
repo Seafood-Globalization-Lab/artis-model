@@ -214,24 +214,3 @@ if (run_env == "aws") {
   )
 }
 
-#-------------------------------------------------------------------------------
-# This section gathers all ARTIS output data separated across multiple HS version
-# and years into one file by output type (trade/consumption) and estimate type (max/midpoint/min)
-
-final_outdir <- file.path(outdir, "artis_outputs")
-
-if (!dir.exists(final_outdir)) { dir.create(final_outdir) }
-
-build_artis_data(outdir_snet, final_outdir,
-                 run_env = run_env,
-                 s3_bucket_name = artis_bucket,
-                 s3_region = artis_bucket_region)
-
-if (run_env == "aws") {
-  # clean up worker before exiting
-  unlink(datadir, recursive = TRUE)
-  unlink(outdir, recursive = TRUE)
-}
-
-
-
