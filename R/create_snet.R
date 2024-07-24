@@ -76,6 +76,9 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
   # Resolving foreign exports 1 step back in the supply chain
   first_resolved_exp <- resolve_foreign_exp(foreign_exports, reweight_W_long, import_props,
                                             hs_clade_match, zero_threshold = 1e-3)
+
+  rm(foreign_exports)
+  gc()
   
   first_dom_exp <- first_resolved_exp[[1]]
   first_error_exp <- first_resolved_exp[[2]]
@@ -155,7 +158,7 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
   second_foreign_exp <- second_resolved_exp[[3]]
   second_unresolved_foreign_exp <- second_resolved_exp[[4]]
   
-  rm(second_resolved_exp)
+  rm(list=c("second_resolved_exp", "first_foreign_exp", "first_foreign_exp_fp"))
   gc()
   
   # write intermediate files
@@ -168,6 +171,7 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
   write.csv(second_error_exp, second_error_exp_fp, row.names = FALSE)
   write.csv(second_foreign_exp, second_foreign_exp_fp, row.names = FALSE)
   write.csv(second_unresolved_foreign_exp, second_unresolved_foreign_exp_fp, row.names = FALSE)
+  gc()
   
   if (run_env == "aws") {
     put_object(
@@ -224,6 +228,8 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
     group_by(importer_iso3c, re_exporter_iso3c, exporter_iso3c, hs6_final, hs6_original) %>%
     summarize(product_weight_t = sum(product_weight_t, na.rm = TRUE)) %>%
     ungroup()
+
+  gc()
   
   # Breakdown foreign exports sourced from domestic exports into scinames
   foreign_domestic_sciname_exp <- data.frame()
@@ -254,11 +260,11 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
       group_by(importer_iso3c, re_exporter_iso3c, exporter_iso3c, hs6_final, SciName) %>%
       summarize(product_weight_t = sum(product_weight_t, na.rm = TRUE)) %>%
       ungroup()
-    
   }
   
   # Free up cluster workers
   stopCluster(sciname_cl)
+  gc()
   
   # first unresolved foreign exports get categorized as being sourced from error export
   first_unresolved_foreign_sciname <- first_unresolved_foreign_exp %>%
@@ -278,6 +284,9 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
     rename(exporter_iso3c = re_exporter_iso3c,
            hs6 = hs6_processed) %>%
     mutate(source_country_iso3c = "unknown")
+
+  rm(list=c("first_unresolved_foreign_exp", "first_unresolved_foreign_exp_fp"))
+  gc()
   
   # Re structuring second unresolved foreign export to 
   second_unresolved_foreign_exp <- second_unresolved_foreign_exp %>%
@@ -324,6 +333,8 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
     ungroup() %>%
     rename(exporter_iso3c = re_exporter_iso3c,
            hs6 = hs6_final)
+
+  gc()
   
   # Restructuring foreign export sourced from error to link back to first stage of supply chain
   second_error_exp <- second_error_exp %>%
@@ -357,6 +368,7 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
     rename(exporter_iso3c = re_exporter_iso3c,
            hs6 = hs6_final)
   
+  gc()
   # foreign exports at final stage of supply chain get classified
   # as getting sourced from error exports
   second_foreign_exp <- second_foreign_exp %>%
@@ -432,6 +444,12 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
     summarize(product_weight_t = sum(product_weight_t, na.rm = TRUE)) %>%
     ungroup() %>%
     mutate(dom_source = "foreign")
+
+  rm(list=c("foreign_domestic_sciname_exp", "first_error_exp",
+  "first_unresolved_foreign_sciname", "relinked_second_foreign_error",
+  "second_unresolved_foreign_sciname", "relinked_second_foreign_foreign",
+  "first_dom_exp", "first_dom_exp_fp", "first_error_exp_fp"))
+  gc()
   
   # calculate error V1_long
   V1_long_error <- V1_long %>%
@@ -483,6 +501,9 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
       TRUE ~ live_weight_t
     )) %>%
     select(-live_weight_cf)
+  
+  rm(list=c("dom_exp", "overall_foreign_exports", "error_exp"))
+  gc()
   
   return(s_net)
 }

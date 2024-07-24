@@ -18,7 +18,7 @@ initial_variable_setup <- function(datadir, outdir, hs_version = NA, test_years 
                      "hs_version", "HS_year_rep", "hs_dir", "df_years", "analysis_year",
                      "hs_analysis_year_dir", "solver_type", "num_cores",
                      "quadprog_dir", "cvxopt_dir", "test_years",
-                     "run_env", "s3_bucket_name", "s3_region")
+                     "run_env", "s3_bucket_name", "s3_region", "estimate_type")
   
   analysis_setup <- c("prod_data", "V1", "V2", "sc_n", "cc_m", "X_cols",
                       "X_rows", "W_cols", "W_rows", "Xq", "analysis_years_rep",

@@ -6,7 +6,7 @@
 rm(list=ls())
 
 #-------------------------------------------------------------------------------
-run_env <- "demo"
+run_env <- "local"
 
 if (run_env == "aws") {
   # High Performance Computing on AWS Setup
@@ -29,7 +29,7 @@ prod_data_type <- "FAO"
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()
-
+test_years <- c(2018)
 #--------------------------------------------------------
 # This section generates the solutions for the mass balance problem for all
 # countries across all years and HS versions
@@ -76,7 +76,7 @@ if (run_env == "aws") {
     hs_version = hs_version_run,
     prod_type = prod_data_type,
     test_year = test_years,
-    num_cores = 3,
+    num_cores = 1,
     run_env = "demo"
   )
 }
@@ -163,7 +163,7 @@ if (nrow(no_solve_countries) > 0) {
       no_solve_countries = no_solve_countries,
       prod_type = prod_data_type,
       test_year = test_years,
-      num_cores = 3,
+      num_cores = 1,
       run_env = "demo"
     )
   }
@@ -195,6 +195,7 @@ if (run_env == "aws") {
     num_cores = 3,
     hs_version = hs_version_run,
     prod_type = prod_data_type,
+    estimate_type = "midpoint",
     test_years = test_years,
     run_env = "aws",
     s3_bucket_name = artis_bucket,
@@ -206,9 +207,10 @@ if (run_env == "aws") {
     outdir_cvxopt,
     datadir,
     outdir_snet,
-    num_cores = 3,
+    num_cores = 1,
     hs_version = hs_version_run,
     prod_type = prod_data_type,
+    estimate_type = "midpoint",
     test_years = test_years,
     run_env = "demo"
   )
