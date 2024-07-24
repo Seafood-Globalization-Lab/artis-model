@@ -180,7 +180,8 @@ taxa_metadata <- taxa_metadata %>%
   ungroup() %>%
   mutate(sum_na = rowSums(is.na(.))) %>%
   group_by(sciname) %>%
-  slice_min(order_by = sum_na, n = 1, with_ties = FALSE)
+  slice_min(order_by = sum_na, n = 1, with_ties = FALSE) %>%
+  select(-sum_na)
 
 write.csv(taxa_metadata, file.path(outdir, "sciname_metadata.csv"), row.names = FALSE)
 
