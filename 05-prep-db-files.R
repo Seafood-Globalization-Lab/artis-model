@@ -13,7 +13,7 @@ model_inputs_raw <- "model_inputs_raw"
 model_inputs_dir <- "model_inputs"
 clean_metadatadir <- "outputs/clean_metadata"
 
-outdir <- "sql_database"
+outdir <- "outputs/sql_database"
 
 countries_filename <- "countries.csv"
 hs_codes_filename <- "All_HS_Codes.csv"
