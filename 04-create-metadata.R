@@ -484,8 +484,7 @@ code_max_resolved_taxa <- hs_taxa_match %>%
     sciname_hs_modified != "chordata" ~ sciname_hs_modified
   )) %>%
   select("hs_version" = "HS_version", hs6, sciname, sciname_hs_modified) %>%
-  mutate(hs_version = as.integer(parse_number(hs_version)),
-         hs6 = as.character(hs6)) %>%
+  mutate(hs6 = as.character(hs6)) %>%
   distinct()
 
 write.csv(code_max_resolved_taxa, file.path(outdir, "code_max_resolved_taxa.csv"), row.names = FALSE)
