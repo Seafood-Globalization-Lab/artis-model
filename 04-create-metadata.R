@@ -150,18 +150,43 @@ taxa_metadata <- taxa %>%
     sciname = c("arthropoda", "engraulis", "hippoglossinae", "scombrinae", "clupea",     
                 "chondrichthyes", "salmoninae", "mytilinae", "actinopteri", "animalia",    
                 "homarus", "cypriniformes", "dissostichus", "micromesistius", "echinoida"),
+    
     common_name = c("arthropods", "anchovies", "flounders", "mackerels, tunas, and bonitos",
                    "herrings", "sharks, skates, rays, and chimaeras", "salmons and trouts",
                    "saltwater mussels", "ray-finned fish", "aquatic animals", "lobsters", 
                    "carps, minnows, loaches, etc", "toothfish", "blue whitings", "sea urchins"),
-    Genus = NA,
-    Subfamily = NA,
-    Family = NA, 
-    Order = NA, 
-    Class = NA,
-    Superclass = NA,
-    Phylum = NA,
-    Kingdom = NA
+    
+    Genus = c(NA, "engraulis", NA, NA, "clupea",     
+              NA, NA, NA, NA, NA,    
+              "homarus", NA, "dissostichus", "micromesistius", NA),
+    
+    Subfamily = c(NA, "engraulinae", "hippoglossinae", "scombrinae", "clupeinae",     
+                  NA, "salmoninae", "mytilinae", NA, NA,    
+                  NA, NA, NA, NA, NA),
+    
+    Family = c(NA, "engraulidae", "pleuronectidae", "scombridae", "clupeidae",     
+               NA, "salmonidae", "mytilidae", NA, NA,    
+               "nephropidae", NA, "nototheniidae", "gadidae", NA), 
+    
+    Order = c(NA, "clupeiformes", "pleuronectiformes", "scombriformes", "	clupeiformes",     
+              NA, "salmoniformes", "mytilida", NA, NA,    
+              "decapoda", "cypriniformes", "perciformes", "gadiformes", "echinoida"), 
+    
+    Class = c(NA, "actinopterygii", "actinopterygii", "actinopterygii", "actinopterygii",     
+              "chondrichthyes", "actinopterygii", "bivalvia", "actinopterygii", NA,    
+              "malacostraca", "actinopterygii", "actinopterygii", "actinopterygii", "echinoidea"),
+    
+    Superclass = c(NA, NA, NA, NA, NA,     
+                   NA, NA, NA, "actinopteri", NA,    
+                   NA, NA, NA, NA, NA),
+    
+    Phylum = c("arthropoda", "chordata", "chordata", "chordata", "chordata",     
+               "chordata", "chordata", "mollusca", "chordata", NA,    
+               "arthropoda", "chordata", "chordata", "chordata", "echinodermata"),
+    
+    Kingdom = c("animalia", "animalia", "animalia", "animalia", "animalia",     
+                "animalia", "animalia", "animalia", "animalia", "animalia",    
+                "animalia", "animalia", "animalia", "animalia", "animalia")
   )) 
  
 
@@ -400,7 +425,8 @@ for(i in c("96", "02", "07", "12", "17")){
     mutate(Code = if_else(str_detect(Code, "^30"), true = str_replace(Code, pattern = "^30", replacement = "030"),
                           if_else(str_detect(Code, "^511"), true = str_replace(Code, pattern = "^511", replacement = "0511"),
                                   false = Code))) %>%
-    mutate(hs_version = HS_year_rep)
+    mutate(hs_version = HS_year_rep) %>%
+    filter(!is.na(hs_clade))
   
   hs_clade_match <- hs_clade_match %>% 
     bind_rows(hs_clade_match_i) %>%
@@ -446,7 +472,8 @@ prod_taxa_classification <- taxa_metadata %>%
 
 code_max_resolved_taxa <- hs_taxa_match %>%
   rename(hs6 = Code, sciname = SciName) %>%
-  left_join(hs_clade_match %>% mutate(hs_version = paste("HS", hs_version, sep="")),
+  left_join(hs_clade_match %>% 
+              mutate(hs_version = paste("HS", hs_version, sep="")),
             by = c("hs6", "HS_version" = "hs_version")) %>%
   left_join(prod_taxa_classification, by = c("sciname")) %>%
   mutate(code_taxa_level_numeric = case_when(
