@@ -3,13 +3,13 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
                                       W_long, X_long, pop,
                                       code_max_resolved,
                                       max_percap_consumption = 100,
-                                      non_human_consumption_codes = c(230120, 30110, 30111, 30119),
                                       consumption_threshold = 1e-9) {
   
   # Formatting columns so that they match for joins
   artis <- artis %>%
-    mutate(hs6 = as.numeric(hs6)) %>%
-    filter(!is.na(live_weight_t))
+    filter(!is.na(live_weight_t)) %>% 
+    mutate(hs6 = as.numeric(hs6)) 
+
   
   W_long <- W_long %>%
     mutate(hs6_original = as.numeric(hs6_original),
@@ -192,15 +192,6 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     # removing unnecessary rows
     select(-product_weight_t, -live_weight_t, -total)
   
-  if (length(non_human_consumption_codes) > 0) {
-    
-    
-    # Note: If we wanted consumption by final codes we would do this for each final code we want
-    disagregate_foreign_consumption <- disagregate_foreign_consumption %>%
-      # When removing FM do so based on the final hs6 product
-      filter(!(hs6_processed %in% non_human_consumption_codes))
-  }
-  
   # record pre-disagregated foreign consumption volume for testing later
   test_foreign_consumption <- sum(disagregate_foreign_consumption$foreign_consumption_original)
   
@@ -228,27 +219,17 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
   
   # DATA CHECK ONLY INCLUDE THIS DATA CHECK WHEN NO CODES ARE REMOVED FROM CONSUMPTION:
   # domestic consumption + foreign consumption = production + error exports
-  if (length(non_human_consumption_codes) == 0) {
-    total_consumption <- sum(consumption_domestic$consumption_t) + sum(disagregate_foreign_consumption$foreign_consumption_t)
-    data_check_consumption <- total_consumption / (sum(prod_raw$live_weight_t) + sum(error_exports$live_weight_t))
-    if (abs(1 - data_check_consumption) > threshold) {
-      warning("(domestic consumption + foreign consumption) DOES NOT EQUAL (production + error exports)")
-    }
-  }
+  total_consumption <- sum(consumption_domestic$consumption_t) + 
+    sum(disagregate_foreign_consumption$foreign_consumption_t)
   
+  data_check_consumption <- total_consumption / (sum(prod$live_weight_t) + sum(error_exports$live_weight_t))
+  if (abs(1 - data_check_consumption) > 1e-4) {
+      warning("(domestic consumption + foreign consumption) DOES NOT EQUAL (production + error exports)")
+  }
   
   #-------------------------------------------------------------------------------
   
   # Join domestic and foreign consumption-----------------------------------------
-  
-  # Removing non human codes
-  if (length(non_human_consumption_codes) > 0) {
-    
-    # Note: If we wanted consumption by final codes we would do this for each final code we want
-    consumption_domestic <- consumption_domestic %>%
-      # When removing FM do so based on the final hs6 product
-      filter(!(hs6 %in% non_human_consumption_codes))
-  }
   
   complete_consumption <- disagregate_foreign_consumption %>%
     select(-c(hs_version, import_prop)) %>%
@@ -274,14 +255,21 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     left_join(
       code_max_resolved,
       by = c("hs6", "hs_version", "sciname")
-    )
+    ) %>% 
+    mutate(sciname_hs_modified = ifelse(is.na(sciname_hs_modified), 
+                                        sciname, 
+                                        sciname_hs_modified))
   
   # Collapse hs6 original column
   # Note: if we wanted to know the a country's consumption of a given product (ie 230120)
   #       this would relate to the hs6 processed, since this is the last form of the product throughout the supply chain
   complete_consumption <- complete_consumption %>%
+    mutate(end_use = case_when(
+             hs6 == 230120 ~ "fishmeal",
+             hs6 %in% c(30110, 30111, 30119) ~ "other",
+             TRUE ~ "direct human consumption")) %>% 
     group_by(year, hs_version, source_country_iso3c, exporter_iso3c, consumer_iso3c,
-             dom_source, sciname, habitat, method, consumption_type, sciname_hs_modified) %>%
+              sciname, sciname_hs_modified, habitat, method, dom_source, consumption_type, end_use) %>%
     summarize(consumption_t = sum(consumption_t)) %>%
     ungroup() %>%
     # negative flows are removed so total consumption volume increases
@@ -295,6 +283,10 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     warning("NAs in complete consumption")
   }
   
+  if (min(complete_consumption$consumption_t) < 0) {
+    warning("Negative consumption values")
+  }
+    
   # add max per capita (default 100 kg) REMINDER THIS IS IN KG
   # keep both raw consumption and max percapita scaled consumption
   
@@ -302,11 +294,13 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     
     # calculating consumption per capita
     consumption_per_capita <- complete_consumption %>%
-      group_by(consumer_iso3c) %>%
+      filter(end_use == "direct human consumption") %>% 
+      group_by(consumer_iso3c, end_use) %>%
       summarize(consumption_t = sum(consumption_t, na.rm = TRUE)) %>%
       ungroup() %>%
       left_join(
-        pop,
+        pop %>% 
+          filter(year == curr_year), # introduced filter by year to remove many-to-many join
         by = c("consumer_iso3c"="iso3c")
       ) %>%
       mutate(consumption_percap_t = consumption_t / pop) %>%
@@ -327,13 +321,15 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
           select(consumer_iso3c, corrected_consumption_t),
         by = c("consumer_iso3c")
       ) %>%
-      mutate(consumption_t = prop * corrected_consumption_t) %>%
+      mutate(consumption_t_capped = prop * corrected_consumption_t) %>%
       select(-c(total, corrected_consumption_t, prop))
     
-    complete_consumption <- complete_consumption %>%
-      filter(!(consumer_iso3c %in% unique(percap_outliers$consumer_iso3c))) %>%
+    complete_consumption_capped <- complete_consumption %>%
+      mutate(consumption_t_capped = consumption_t) %>% 
+      filter(!(consumer_iso3c %in% unique(percap_outliers$consumer_iso3c) & 
+                 end_use == "direct human consumption")) %>%
       bind_rows(consumption_outliers)
   }
   
-  return(complete_consumption)
+  return(complete_consumption_capped)
 }
