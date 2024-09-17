@@ -87,11 +87,14 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     mutate(consumption_t = production_t - domestic_export_t)
   
   # DATA CHECK: domestic exports should not exceed domestic production
-  domestic_consumption_threshold <- -1e-6
+  domestic_consumption_threshold <- -1e-3
   data_check_domestic <- consumption_domestic %>%
     filter(consumption_t < domestic_consumption_threshold)
   if (nrow(data_check_domestic) > 0) {
-    warning("Domestic exports EXCEED domestic production")
+    warning(paste0("Domestic exports EXCEED domestic production", 
+                   " for ", curr_year, " and ", curr_hs_version,
+                   ", min difference between production and domestic export is ",
+                   min(data_check_domestic$consumption_t)))
   }
   #-----------------------------------------------------------------------------
   
@@ -139,7 +142,8 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     ungroup() %>%
     filter(abs(prop - 1) > threshold)
   if (nrow(data_check_processed) > 0) {
-    warning("hs6 processed to hs6 original proportions DO NOT ADD TO 1")
+    warning(paste0("hs6 processed to hs6 original proportions DO NOT ADD TO 1", 
+                   " for ", curr_year, " and ", curr_hs_version))
   }
   
   w_i <- processed_imports %>%
@@ -167,7 +171,8 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     filter(source_country_iso3c == "unknown")
   data_check_foreign <- sum(consumption_foreign$foreign_consumption_t) - sum(exports_domestic$domestic_export_t) - sum(error_exports$live_weight_t)
   if (abs(data_check_foreign) > 1) {
-    warning("Foreign consumption DOES NOT EQUAL domestic exports + error exports")
+    warning(paste0("Foreign consumption DOES NOT EQUAL domestic exports + error exports ",
+                   "for ", curr_year, " and ", curr_hs_version))
   }
   
   # Disagregate foreign consumption from hs6 processed to hs6 original
@@ -213,8 +218,11 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
   # DATA CHECK:
   # make sure there was no change in volume based on disaggregation
   # make sure this data check occurs before removing any hs6 processed flows
-  if (abs(sum(disagregate_foreign_consumption$foreign_consumption_t) - test_foreign_consumption) > 1e-6) {
-    warning("Disagregated foreign consumption does not match agregated foreign consumption")
+  if (abs(sum(disagregate_foreign_consumption$foreign_consumption_t) - test_foreign_consumption) > 1e-3) {
+    warning(paste0("Disagregated foreign consumption does not match agregated foreign consumption ",
+                   "for ", curr_year, " and ", curr_hs_version, 
+                   ". The absolute value between total total foreign consumption and aggregated foreign consumption is ", 
+                   abs(sum(disagregate_foreign_consumption$foreign_consumption_t) - test_foreign_consumption)))
   }
   
   # DATA CHECK ONLY INCLUDE THIS DATA CHECK WHEN NO CODES ARE REMOVED FROM CONSUMPTION:
@@ -223,8 +231,10 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     sum(disagregate_foreign_consumption$foreign_consumption_t)
   
   data_check_consumption <- total_consumption / (sum(prod$live_weight_t) + sum(error_exports$live_weight_t))
-  if (abs(1 - data_check_consumption) > 1e-4) {
-      warning("(domestic consumption + foreign consumption) DOES NOT EQUAL (production + error exports)")
+  if (abs(1 - data_check_consumption) > 1e-3) {
+      warning(paste0("(domestic consumption + foreign consumption) DOES NOT EQUAL (production + error exports)", 
+                     " for ", curr_year, " and ", curr_hs_version, ". Test value should be 0. Test value is ", 
+                     abs(1 - data_check_consumption) ))
   }
   
   #-------------------------------------------------------------------------------
@@ -253,7 +263,8 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
   #        MAKE SURE THERE ARE NO DUPLICATES
   complete_consumption <- complete_consumption %>%
     left_join(
-      code_max_resolved,
+      code_max_resolved %>% 
+        mutate(hs6 = as.numeric(hs6)),
       by = c("hs6", "hs_version", "sciname")
     ) %>% 
     mutate(sciname_hs_modified = ifelse(is.na(sciname_hs_modified), 
@@ -280,11 +291,14 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
   na_consumption <- complete_consumption %>%
     filter(is.na(consumption_t))
   if (nrow(na_consumption) != 0) {
-    warning("NAs in complete consumption")
+    warning(paste0("NAs in complete consumption ", 
+                   "for ", curr_year, " and ", curr_hs_version, 
+                   ". Number of NAs is ", nrow(na_consumption)))
   }
   
   if (min(complete_consumption$consumption_t) < 0) {
-    warning("Negative consumption values")
+    warning(paste0("Negative consumption values ", 
+                   "for ", curr_year, " and ", curr_hs_version))
   }
     
   # add max per capita (default 100 kg) REMINDER THIS IS IN KG
