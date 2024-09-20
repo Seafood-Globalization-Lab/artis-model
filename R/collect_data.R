@@ -5,6 +5,7 @@ collect_data <- function(artis_dir,
                          s3_bucket_name = "", s3_region = "") {
   
   # Get list of AWS files to download
+  # Amazon S3 does not have a traditional folder structure like a file system. Instead, S3 uses a flat namespace, and what might appear as folders are actually part of the object's key (the full path of the object). 
   if (run_env == "aws") {
     df_files <- get_bucket_df(
       bucket = s3_bucket_name,
