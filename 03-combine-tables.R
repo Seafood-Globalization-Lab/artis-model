@@ -2,10 +2,9 @@
 # Setup based on the kind of analysis and machine you are working with
 
 # Start with a clean working environment
-rm(list=ls())
-
+# rm(list=ls())
 #-------------------------------------------------------------------------------
-run_env <- "demo"
+run_env <- "aws"
 
 if (run_env == "aws") {
   # High Performance Computing on AWS Setup
@@ -40,6 +39,9 @@ outdir_cvxopt <- file.path(outdir, "cvxopt_snet")
 
 final_outdir <- file.path(outdir, "artis_outputs")
 
+# Ensure the 'outputs' directory exists on the aws "local" machine
+if (!dir.exists("outputs")) { dir.create("outputs") }
+# Ensure the 'artis_outputs' directory exists on the aws "local" machine
 if (!dir.exists(final_outdir)) { dir.create(final_outdir) }
 
 build_artis_data(outdir_snet, final_outdir,
