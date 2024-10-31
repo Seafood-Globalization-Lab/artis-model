@@ -1,6 +1,8 @@
 #' @importFrom countrycode countrycode
 #' @export
-standardize_countries <- function(df, data_source = NA) {
+standardize_countries <- function(df, 
+                                  data_source = NA,
+                                  all_sau_cols = FALSE) {
   
   standard_df <- data.frame()
   
@@ -10,9 +12,21 @@ standardize_countries <- function(df, data_source = NA) {
                                     "country_iso3_alpha",
                                     "country_name_en") %>%
       select(-c(country_iso3_alpha, country_name_en)) %>%
-      rename(country_iso3_alpha = artis_iso3c, country_name_en = artis_country_name) %>%
+      rename(country_iso3_alpha = artis_iso3c, 
+             country_name_en = artis_country_name) %>%
       mutate(country_iso3_numeric = countrycode(country_iso3_alpha, "iso3c", "iso3n")) %>%
-      group_by(country_iso3_alpha, SciName, CommonName, taxa_source, year, Species01, Genus01, Family01, Other01, habitat, prod_method) %>%
+      # group by all raw SAU data columns if all_sau_cols is TRUE
+      { if (all_sau_cols == TRUE) {
+        group_by(., country_iso3_alpha, SciName, CommonName, taxa_source, year, 
+                 Species01, Genus01, Family01, Other01, habitat, prod_method,
+                 eez, sector, end_use)
+      # otherwise if all_sau_cols argument is empty or explicitly FALSE do this:
+      } else {
+        group_by(., country_iso3_alpha, SciName, CommonName, taxa_source, year, 
+                 Species01, Genus01, Family01, Other01, habitat, prod_method)
+      }
+      } %>% 
+
       summarise(quantity = sum(quantity)) %>%
       ungroup() %>%
       # match the order of species in V_1

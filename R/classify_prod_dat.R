@@ -4,7 +4,8 @@
 #' @import stringr
 #' @export
 
-classify_prod_dat <- function(datadir, filename, 
+classify_prod_dat <- function(datadir, 
+                              filename, 
                               prod_data_source="FAO",
                               SAU_sci_2_common = NA,
                               fb_slb_dir = "model_inputs_raw/fishbase_sealifebase") {
@@ -167,18 +168,24 @@ classify_prod_dat <- function(datadir, filename,
   
   
   if (prod_data_source=="SAU"){
-    prod_ts <- read.csv(file.path(datadir, filename), stringsAsFactors = FALSE, header = TRUE, sep=",") %>%
+    prod_ts <- read.csv(file.path(datadir, filename), 
+                        stringsAsFactors = FALSE, 
+                        header = TRUE, 
+                        sep=",") %>%
       mutate(scientific_name = tolower(scientific_name)) %>%
       rename(quantity = sum,
              CommonName = common_name,
              SciName = scientific_name,
              country_name_en = fishing_entity,
       ) %>%
-      mutate(SciName = tolower(SciName), CommonName = tolower(CommonName))
+      mutate(SciName = tolower(SciName), 
+             CommonName = tolower(CommonName))
     
-    sci_2_common <- read.csv(file.path(datadir, SAU_sci_2_common), stringsAsFactors = FALSE) %>%
+    sci_2_common <- read.csv(file.path(datadir, SAU_sci_2_common), 
+                             stringsAsFactors = FALSE) %>%
       mutate(scientific_name = tolower(scientific_name))
-    sci_2_commonh <- sci_2_common %>% 
+    
+    sci_2_common <- sci_2_common %>% 
       # Remove retired scientific names
       filter(!grepl(comments_names, pattern="retired"))
     
@@ -336,24 +343,28 @@ classify_prod_dat <- function(datadir, filename,
   
   prod_fb_species <- prod_taxa_names %>%
     filter(Species01==1) %>%
-    inner_join(fishbase, by=c("SciName" = "Species")) 
+    inner_join(fishbase, 
+               by=c("SciName" = "Species")) 
   
   # Only includes genuses that appear in BOTH production and fishbase
   prod_fb_genus <- prod_taxa_names %>% 
     filter(Genus01==1) %>%
-    inner_join((fishbase %>% select(-Species)), by=c("SciName" = "Genus")) %>%
+    inner_join((fishbase %>% select(-Species)), 
+               by=c("SciName" = "Genus")) %>%
     mutate(Genus = SciName) %>% # Retain "Genus" column so that filtering by column "Genus" will include all Species with this Genus as well as SciName=Genus
     distinct()
   
   prod_fb_family <- prod_taxa_names %>% 
     filter(Family01==1) %>%
-    inner_join((fishbase %>% select(-c(Species, Genus, Subfamily))), by=c("SciName" = "Family")) %>%
+    inner_join((fishbase %>% select(-c(Species, Genus, Subfamily))), 
+               by=c("SciName" = "Family")) %>%
     mutate(Family = SciName) %>%
     distinct()
   
   prod_fb_order <- prod_taxa_names %>% 
     filter(Other01==1) %>%
-    inner_join((fishbase %>% select(-c(Species, Genus, Subfamily, Family))), by=c("SciName" = "Order")) %>%
+    inner_join((fishbase %>% select(-c(Species, Genus, Subfamily, Family))), 
+               by=c("SciName" = "Order")) %>%
     mutate(Order = SciName) %>%
     distinct() %>%
     mutate(Order01 = 1) %>%
@@ -361,7 +372,8 @@ classify_prod_dat <- function(datadir, filename,
   
   prod_fb_class <- prod_taxa_names %>% 
     filter(Other01==1) %>%
-    inner_join((fishbase %>% select(-c(Species, Genus, Subfamily, Family, Order))), by=c("SciName" = "Class")) %>%
+    inner_join((fishbase %>% select(-c(Species, Genus, Subfamily, Family, Order))), 
+               by=c("SciName" = "Class")) %>%
     mutate(Class = SciName) %>%
     distinct() %>%
     mutate(Class01 = 1) %>%
@@ -369,7 +381,9 @@ classify_prod_dat <- function(datadir, filename,
   
   prod_fb_superclass <- prod_taxa_names %>% 
     filter(Other01==1) %>%
-    inner_join((fishbase %>% select(-c(Species, Genus, Subfamily, Family, Order, Class))), by=c("SciName" = "SuperClass")) %>%
+    inner_join((fishbase %>% select(-c(Species, Genus, Subfamily, 
+                                       Family, Order, Class))), 
+               by=c("SciName" = "SuperClass")) %>%
     mutate(SuperClass = SciName) %>%
     distinct() %>%
     mutate(Superclass01 = 1) %>%
@@ -378,23 +392,27 @@ classify_prod_dat <- function(datadir, filename,
   # Repeat hierarchical joining with sealifebase: 
   prod_slb_species <- prod_taxa_names %>% 
     filter(Species01==1) %>%
-    inner_join(sealifebase, by=c("SciName" = "Species")) 
+    inner_join(sealifebase, 
+               by=c("SciName" = "Species")) 
   
   prod_slb_genus <- prod_taxa_names %>% 
     filter(Genus01==1) %>%
-    inner_join((sealifebase %>% select(-Species)), by=c("SciName" = "Genus")) %>%
+    inner_join((sealifebase %>% select(-Species)), 
+               by=c("SciName" = "Genus")) %>%
     mutate(Genus = SciName) %>%
     distinct()
   
   prod_slb_family <- prod_taxa_names %>% 
     filter(Family01==1) %>%
-    inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily))), by=c("SciName" = "Family")) %>%
+    inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily))), 
+               by=c("SciName" = "Family")) %>%
     mutate(Family = SciName) %>%
     distinct()
   
   prod_slb_order <- prod_taxa_names %>% 
     filter(Other01==1) %>%
-    inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily, Family))), by=c("SciName" = "Order")) %>%
+    inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily, Family))), 
+               by=c("SciName" = "Order")) %>%
     mutate(Order = SciName) %>%
     distinct() %>%
     mutate(Order01 = 1) %>%
@@ -402,7 +420,9 @@ classify_prod_dat <- function(datadir, filename,
   
   prod_slb_class <- prod_taxa_names %>% 
     filter(Other01==1) %>%
-    inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily, Family, Order))), by=c("SciName" = "Class")) %>%
+    inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily, 
+                                          Family, Order))), 
+               by=c("SciName" = "Class")) %>%
     mutate(Class = SciName) %>%
     distinct() %>%
     mutate(Class01 = 1) %>%
@@ -410,7 +430,9 @@ classify_prod_dat <- function(datadir, filename,
   
   prod_slb_phylum <- prod_taxa_names %>% 
     filter(Other01==1) %>%
-    inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily, Family, Order, Class))), by=c("SciName" = "Phylum")) %>%
+    inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily, 
+                                          Family, Order, Class))), 
+               by=c("SciName" = "Phylum")) %>%
     mutate(Phylum = SciName) %>%
     distinct() %>%
     mutate(Phylum01 = 1) %>%

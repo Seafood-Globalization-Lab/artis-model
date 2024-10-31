@@ -6,7 +6,7 @@ rm(list=ls())
 
 # Set folder paths
 datadir <- "model_inputs_raw"
-outdir <- "model_inputs_sau"
+outdir <- "AM_local"
 baci_version <- "202201"
 tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
 
@@ -26,6 +26,9 @@ library(rfishbase)
 
 # Step 1: Load and clean production data and HS codes---------------------------
 running_sau <- TRUE
+
+## Set if new SeaLifeBase data collection needed:
+need_new_slb <- FALSE
 
 #-------------------------------------------------------------------------------
 # If running a test environment with specific codes scinames this variable should be true else false
@@ -50,7 +53,12 @@ hs_data_raw <- read.csv(file.path(datadir, "All_HS_Codes.csv"), colClasses = "ch
 # Note: these do not need to be generated for each model run and can be done once per year/quarter
 # Directory Structure:
   # creates fishbase_sealifebase_[MOST RECENT DATE] within model_inputs_raw (ie. "model_inputs_raw/fishbase_sealifebase_[MOST_RECENT_DATE]")
-collect_fb_slb_data(datadir)
+if(need_new_slb == TRUE) {
+  collect_fb_slb_data(datadir)
+  message("New fishbase and sealifebase data files have been generated.")
+} else {
+  message("Existing fishbase and sealifebase data files are being used; Not collecting new data.")
+}
 
 # Find the most recent version of the fishbase and sealifebase data files needed
 fb_slb_info <- get_most_recent_dir(datadir, "fishbase_sealifebase")
@@ -59,7 +67,8 @@ current_fb_slb_dir <- fb_slb_info$directory
 # Clean scientific names and add classification info to production data: choose FAO or SAU
 # NOTE: warning message about data_frame() being deprecated is fixed in the development version of rfishbase: run remotes::install_github("ropensci/rfishbase") to implement the fixed version
 prod_list <- classify_prod_dat(datadir = datadir,
-                               filename = "GlobalProduction_2022.1.1.zip", # "GlobalProduction_2023.1.1.zip"
+                               filename = "GlobalProduction_2022.1.1.zip", 
+                               # "GlobalProduction_2023.1.1.zip"
                                prod_data_source = "FAO",
                                fb_slb_dir = current_fb_slb_dir)
 
@@ -152,7 +161,8 @@ if (running_sau) {
     filter(year > 1995)
   
   prod_data_sau <- prod_data_sau %>%
-    select(colnames(prod_data_sau)[colnames(prod_data_sau) %in% c("country_name_en", colnames(prod_data))]) %>%
+    # FIXIT: This may remove eez, sector, and end_use columns
+   # select(colnames(prod_data_sau)[colnames(prod_data_sau) %in% c("country_name_en", colnames(prod_data))]) %>%
     mutate(habitat = "marine",
            prod_method = "capture") %>%
     mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_"))
@@ -195,7 +205,9 @@ if (running_sau) {
     mutate(country_iso3_numeric = countrycode(country_iso3_alpha, origin = 'iso3c', destination = 'iso3n'))
   
   # standardize countries for SAU production
-  prod_data_sau <- standardize_countries(prod_data_sau, "FAO")
+  prod_data_sau <- standardize_countries(prod_data_sau, 
+                                         "FAO", 
+                                         all_sau_cols = TRUE)
   
   write.csv(prod_data_sau, file.path(outdir, 'standardized_sau_prod.csv'), row.names = FALSE)
   
