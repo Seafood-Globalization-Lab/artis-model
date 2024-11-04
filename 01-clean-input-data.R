@@ -205,7 +205,9 @@ if (running_sau) {
       country_name_en == 'Unknown Fishing Country' ~ 'NEI',
       TRUE ~ country_iso3_alpha
     )) %>%
-    mutate(country_iso3_numeric = countrycode(country_iso3_alpha, origin = 'iso3c', destination = 'iso3n'))
+    mutate(country_iso3_numeric = countrycode(country_iso3_alpha, 
+                                              origin = 'iso3c', 
+                                              destination = 'iso3n'))
   
   # standardize countries for SAU production
   prod_data_sau <- standardize_countries(prod_data_sau, 
@@ -219,7 +221,8 @@ if (running_sau) {
     filter(!(habitat == 'marine' & prod_method == 'capture')) %>%
     bind_rows(prod_data_sau)
   
-  write.csv(prod_data, file.path(outdir, 'standardized_combined_prod.csv'), row.names = FALSE)
+  write.csv(prod_data, file.path(outdir, 'standardized_combined_prod.csv'),
+            row.names = FALSE)
   
   # combine prod taxa classification
   prod_taxa_classification <- prod_taxa_classification %>%
@@ -227,7 +230,9 @@ if (running_sau) {
     distinct() %>%
     filter(SciName %in% unique(prod_data$SciName))
   
-  write.csv(prod_taxa_classification, file.path(outdir, "clean_taxa_combined.csv"), row.names = FALSE)
+  write.csv(prod_taxa_classification, 
+            file.path(outdir, "clean_taxa_combined.csv"),
+            row.names = FALSE)
 }
 # Make sure that prod taxa classification is classified to at least one of Species, Genus, Family, Other
 
