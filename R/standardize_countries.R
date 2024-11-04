@@ -18,7 +18,7 @@ standardize_countries <- function(df,
       # group by all raw SAU data columns if all_sau_cols is TRUE
       { if (all_sau_cols == TRUE) {
         group_by(., country_iso3_alpha, SciName, CommonName, taxa_source, year, 
-                 Species01, Genus01, Family01, Other01, habitat, prod_method,
+                 Species01, Genus01, Family01, Other01, habitat, prod_method, gear,
                  eez, sector, end_use)
       # otherwise if all_sau_cols argument is empty or explicitly FALSE do this:
       } else {
