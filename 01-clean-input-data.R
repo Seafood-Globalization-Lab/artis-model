@@ -165,7 +165,8 @@ if (running_sau) {
    # select(colnames(prod_data_sau)[colnames(prod_data_sau) %in% c("country_name_en", colnames(prod_data))]) %>%
     mutate(habitat = "marine",
            prod_method = "capture") %>%
-    mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_"))
+    mutate(taxa_source = paste(str_replace(SciName, " ", "."), 
+                               habitat, prod_method, sep = "_"))
   
   prod_classification_sau <- prod_list_sau[[2]]
   
@@ -175,8 +176,10 @@ if (running_sau) {
   
   rm(prod_list_sau)
   
-  write.csv(prod_data_sau, file.path(outdir, "clean_sau_prod.csv"), row.names = FALSE)
-  write.csv(prod_classification_sau, file.path(outdir, "clean_sau_taxa.csv"), row.names = FALSE)
+  write.csv(prod_data_sau, file.path(outdir, "clean_sau_prod.csv"), 
+            row.names = FALSE)
+  write.csv(prod_classification_sau, file.path(outdir, "clean_sau_taxa.csv"), 
+            row.names = FALSE)
   
   # initial country name cleaning and adding iso3c for SAU data
   prod_data_sau <- prod_data_sau %>%
