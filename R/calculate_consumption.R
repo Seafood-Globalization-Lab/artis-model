@@ -282,9 +282,9 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     group_by(year, hs_version, source_country_iso3c, exporter_iso3c, consumer_iso3c,
               sciname, sciname_hs_modified, habitat, method, dom_source, consumption_type, end_use) %>%
     summarize(consumption_t = sum(consumption_t)) %>%
-    ungroup() %>%
+    ungroup()# %>%
     # negative flows are removed so total consumption volume increases
-    filter(consumption_t > consumption_threshold)
+   # filter(consumption_t > consumption_threshold)
   
   # DATA CHECK
   # make sure there are no NA values in consumption
@@ -325,7 +325,8 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
       mutate(corrected_consumption_t = (pop * max_percap_consumption) / 1000)
     
     consumption_outliers <- complete_consumption %>%
-      filter(consumer_iso3c %in% unique(percap_outliers$consumer_iso3c)) %>%
+      filter(consumer_iso3c %in% unique(percap_outliers$consumer_iso3c) & 
+               end_use == "direct human consumption") %>%
       group_by(consumer_iso3c) %>%
       mutate(total = sum(consumption_t, na.rm = TRUE)) %>%
       ungroup() %>%
@@ -343,7 +344,9 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
       filter(!(consumer_iso3c %in% unique(percap_outliers$consumer_iso3c) & 
                  end_use == "direct human consumption")) %>%
       bind_rows(consumption_outliers)
+    
+    complete_consumption <- complete_consumption_capped
   }
-  
-  return(complete_consumption_capped)
+
+  return(complete_consumption)
 }
