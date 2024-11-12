@@ -104,7 +104,9 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
   # for export or consumption as the final hs6 processed form
   
   exports_foreign <- artis %>%
-    filter(dom_source == "foreign" & habitat != "unknown" & method != "unknown") %>%
+    filter(dom_source == "foreign") %>% 
+    # Q: not sure why these were removed 2024-11-08
+    #filter(dom_source == "foreign" & habitat != "unknown" & method != "unknown") %>%
     group_by(exporter_iso3c, hs6) %>%
     summarize(foreign_export_t = sum(live_weight_t, na.rm = TRUE)) %>%
     ungroup()
