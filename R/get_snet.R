@@ -360,6 +360,12 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
       coproduct_codes, dom_source_weight = estimate_type
     )
 
+    fwrite(export_source_weights, file.path(outdir, 
+                                            HS_year_rep, 
+                                            analysis_year,  
+                                            paste0("export_source_weights",
+                                                   HS_year_rep, "_", 
+                                                   analysis_year, ".csv")))
 
     snet_fp <- file.path(hs_analysis_year_dir,
                              paste(file.date, "_S-net_raw_", estimate_type, "_", analysis_year, "_HS",
