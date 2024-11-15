@@ -18,7 +18,8 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
         pivot_longer(c("domestic_weight", "foreign_weight", "error_weight"),
                      names_to = "source_type", values_to = "source_prop") %>%
         mutate(source_type = str_extract(source_type, ".+(?=_weight)")),
-      by = c("exporter_iso3c" = "iso3c", "hs6")
+      by = c("exporter_iso3c" = "iso3c", "hs6"),
+      relationship = "many-to-many"
     ) %>%
     filter(source_prop > 0) %>%
     mutate(product_weight_t = product_weight_t * source_prop)
@@ -33,7 +34,8 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
     left_join(
       reweight_X_long %>%
         select(-c(hs_version, year)),
-      by = c("exporter_iso3c" = "iso3c", "hs6")
+      by = c("exporter_iso3c" = "iso3c", "hs6"),
+      relationship = "many-to-many"
     ) %>%
     # disaggregating product weights from final hs6 form to hs6 and sciname
     mutate(product_weight_t = product_weight_t * reweighted_X) %>%
@@ -73,6 +75,7 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
     # get proportion of import by importer and hs6 that originated from domestic/foreign/error exports
     mutate(import_prop = product_weight_t / import_hs6_t)
   
+  
   # Resolving foreign exports 1 step back in the supply chain
   first_resolved_exp <- resolve_foreign_exp(foreign_exports, reweight_W_long, import_props,
                                             hs_clade_match, zero_threshold = 1e-3)
@@ -95,10 +98,10 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
   first_foreign_exp_fp <- file.path(outdir, paste("first_foreign_exp_", estimate_type, ".csv", sep = ""))
   first_unresolved_foreign_exp_fp <- file.path(outdir, paste("first_unresolved_foreign_exp_", estimate_type, ".csv", sep = ""))
   
-  write.csv(first_dom_exp, first_dom_exp_fp, row.names = FALSE)
-  write.csv(first_error_exp, first_error_exp_fp, row.names = FALSE)
-  write.csv(first_foreign_exp, first_foreign_exp_fp, row.names = FALSE)
-  write.csv(first_unresolved_foreign_exp, first_unresolved_foreign_exp_fp, row.names = FALSE)
+  fwrite(first_dom_exp, first_dom_exp_fp, row.names = FALSE)
+  fwrite(first_error_exp, first_error_exp_fp, row.names = FALSE)
+  fwrite(first_foreign_exp, first_foreign_exp_fp, row.names = FALSE)
+  fwrite(first_unresolved_foreign_exp, first_unresolved_foreign_exp_fp, row.names = FALSE)
   
   if (run_env == "aws") {
     
@@ -167,10 +170,10 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
   second_foreign_exp_fp <- file.path(outdir, paste("second_foreign_exp_", estimate_type, ".csv", sep = ""))
   second_unresolved_foreign_exp_fp <- file.path(outdir, paste("second_unresolved_foreign_exp_", estimate_type, ".csv", sep = ""))
   
-  write.csv(second_dom_exp, second_dom_exp_fp, row.names = FALSE)
-  write.csv(second_error_exp, second_error_exp_fp, row.names = FALSE)
-  write.csv(second_foreign_exp, second_foreign_exp_fp, row.names = FALSE)
-  write.csv(second_unresolved_foreign_exp, second_unresolved_foreign_exp_fp, row.names = FALSE)
+  fwrite(second_dom_exp, second_dom_exp_fp, row.names = FALSE)
+  fwrite(second_error_exp, second_error_exp_fp, row.names = FALSE)
+  fwrite(second_foreign_exp, second_foreign_exp_fp, row.names = FALSE)
+  fwrite(second_unresolved_foreign_exp, second_unresolved_foreign_exp_fp, row.names = FALSE)
   gc()
   
   if (run_env == "aws") {

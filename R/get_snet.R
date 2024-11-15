@@ -42,7 +42,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
   
   V1_long_fp <- file.path(outdir, paste("HS", hs_version, "/V1_long_HS", hs_version, ".csv", sep = ""))
   
-  write.csv(V1_long, V1_long_fp, row.names = FALSE)
+  fwrite(V1_long, V1_long_fp, row.names = FALSE)
   
   # Product-to-Product
   # This is going from original product weight to new product weight
@@ -55,7 +55,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
   
   V2_long_fp <- file.path(outdir, paste("HS", hs_version, "/V2_long_HS", hs_version, ".csv", sep = ""))
   
-  write.csv(V2_long, V2_long_fp, row.names = FALSE)
+  fwrite(V2_long, V2_long_fp, row.names = FALSE)
   
   if (run_env == "aws") {
     put_object(
@@ -90,11 +90,8 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     )
   }
   
-  fao_pop <- read.csv(pop_fp)
-  code_max_resolved <- read.csv(code_max_resolved_fp)
-  
-  # Non-human codes
-  non_human_codes <- c("230120", "051191", "030110", "030111", "030119")
+  fao_pop <- fread(pop_fp)
+  code_max_resolved <- fread(code_max_resolved_fp)
 
   # Loop through all analysis years for a given HS version
   for (j in 1:nrow(analysis_years_rep)) {
@@ -117,7 +114,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
       )
     }
     
-    baci_data_analysis_year <- read.csv(baci_fp) %>%
+    baci_data_analysis_year <- fread(baci_fp) %>%
       # pad hs6 with 0s
       mutate(hs6 = as.character(hs6)) %>%
       mutate(hs6 = if_else(
@@ -248,11 +245,11 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     # in production data (i.e., hs_taxa_match$SciName), return NA)
     # To match to clade, even if not reported in production data, set match_to_prod to FALSE
     hs_clade_match <- match_hs_to_clade(
-      hs_taxa_match = read.csv(
+      hs_taxa_match = fread(
         file.path(datadir,
                   paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = ""))) %>%
         select(-c(sciname_habitat, code_habitat)),
-      prod_taxa_classification = read.csv(file.path(datadir, "clean_fao_taxa.csv")),
+      prod_taxa_classification = fread(file.path(datadir, "clean_fao_taxa.csv")),
       match_to_prod = FALSE
     ) %>%
       # pad HS codes with zeroes
@@ -267,7 +264,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
       filter(Code %in% cc_m)
     
     hs_clade_match_fp <- file.path(hs_analysis_year_dir, "hs_clade_match.csv")
-    write.csv(hs_clade_match, hs_clade_match_fp, row.names = FALSE)
+    fwrite(hs_clade_match, hs_clade_match_fp, row.names = FALSE)
     if (run_env == "aws") {
       put_object(
         file = hs_clade_match_fp,
@@ -291,7 +288,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
                                     paste("reweight_X_long_", analysis_year, "_HS",
                                           HS_year_rep, ".csv", sep = ""))
 
-    write.csv(reweight_X_long, reweight_X_long_fp, row.names = FALSE)
+    fwrite(reweight_X_long, reweight_X_long_fp, row.names = FALSE)
     if (run_env == "aws") {
       put_object(
         file = reweight_X_long_fp,
@@ -303,7 +300,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     W_long <- create_W_long(country_est, num_cores)
     W_long_fp <- file.path(hs_analysis_year_dir,
                            paste("W_long_", analysis_year, "_HS", HS_year_rep, ".csv", sep = ""))
-    write.csv(W_long, W_long_fp, row.names = FALSE)
+    fwrite(W_long, W_long_fp, row.names = FALSE)
     
     if (run_env == "aws") {
       put_object(
@@ -322,7 +319,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     reweight_W_long_fp <- file.path(hs_analysis_year_dir,
                                     paste("reweight_W_long_", analysis_year, "_HS",
                                           HS_year_rep, ".csv", sep = ""))
-    write.csv(reweight_W_long, reweight_W_long_fp, row.names = FALSE)
+    fwrite(reweight_W_long, reweight_W_long_fp, row.names = FALSE)
     if (run_env == "aws") {
       put_object(
         file = reweight_W_long_fp,
@@ -335,7 +332,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
 
     X_long_fp <- file.path(hs_analysis_year_dir, "X_long.csv")
     X_long <- create_X_long(country_est, num_cores)
-    write.csv(X_long, X_long_fp, row.names = FALSE)
+    fwrite(X_long, X_long_fp, row.names = FALSE)
 
     if (run_env == "aws") {
       put_object(
@@ -361,10 +358,11 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     )
 
     fwrite(export_source_weights, file.path(outdir, 
-                                            HS_year_rep, 
+                                            curr_hs, 
                                             analysis_year,  
-                                            paste0("export_source_weights",
-                                                   HS_year_rep, "_", 
+                                            paste0("export_source_weights_",
+                                                   curr_hs, 
+                                                   "_", 
                                                    analysis_year, ".csv")))
 
     snet_fp <- file.path(hs_analysis_year_dir,
