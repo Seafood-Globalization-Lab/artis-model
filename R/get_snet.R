@@ -370,10 +370,18 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
       paste(file.date, "_consumption_", estimate_type, "_", analysis_year,
             "_HS", HS_year_rep, ".csv", sep = ""))
 
-    s_net <- create_snet(baci_data_analysis_year, export_source_weights,
-                                  reweight_W_long, reweight_X_long, V1_long,
-                                  hs_clade_match, num_cores, hs_analysis_year_dir, estimate_type = estimate_type,
-                                  run_env = run_env, s3_bucket_name = s3_bucket_name, s3_region = s3_region) %>%
+    s_net <- create_snet(baci_data_analysis_year, 
+                         export_source_weights,
+                         reweight_W_long, 
+                         reweight_X_long, 
+                         V1_long,
+                         hs_clade_match, 
+                         num_cores, 
+                         hs_analysis_year_dir, 
+                         estimate_type = estimate_type,
+                         run_env = run_env, 
+                         s3_bucket_name = s3_bucket_name, 
+                         s3_region = s3_region) %>%
       mutate(hs_version = paste("HS", HS_year_rep, sep = ""),
              year = analysis_year)
 
@@ -390,9 +398,14 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
       )
     }
 
-    consumption <- calculate_consumption(s_net, prod_data_analysis_year,
-                                             analysis_year, curr_hs, W_long, X_long,
-                                             pop, code_max_resolved)
+    consumption <- calculate_consumption(s_net, 
+                                         prod_data_analysis_year,
+                                         analysis_year, 
+                                         curr_hs, 
+                                         W_long, 
+                                         X_long,
+                                         pop, 
+                                         code_max_resolved)
     
     write.csv(consumption, consumption_fp, row.names = FALSE)
 
