@@ -260,7 +260,8 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
       ) %>%
       mutate(product_weight_t = product_weight_t * reweighted_X) %>%
       # Resummarizing scinames by final hs6 code (was previously resolved at hs6 original level)
-      group_by(importer_iso3c, re_exporter_iso3c, exporter_iso3c, hs6_final, SciName) %>%
+      group_by(importer_iso3c, re_exporter_iso3c, exporter_iso3c, hs6_original,
+               hs6_final, SciName) %>%
       summarize(product_weight_t = sum(product_weight_t, na.rm = TRUE)) %>%
       ungroup()
   }
@@ -280,12 +281,11 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
       by = c("hs6_original"="Code")
     ) %>%
     # re summarizing by final hs6 code and hs clade matches
-    group_by(importer_iso3c, re_exporter_iso3c, hs6_processed, SciName) %>%
+    group_by(importer_iso3c, re_exporter_iso3c, hs6_original, hs6_processed, SciName) %>%
     summarize(product_weight_t = sum(product_weight_t, na.rm = TRUE)) %>%
     ungroup() %>%
     # rename to fit final ARTIS structure
-    rename(exporter_iso3c = re_exporter_iso3c,
-           hs6 = hs6_processed) %>%
+    rename(exporter_iso3c = re_exporter_iso3c) %>%
     mutate(source_country_iso3c = "unknown")
 
   rm(list=c("first_unresolved_foreign_exp", "first_unresolved_foreign_exp_fp"))
@@ -319,7 +319,8 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
     select(-prop_flow) %>%
     filter(!is.na(source_country_iso3c)) %>%
     # re summarize for clade matching
-    group_by(importer_iso3c, re_exporter_iso3c, source_country_iso3c, hs6_final, hs6_original) %>%
+    group_by(importer_iso3c, re_exporter_iso3c, source_country_iso3c, 
+             hs6_original, hs6_processed, hs6_final) %>%
     summarize(product_weight_t = sum(product_weight_t, na.rm = TRUE)) %>%
     ungroup() %>%
     # adding hs clade matches
@@ -331,11 +332,13 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
       by = c("hs6_original"="Code")
     ) %>%
     # re summarizing for final ARTIS structure
-    group_by(importer_iso3c, re_exporter_iso3c, source_country_iso3c, hs6_final, SciName) %>%
+    group_by(importer_iso3c, re_exporter_iso3c, source_country_iso3c, 
+             hs6_processed, hs6_final, SciName) %>%
     summarize(product_weight_t = sum(product_weight_t, na.rm = TRUE)) %>%
     ungroup() %>%
-    rename(exporter_iso3c = re_exporter_iso3c,
-           hs6 = hs6_final)
+    rename(exporter_iso3c = re_exporter_iso3c, 
+           hs6_original = hs6_processed,
+           hs6_processed = hs6_final)
 
   gc()
   
@@ -365,11 +368,13 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
     # disaggregating flows when linking back to final hs6
     mutate(product_weight_t = product_weight_t * prop_flow) %>%
     # restructuring for final ARTIS structure
-    group_by(importer_iso3c, re_exporter_iso3c, source_country_iso3c, hs6_final, SciName) %>%
+    group_by(importer_iso3c, re_exporter_iso3c, source_country_iso3c, 
+             hs6_processed, hs6_final, SciName) %>%
     summarize(product_weight_t = sum(product_weight_t, na.rm = TRUE)) %>%
     ungroup() %>%
     rename(exporter_iso3c = re_exporter_iso3c,
-           hs6 = hs6_final)
+           hs6_original = hs6_processed,
+           hs6_processed = hs6_final)
   
   gc()
   # foreign exports at final stage of supply chain get classified
@@ -401,17 +406,19 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
     # disaggregating foreign exports based on final hs6 code
     mutate(product_weight_t = product_weight_t * prop_flow) %>%
     # re summarizing to fit final ARTIS structure
-    group_by(importer_iso3c, re_exporter_iso3c, source_country_iso3c, hs6_final, SciName) %>%
+    group_by(importer_iso3c, re_exporter_iso3c, source_country_iso3c, 
+             hs6_processed, hs6_final, SciName) %>%
     summarize(product_weight_t = sum(product_weight_t, na.rm = TRUE)) %>%
     ungroup() %>%
     rename(exporter_iso3c = re_exporter_iso3c,
-           hs6 = hs6_final)
+           hs6_original = hs6_processed,
+           hs6_processed = hs6_final)
   
   # first step back of foreign exports sourced from error exports
-  first_error_exp <- first_error_exp %>%
-    rename(source_country_iso3c = exporter_iso3c) %>%
+  first_error_exp_2 <- first_error_exp %>%
+    rename(source_country_iso3c = exporter_iso3c,
+           exporter_iso3c = re_exporter_iso3c) %>%
     mutate(source_country_iso3c = "unknown") %>%
-    rename(exporter_iso3c = re_exporter_iso3c) %>%
     # all scinames come from hs clade matches
     left_join(
       hs_clade_match %>%
@@ -421,28 +428,31 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
       by = c("hs6_original"="Code")
     ) %>%
     # restructuring for final ARTIS structure
-    group_by(importer_iso3c, exporter_iso3c, source_country_iso3c, hs6_processed, SciName) %>%
+    group_by(importer_iso3c, exporter_iso3c, source_country_iso3c, 
+             hs6_original, hs6_processed, SciName) %>%
     summarize(product_weight_t = sum(product_weight_t, na.rm = TRUE)) %>%
-    ungroup() %>%
-    rename(hs6 = hs6_processed)
+    ungroup() 
   
   # Combining all foreign exports
   overall_foreign_exports <- foreign_domestic_sciname_exp %>%
     # starts with all foreign exports resolved to be from domestic exports
-    rename(source_country_iso3c = exporter_iso3c) %>%
-    rename(exporter_iso3c = re_exporter_iso3c,
-           hs6 = hs6_final) %>%
-    # foreign exports that were resolved in the first stage to be from error exports
-    bind_rows(first_error_exp) %>%
+    rename(source_country_iso3c = exporter_iso3c,
+           exporter_iso3c = re_exporter_iso3c,
+           hs6_processed = hs6_final) %>%
     # first stage unresolved foreign exports treated as sourced from error exports
-    bind_rows(first_unresolved_foreign_sciname) %>%
-    # second stage relinked foreign exports sourced from error exports
-    bind_rows(relinked_second_foreign_error) %>%
+    bind_rows(first_unresolved_foreign_sciname) %>% 
     # second stage unresolved foreign exports treated as sourced from error exports
-    bind_rows(second_unresolved_foreign_sciname) %>%
-    # second stage foreign exports deemed sourced from foreign exports
+    bind_rows(second_unresolved_foreign_sciname) %>% 
+    # second stage relinked foreign exports sourced from error exports
+    bind_rows(relinked_second_foreign_error) %>% 
     # treated as sourced from error exports
-    bind_rows(relinked_second_foreign_foreign) %>%
+    bind_rows(relinked_second_foreign_foreign) %>% 
+    # foreign exports that were resolved in the first stage to be from error exports
+    bind_rows(first_error_exp_2) # line 408
+    
+    
+  
+    # second stage foreign exports deemed sourced from foreign exports
     group_by(importer_iso3c, exporter_iso3c, source_country_iso3c, hs6, SciName) %>%
     summarize(product_weight_t = sum(product_weight_t, na.rm = TRUE)) %>%
     ungroup() %>%
