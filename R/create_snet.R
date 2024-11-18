@@ -261,7 +261,7 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
       mutate(product_weight_t = product_weight_t * reweighted_X) %>%
       # Resummarizing scinames by final hs6 code (was previously resolved at hs6 original level)
       group_by(importer_iso3c, re_exporter_iso3c, exporter_iso3c, hs6_original,
-               hs6_final, SciName) %>%
+             hs6_final, SciName) %>%
       summarize(product_weight_t = sum(product_weight_t, na.rm = TRUE)) %>%
       ungroup()
   }
@@ -439,16 +439,22 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
     rename(source_country_iso3c = exporter_iso3c,
            exporter_iso3c = re_exporter_iso3c,
            hs6_processed = hs6_final) %>%
+    mutate(object = "foreign_domestic_sciname_exp") %>% 
     # first stage unresolved foreign exports treated as sourced from error exports
-    bind_rows(first_unresolved_foreign_sciname) %>% 
+    bind_rows(first_unresolved_foreign_sciname %>% 
+                mutate(object = "first_unresolved_foreign_sciname")) %>% 
     # second stage unresolved foreign exports treated as sourced from error exports
-    bind_rows(second_unresolved_foreign_sciname) %>% 
+    bind_rows(second_unresolved_foreign_sciname %>% 
+                mutate(object = "second_unresolved_foreign_sciname")) %>% 
     # second stage relinked foreign exports sourced from error exports
-    bind_rows(relinked_second_foreign_error) %>% 
+    bind_rows(relinked_second_foreign_error %>% 
+                mutate(object = "relinked_second_foreign_error")) %>% 
     # treated as sourced from error exports
-    bind_rows(relinked_second_foreign_foreign) %>% 
+    bind_rows(relinked_second_foreign_foreign %>% 
+                mutate(object = "relinked_second_foreign_foreign")) %>% 
     # foreign exports that were resolved in the first stage to be from error exports
-    bind_rows(first_error_exp_2) # line 408
+    bind_rows(first_error_exp_2 %>% 
+                mutate(object = "first_error_exp_2")) # line 408
     
     
   
