@@ -4,11 +4,16 @@ The ARTIS model codebase. This repository contains the demo version and the full
 
 ## Installation Guide
 
-This project uses Python 3.10.9 which can be downloaded [here](https://www.python.org/downloads/release/python-3109/) and RStudio which can be downloaded [here](https://posit.co/download/rstudio-desktop/).
+This project uses:
+- Python 3.10.9 which can be downloaded [here](https://www.python.org/downloads/release/python-3109/)
+- R can be downloaded here [here](https://www.r-project.org/)
+- RStudio (IDE) can be downloaded [here](https://posit.co/download/rstudio-desktop/).
 
 It should take approximately 10 minutes to run this full installation.
 
-## Creating python virtual environment
+FIXIT: Specify exact versions for R installation & packages
+
+### Creating python virtual environment
 
 *NOTE*: This protocol may not be successful for every individual local machine. The interaction in package versions and computer architecture (*i.e.* arm64 M1, M2 chips) may complicate this virtual environment set up. We are working on setting up a portable docker image to increase the reproducibility of this code.
 
@@ -27,7 +32,7 @@ It should take approximately 10 minutes to run this full installation.
 
 *Note*: You only need to install the solvers the first time you run this code. Warnings about the latest version of pip may also appear during the installation - these are okay, but errors are not.
 
-## R installation instructions
+## ARTIS Package Installation 
 1. Click "Build" on the build tab on the top right hand side corner of RStudio.
 2. Click on the dropdown arrow in the "Install" subtab within the "Build" window.
 3. Click the option "Configure Build Tools..."
@@ -37,11 +42,52 @@ It should take approximately 10 minutes to run this full installation.
 </p>
 5. Click on the dropdown arrow in the "Install" subtab and select the option "Clean and Install"
 
+## Development
+
+### Branch Naming Guidelines
+- **main**: Stable, released versions
+- **develop**: Continuous development, all task-oriented branches are created from `develop` and merge back to `develop`.
+- **Task Branches**:
+  - Use `develop-` as a prefix for task branches.
+  - Example: `develop-ingest-new-data-v2`.
+  - Task branches should be "short-lived" and merged back into `develop` after completion.
+- **hot-fix**: created from `main`, merged back into `main` for quick immediately needed fixes of release version. 
+  
+  
+### Branch Workflow Diagram
+
+```mermaid
+gitGraph
+   commit id: "v1.0"
+   branch develop
+   commit
+   branch develop-ingest-new-data-v2
+   commit id: "clean FAO"
+   commit id: "resolve sciname"
+   checkout develop
+   merge develop-ingest-new-data-v2 id: "merge cleaning script"
+   checkout develop
+   commit id: "update README"
+   branch develop-fix-bug
+   commit
+   checkout develop
+   merge develop-fix-bug id: "merge fix-bug"
+   commit id: "add documentation"
+   checkout main
+   merge develop id: "v2.0 Release"
+   branch hot-fix
+   checkout hot-fix
+   commit id: "forgot this tiny thing"
+   checkout main
+   merge hot-fix id: "v2.0.1 Release"
+```
+
+
 ## Running the model demo
 
 Running the demo for the ARTIS model should take approximately 10 minutes. To run the demo for ARTIS run the `02-artis-pipeline.R` script and then run the `04-build-artis-timeseries.R` script.
 
-## Outputs
+### Outputs
 
 The outputs of the demo will appear in the `demo/outputs` directory. Within this folder `demo/outputs/custom_ts` will contain all the final files that if run on the full model inputs would be used to create the results of the ARTIS research paper.
 
@@ -49,17 +95,17 @@ Please find below descriptions of main files:
 - `demo/outputs/custom_ts/mid_custom_ts.csv`: This is the demo version of the main ARTIS trade records table.
 - `demo/outputs/custom_ts/summary_consumption_midpoint.csv`: This is the demo version of the main ARTIS seafood consumption records table.
 
-## Methods and Workflow
+## Methods
 
-### High level overview
+### Model Conceptual Schematic
 The following diagrams describes how ARTIS trade records are obtained.
 
 ![Disaggregating Trade Records](./images/disaggregating_trade_records.png)
 ![Aggregating Trade Records back up](./images/building_trade_records_back_up.png)
 ![Consumption Workflow](./images/consumption_workflow.png)
 
-### Code workflows
-The following diagrams describe the how the codebase follows the workflow illustrated above.
+### Code Conceptual Schematic
+The following diagrams describe the how the codebase follows the model schematic illustrated above.
 
 ![Cleaning data diagram](./images/model_inputs_creation.png)
 ![Mass balance solutions](./images/country_mass_balance_solution_creation.png)
