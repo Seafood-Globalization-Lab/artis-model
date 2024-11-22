@@ -1,8 +1,9 @@
 #' @export
 create_snet <- function(baci_data_analysis_year, export_source_weights,
-                        reweight_W_long, reweight_X_long, V1_long, hs_clade_match, num_cores,
-                        outdir, snet_threshold = 0.1, estimate_type = "midpoint",
-                        run_env = "aws", s3_bucket_name = "", s3_region = "") {
+                        reweight_W_long, reweight_X_long, V1_long, hs_clade_match, 
+                        num_cores, outdir, snet_threshold = 0.1, 
+                        estimate_type = "midpoint", run_env = "aws", 
+                        s3_bucket_name = "", s3_region = "") {
   
   # Creates an ARTIS snet that goes back 2 stages in the supply chain
   # specifically further resolving foreign exports down
