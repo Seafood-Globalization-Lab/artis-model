@@ -1,8 +1,16 @@
 # ARTIS Model
 
-The ARTIS model codebase. This repository contains the demo version and the full model.
+This reposiotry contains the ARTIS model codebase an model run instructions. The ARTIS model has three "run modes":
 
-## Installation Guide
+- **local** mode is the full ARTIS model run on a user's local machine. This run mode will solve for all HS versions and years indicated by the user. May require significant time and compute resources to find country solutions. Currently only developed to run on Macbook pros with ARM64 architecture. 
+
+- **demo** mode is an example of the ARTIS model run on a user's local machine. This run mode uses a small subset of the international trade data and requires significantly less time and compute resources. Currently only developed to run on a Macbook pro with ARM64 architecture.
+
+- **aws** mode is for running the full ARTIS model on Amazon Web Services (AWS). Instructions for this run mode are located on the [`artis-hpc` repo](https://github.com/Seafood-Globalization-Lab/artis-hpc).
+
+Please see the [ARTIS Manual](https://seafood-globalization-lab.github.io/artis-manual/) for information on the ARTIS model backgroup, conceptual details, output data descriptions, and data distrubution details. 
+
+## Installation Guide (local & demo run modes)
 
 This project uses:
 - Python 3.10.9 which can be downloaded [here](https://www.python.org/downloads/release/python-3109/)
@@ -32,7 +40,7 @@ FIXIT: Specify exact versions for R installation & packages
 
 *Note*: You only need to install the solvers the first time you run this code. Warnings about the latest version of pip may also appear during the installation - these are okay, but errors are not.
 
-## ARTIS Package Installation 
+### ARTIS Package Installation 
 1. Click "Build" on the build tab on the top right hand side corner of RStudio.
 2. Click on the dropdown arrow in the "Install" subtab within the "Build" window.
 3. Click the option "Configure Build Tools..."
@@ -83,7 +91,7 @@ gitGraph
 ```
 
 
-## Running the model demo
+## Demo Run Mode
 
 Running the demo for the ARTIS model should take approximately 10 minutes. To run the demo for ARTIS run the `02-artis-pipeline.R` script and then run the `04-build-artis-timeseries.R` script.
 
