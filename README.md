@@ -1,6 +1,6 @@
 # ARTIS Model (Aquatic Resource Trade In Species)
 
-This reposiotry contains the ARTIS model codebase an model run instructions. The ARTIS model has three "run modes":
+This reposiotry contains the ARTIS model codebase and instructions to run the model. The ARTIS model has three "run modes":
 
 - **local** mode is the full ARTIS model run on a user's local machine. This run mode will solve for all HS versions and years indicated by the user. May require significant time and compute resources to find country solutions. Currently only developed to run on Macbook pros with ARM64 architecture. 
 
