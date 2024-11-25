@@ -12,7 +12,7 @@ This reposiotry contains the ARTIS model codebase and instructions to run the mo
 > Please see the [ARTIS Manual](https://seafood-globalization-lab.github.io/artis-manual/) for information on the ARTIS model backgroup, conceptual details, output data descriptions, and data distrubution details.
 
 ## Cite this model
-[![DOI:10.5063/F1862DXT](http://img.shields.io/badge/DOI-10.5063/F1862DXT-113E47.svg)](https://doi.org/10.5063/F1862DXT) - stable release version archived on KNB data repository. Same Github release version [v1.0](https://github.com/Seafood-Globalization-Lab/artis-model/releases/tag/v1.0). DOI model version *may not* be the most recent model release and *is not* the development version.
+[![DOI:10.5063/F1862DXT](http://img.shields.io/badge/DOI-10.5063/F1862DXT-113E47.svg)](https://doi.org/10.5063/F1862DXT) - stable release version archived on KNB data repository. Same Github release version [v1.0](https://github.com/Seafood-Globalization-Lab/artis-model/releases/tag/v1.0). DOI model version *may not* be the most recent model release on Github and *is not* the development version.
 
 ```
 Jessica Gephart, Rahul Agrawal Bejarano, Althea Marks, & Kelvin Gorospe. (2024).
