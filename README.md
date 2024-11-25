@@ -1,4 +1,4 @@
-# ARTIS Model
+# ARTIS Model (Aquatic Resource Trade In Species)
 
 This reposiotry contains the ARTIS model codebase an model run instructions. The ARTIS model has three "run modes":
 
