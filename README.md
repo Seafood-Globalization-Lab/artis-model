@@ -8,7 +8,16 @@ This reposiotry contains the ARTIS model codebase an model run instructions. The
 
 - **aws** mode is for running the full ARTIS model on Amazon Web Services (AWS). Instructions for this run mode are located on the [`artis-hpc` repo](https://github.com/Seafood-Globalization-Lab/artis-hpc).
 
-Please see the [ARTIS Manual](https://seafood-globalization-lab.github.io/artis-manual/) for information on the ARTIS model backgroup, conceptual details, output data descriptions, and data distrubution details. 
+> [!NOTE]
+> Please see the [ARTIS Manual](https://seafood-globalization-lab.github.io/artis-manual/) for information on the ARTIS model backgroup, conceptual details, output data descriptions, and data distrubution details.
+
+## Cite this model
+[![DOI:10.5063/F1862DXT](http://img.shields.io/badge/DOI-10.5063/F1862DXT-113E47.svg)](https://doi.org/10.5063/F1862DXT) - stable release version archived on KNB data repository. Same Github release version [v1.0](https://github.com/Seafood-Globalization-Lab/artis-model/releases/tag/v1.0). DOI model version *may not* be the most recent model release and *is not* the development version.
+
+```
+Jessica Gephart, Rahul Agrawal Bejarano, Althea Marks, & Kelvin Gorospe. (2024).
+ARTIS input data and model. Knowledge Network for Biocomplexity. doi:10.5063/F1862DXT.
+```
 
 ## Installation Guide (local & demo run modes)
 
@@ -38,7 +47,8 @@ FIXIT: Specify exact versions for R installation & packages
 9. Run $`deactivate` in terminal.
 10. Click on the Console tab.
 
-*Note*: You only need to install the solvers the first time you run this code. Warnings about the latest version of pip may also appear during the installation - these are okay, but errors are not.
+> [!NOTE]
+> You only need to install the solvers the first time you run this code. Warnings about the latest version of pip may also appear during the installation - these are okay, but errors are not.
 
 ### ARTIS Package Installation 
 1. Click "Build" on the build tab on the top right hand side corner of RStudio.
