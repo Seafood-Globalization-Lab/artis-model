@@ -32,7 +32,8 @@ FIXIT: Specify exact versions for R installation & packages
 
 ### Creating python virtual environment
 
-*NOTE*: This protocol may not be successful for every individual local machine. The interaction in package versions and computer architecture (*i.e.* arm64 M1, M2 chips) may complicate this virtual environment set up. We are working on setting up a portable docker image to increase the reproducibility of this code.
+> [!WARNING]
+> This protocol may not be successful for every individual local machine. The interaction in package versions and computer architecture (*i.e.* arm64 M1, M2 chips) may complicate this virtual environment set up. We are working on setting up a portable docker image to increase the reproducibility of this code.
 
 1. Open the artis-model repository in RStudio.
 2. Click on the terminal tab.
@@ -130,6 +131,10 @@ The following diagrams describe the how the codebase follows the model schematic
 ![Creating ARTIS codeflow](./images/create_artis_codeflow.png)
 
 ## System Requirements
+
+> [!WARNING]
+> This record is not up to date. Python versions are documented in the `requirements.txt` file. R and R package versions need further documentation outside of the AWS docker image. 
+
 - Platform: x86_64-apple-darwin17.0 (64-bit)
 - Running under: macOS Ventura 13.3.1
 - R version 4.2.2
