@@ -8,7 +8,7 @@ rm(list=ls())
 datadir <- "model_inputs_raw"
 outdir <- "AM_local"
 baci_version <- "202201"
-tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
+tradedatadir <- paste0("baci_raw/baci_", baci_version)
 
 # Creating out folder if necessary
 if (!dir.exists(outdir)) {
@@ -101,7 +101,7 @@ prod_data <- prod_data_raw %>%
          prod_method = case_when(prod_method %in% c("FRESHWATER", "MARINE", "BRACKISHWATER") ~ "aquaculture",
                                  prod_method == "CAPTURE" ~ "capture",
                                  TRUE ~ prod_method)) %>%
-  mutate(taxa_source = paste(str_replace(SciName, " ", "."), fao_habitat, prod_method, sep = "_")) %>%
+  mutate(taxa_source = paste0(str_replace(SciName, " ", "."), fao_habitat, prod_method)) %>%
   # Join fishbase habitat data to prod data and make new Fishbase habitat column to compare to FAO's habitat column 
   left_join(prod_habitat, by = "SciName") %>%
   mutate(fb_habitat = case_when(Fresh01 == 1 & Saltwater01 == 0 ~ "inland",
@@ -114,7 +114,7 @@ prod_data <- prod_data_raw %>%
   mutate(habitat = case_when(str_detect(SciName, pattern = " ") & fb_habitat != fao_habitat & fb_habitat %in% c("inland", "marine") ~ fb_habitat,
                                  TRUE ~ fao_habitat)) %>% # ELSE, use FAO's habitat designation, including for all non species-level data
   # UPDATE taxa source to match structure in get country solutions
-  mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_")) %>%
+  mutate(taxa_source = paste0(str_replace(SciName, " ", "."), habitat, prod_method)) %>%
   group_by(country_iso3_alpha, country_name_en, CommonName, SciName, taxa_source, habitat, prod_method, year, Fresh01, Saltwater01, Brack01, Species01, Genus01, Family01, Other01, isscaap_group) %>%
   summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
   ungroup()
@@ -165,8 +165,8 @@ if (running_sau) {
    # select(colnames(prod_data_sau)[colnames(prod_data_sau) %in% c("country_name_en", colnames(prod_data))]) %>%
     mutate(habitat = "marine",
            prod_method = "capture") %>%
-    mutate(taxa_source = paste(str_replace(SciName, " ", "."), 
-                               habitat, prod_method, sep = "_"))
+    mutate(taxa_source = paste0(str_replace(SciName, " ", "."), 
+                               habitat, prod_method))
   
   prod_classification_sau <- prod_list_sau[[2]]
   
@@ -275,7 +275,7 @@ if (test) {
 
 for(i in 1:length(HS_year)) {
   
-  hs_version <- paste("HS", HS_year[i], sep = "")
+  hs_version <- paste0("HS", HS_year[i])
   print(hs_version)
   
   # Match HS codes to production taxa (can be FAO or SAU depending on which was used in clean_and_clasify_prod_dat function)
@@ -424,7 +424,9 @@ for(i in 1:length(HS_year)) {
   # }
   
   # SAVE HS TAXA MATCH OUTPUT:
-  fwrite(hs_taxa_match, file = file.path(outdir, paste("hs-taxa-match_", hs_version, ".csv", sep="")), row.names = FALSE)
+  fwrite(hs_taxa_match, file = file.path(outdir, 
+                                         paste0("hs-taxa-match_", hs_version, ".csv")), 
+         row.names = FALSE)
   
   
   # Determine which HS codes can be processed and turned into another HS code
@@ -433,7 +435,7 @@ for(i in 1:length(HS_year)) {
                                 prod_taxa_classification) #Can use any HS code year
   
   # SAVE HS TO HS MATCH OUTPUT
-  hs_hs_match_file <- paste("hs-hs-match_", hs_version, ".csv", sep="")
+  hs_hs_match_file <- paste0("hs-hs-match_", hs_version, ".csv")
   # Change column names to align with EU terminology
   # Remove columns for taxa list
   hs_hs_output <- hs_hs_match %>%
@@ -464,8 +466,7 @@ for(i in 1:length(HS_year)) {
     filter(
       (str_detect(pre_code_habitat, "diadromous") & str_detect(post_code_habitat, "diadromous")) |
         (str_detect(pre_code_habitat, "inland") & str_detect(post_code_habitat, "inland")) |
-        (str_detect(pre_code_habitat, "marine") & str_detect(post_code_habitat, "marine"))
-    ) %>%
+        (str_detect(pre_code_habitat, "marine") & str_detect(post_code_habitat, "marine"))) %>%
     select(-c(pre_code_habitat, post_code_habitat))
   
   fwrite(hs_hs_output, file = file.path(outdir, hs_hs_match_file), row.names = FALSE)
@@ -473,22 +474,24 @@ for(i in 1:length(HS_year)) {
   # Load and clean the live weight conversion factor data
   # These CF's convert from commodity to the live weight equivalent (min value is therefore 1, for whole fish)
   set_match_criteria = "strict"
-  hs_taxa_CF_match <- compile_cf(conversion_factors = fread(file.path(datadir, "seafood_conversion_factors.csv"), stringsAsFactors = FALSE),
-                                 eumofa_data = fread(file.path(datadir, "EUMOFA_compiled.csv"), stringsAsFactors = FALSE),
-                                 hs_hs_match,
-                                 hs_version,
-                                 match_criteria = set_match_criteria,
-                                 fb_slb_dir = current_fb_slb_dir)
+  hs_taxa_CF_match <- compile_cf(
+    conversion_factors = fread(file.path(datadir, "seafood_conversion_factors.csv"), stringsAsFactors = FALSE),
+                                 eumofa_data = fread(
+                                   file.path(datadir, "EUMOFA_compiled.csv"), stringsAsFactors = FALSE),
+    hs_hs_match,
+    hs_version,
+    match_criteria = set_match_criteria,
+    fb_slb_dir = current_fb_slb_dir)
   
   # Check that everything in HS taxa match has a conversion factor value
   hs_taxa_matches <- hs_taxa_match %>%
-    mutate(taxa_matches = paste(Code, SciName, sep = "_")) %>%
+    mutate(taxa_matches = paste(Code, SciName)) %>%
     select(taxa_matches) %>%
     distinct() %>%
     pull(taxa_matches)
   
   cf_matches <- hs_taxa_CF_match %>%
-    mutate(cf_matches = paste(Code, Taxa, sep = "_")) %>%
+    mutate(cf_matches = paste(Code, Taxa)) %>%
     select(cf_matches) %>%
     distinct() %>%
     pull(cf_matches)
@@ -503,7 +506,8 @@ for(i in 1:length(HS_year)) {
   
   
   # SAVE CONVERSION FACTORS OUTPUT
-  cf_csv_name <- paste("hs-taxa-CF_", set_match_criteria, "-match_", hs_version, ".csv", sep = "")
+  cf_csv_name <- paste0("hs-taxa-CF_", set_match_criteria, 
+                        "-match_", hs_version, ".csv")
   fwrite(hs_taxa_CF_match, file.path(outdir, cf_csv_name), row.names = FALSE)
   
 }
@@ -565,7 +569,9 @@ for (i in 1:nrow(df_years)){
                                                      baci_version, ".csv")))
     )
     
-    fwrite(baci_data_i, file.path(datadir, paste("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
+    fwrite(baci_data_i, file.path(datadir, paste0("filtered_BACI_", "HS", 
+                                                  HS_year, "_Y", analysis_year, 
+                                                  "_V", baci_version, ".csv")),
               row.names = FALSE)
   } else {
     print("Filtered BACI file already exists")
@@ -578,11 +584,14 @@ for (i in 1:nrow(df_years)){
   analysis_year <- df_years[i,]$analysis_year
   print(paste(HS_year, analysis_year))
   
-  baci_data <- fread(file.path(datadir, paste("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))
+  baci_data <- fread(
+    file.path(datadir, 
+              paste0("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", 
+                     baci_version, ".csv")))
   
   baci_data <- baci_data %>%
     mutate(year = analysis_year,
-           hs_version = paste("HS", HS_year, sep = ""))
+           hs_version = paste0("HS", HS_year))
   
   baci_data <- standardize_countries(baci_data, "BACI")
   
@@ -590,14 +599,16 @@ for (i in 1:nrow(df_years)){
   fwrite(
     baci_data %>%
       select(-c(total_v)),
-    file.path(outdir, paste("standardized_baci_seafood_hs", HS_year, "_y", analysis_year, ".csv", sep = "")),
+    file.path(outdir, paste0("standardized_baci_seafood_hs", HS_year, "_y", 
+                            analysis_year, ".csv")),
     row.names = FALSE
   )
 
   # BACI output with total and unit value
   fwrite(
     baci_data,
-    file.path(outdir, paste("standardized_baci_seafood_hs", HS_year, "_y", analysis_year, "_including_value.csv", sep = "")),
+    file.path(outdir, paste0("standardized_baci_seafood_hs", HS_year, "_y", 
+                             analysis_year, "_including_value.csv")),
     row.names = FALSE
   )
 }
