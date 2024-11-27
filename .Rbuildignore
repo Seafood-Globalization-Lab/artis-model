@@ -1,2 +1,10 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+model_inputs_raw/*
+baci_raw/*
+model_inputs_baci/*
+model_inputs/*
+outputs/*
+model_inputs_sau/*
+AM_local/*
+venv/*
