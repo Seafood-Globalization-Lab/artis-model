@@ -108,7 +108,8 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     # Q: not sure why these were removed 2024-11-08
     #filter(dom_source == "foreign" & habitat != "unknown" & method != "unknown") %>%
     group_by(exporter_iso3c, hs6) %>%
-    summarize(foreign_export_t = sum(live_weight_t, na.rm = TRUE)) %>%
+    summarize(foreign_export_product_t = sum(product_weight_t, na.rm = TRUE),
+              foreign_export_live_t = sum(live_weight_t, na.rm = TRUE)) %>%
     ungroup()
   
   imports <- artis %>%
@@ -130,17 +131,36 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     # proportion of hs6 processed that can be disagregated into hs6 original
     # will be used to disagregate foreign consumption later on
     group_by(importer_iso3c, hs6_processed) %>%
-    mutate(total_hs6_processed = sum(processed_live_t)) %>%
+    mutate(total_hs6_processed_live = sum(processed_live_t),
+           total_hs6_processed_product = sum(processed_product_t)) %>%
     ungroup() %>%
-    mutate(prop_processed_to_original = processed_live_t / total_hs6_processed) %>%
-    filter(!is.na(prop_processed_to_original))
+    mutate(prop_processed_to_original_live = processed_live_t / total_hs6_processed_live,
+           prop_processed_to_original_product = processed_product_t / total_hs6_processed_product)
+  
+  # unprocessed_exports <- exports_foreign %>%
+  #   # processing imports into the product form that is available for consumption or re-export
+  #   left_join(
+  #     reweight_W_long %>% 
+  #       mutate(hs6_processed = as.numeric(hs6_processed)),
+  #     by = c("exporter_iso3c", "hs6"= "hs6_processed")
+  #   ) %>%
+  #   mutate(processed_product_t = foreign_export_product_t * reweighted_W) %>%
+  #   #mutate(processed_live_t = processed_product_t * est_live_weight_cf) %>%
+  #   # proportion of hs6 processed that can be disagregated into hs6 original
+  #   # will be used to disagregate foreign consumption later on
+  #   group_by(exporter_iso3c, hs6) %>%
+  #   mutate(# total_hs6_processed_live = sum(processed_live_t),
+  #          total_hs6_processed_product = sum(processed_product_t)) %>%
+  #   ungroup() %>%
+  #   mutate(#prop_processed_to_original_live = processed_live_t / total_hs6_processed_live,
+  #          prop_processed_to_original_product = processed_product_t / total_hs6_processed_product)
   
   # DATA CHECK:
   # make sure proportions sum to 1 by the final hs6 product
   threshold <- 1e-9
   data_check_processed <- processed_imports %>%
     group_by(importer_iso3c, hs6_processed) %>%
-    summarize(prop = sum(prop_processed_to_original)) %>%
+    summarize(prop = sum(prop_processed_to_original_live)) %>%
     ungroup() %>%
     filter(abs(prop - 1) > threshold)
   if (nrow(data_check_processed) > 0) {
@@ -152,7 +172,8 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     # Resummarize by new set of products that are available by country
     # after processing of imports
     group_by(importer_iso3c, hs6_processed) %>%
-    summarize(processed_t = sum(processed_live_t, na.rm = TRUE)) %>%
+    summarize(processed_live_t = sum(processed_live_t, na.rm = TRUE),
+              processed_product_t = sum(processed_product_t, na.rm = TRUE)) %>%
     ungroup()
   
   # Everything that was consumed in their FINAL product form
@@ -163,9 +184,13 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
       by = c("importer_iso3c"="exporter_iso3c", "hs6_processed"="hs6")
     ) %>%
     # correct for flows where there are imports available but no exports
-    replace_na(list(foreign_export_t = 0, processed_t = 0)) %>%
+    replace_na(list(foreign_export_live_t = 0, 
+                    processed_live_t = 0, 
+                    processed_product_t = 0,
+                    foreign_export_product_t = 0)) %>%
     # calculate foreign consumption
-    mutate(foreign_consumption_t = processed_t - foreign_export_t)
+    mutate(foreign_consumption_live_t = processed_live_t - foreign_export_live_t,
+           foreign_consumption_product_t = processed_product_t - foreign_export_product_t)
   
   # DATA CHECK:
   # foreign consumption should equal domestic exports + error exports
@@ -181,20 +206,20 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
   disagregate_foreign_consumption <- consumption_foreign %>%
     left_join(
       processed_imports %>%
-        select(importer_iso3c, hs6_original=hs6, hs6_processed, prop_processed_to_original) %>%
+        select(importer_iso3c, hs6_original=hs6, hs6_processed, prop_processed_to_original_product) %>%
         distinct(),
       by = c("importer_iso3c", "hs6_processed")
     ) %>%
-    mutate(foreign_consumption_original = foreign_consumption_t * prop_processed_to_original)
+    mutate(foreign_consumption_original = foreign_consumption_product_t * prop_processed_to_original_product)
   
   # Calculating proportion of imports by original hs6 product
   # to disagregate by intermediate trade partners and sciname, habitat, method
   artis_import_props <- artis %>%
     # totals by importer and original hs6 product imported
     group_by(importer_iso3c, hs6) %>% 
-    mutate(total = sum(live_weight_t)) %>%
+    mutate(total = sum(product_weight_t)) %>%
     # proportion of imported hs6 by trade partners and sciname, habitat, method
-    mutate(import_prop = live_weight_t/total) %>%
+    mutate(import_prop = product_weight_t/total) %>%
     ungroup() %>%
     # removing unnecessary rows
     select(-product_weight_t, -live_weight_t, -total)
@@ -209,18 +234,26 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     group_by(importer_iso3c, hs6_original) %>%
     summarize(foreign_consumption_t = sum(foreign_consumption_original)) %>%
     ungroup() %>%
+    mutate(hs6_original = as.numeric(hs6_original)) %>% 
     # join proportions for disagregation
     left_join(
-      artis_import_props,
+      artis_import_props, 
       by = c("importer_iso3c", "hs6_original"="hs6")
     ) %>%
     # disagregate foreign consumption by import proportions
-    mutate(foreign_consumption_t = foreign_consumption_t * import_prop)
+    mutate(foreign_consumption_t = foreign_consumption_t * import_prop,
+           SciName = paste0(gsub(" ", ".", sciname), "_", habitat, "_", method)) %>% 
+    # FIXIT: need to add code to handle "unknown" habitat and method
+    left_join(V1_long %>% 
+                mutate(hs6 = as.numeric(hs6)),
+              by = c("hs6_original" = "hs6", "SciName")) %>% 
+    mutate(foreign_consumption_live_t = foreign_consumption_t * live_weight_cf)
+  
   
   # DATA CHECK:
   # make sure there was no change in volume based on disaggregation
   # make sure this data check occurs before removing any hs6 processed flows
-  if (abs(sum(disagregate_foreign_consumption$foreign_consumption_t) - test_foreign_consumption) > 1e-3) {
+  if (abs(sum(disagregate_foreign_consumption$foreign_consumption_product_t) - test_foreign_consumption) > 1e-3) {
     warning(paste0("Disagregated foreign consumption does not match agregated foreign consumption ",
                    "for ", curr_year, " and ", curr_hs_version, 
                    ". The absolute value between total total foreign consumption and aggregated foreign consumption is ", 
