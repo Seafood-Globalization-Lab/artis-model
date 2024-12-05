@@ -227,8 +227,12 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
   # record pre-disagregated foreign consumption volume for testing later
   test_foreign_consumption <- sum(disagregate_foreign_consumption$foreign_consumption_original)
   
+  hs_cf_means <- V1_long %>% 
+    group_by(hs6) %>% 
+    summarise(live_weight_cf_mean = mean(live_weight_cf))
+  
   # disagregate foreign consumption across all intermediates and sciname habitat method
-  disagregate_foreign_consumption <- disagregate_foreign_consumption %>%
+  disagregate_foreign_consumption_all <- disagregate_foreign_consumption %>%
     # note import props are in the form of the original hs6 product and therefore
     # foreign consumption needs to be aggregated back to importer and hs6 original
     group_by(importer_iso3c, hs6_original) %>%
@@ -238,8 +242,7 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     # join proportions for disagregation
     left_join(
       artis_import_props, 
-      by = c("importer_iso3c", "hs6_original"="hs6")
-    ) %>%
+      by = c("importer_iso3c", "hs6_original"="hs6")) %>%
     # disagregate foreign consumption by import proportions
     mutate(foreign_consumption_t = foreign_consumption_t * import_prop,
            SciName = paste0(gsub(" ", ".", sciname), "_", habitat, "_", method)) %>% 
@@ -247,23 +250,34 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     left_join(V1_long %>% 
                 mutate(hs6 = as.numeric(hs6)),
               by = c("hs6_original" = "hs6", "SciName")) %>% 
-    mutate(foreign_consumption_live_t = foreign_consumption_t * live_weight_cf)
+    # Replace NA in live_weight_cf using hs_cf_means
+    left_join(
+      hs_cf_means %>% mutate(hs6 = as.numeric(hs6)), 
+      by = c("hs6_original" = "hs6")) %>% 
+    mutate(
+      live_weight_cf = replace_na(live_weight_cf_mean),
+      foreign_consumption_live_t = foreign_consumption_t * live_weight_cf) %>%
+    # Remove the mean column if it's no longer needed
+    select(-live_weight_cf_mean)  %>% 
+    # remove residual NAs rows with no data
+    # FIXIT: Where are these NAs introduced - only importer and species 
+    filter(!is.na(live_weight_cf))
   
   
   # DATA CHECK:
   # make sure there was no change in volume based on disaggregation
   # make sure this data check occurs before removing any hs6 processed flows
-  if (abs(sum(disagregate_foreign_consumption$foreign_consumption_product_t) - test_foreign_consumption) > 1e-3) {
+  if (abs(sum(disagregate_foreign_consumption_all$foreign_consumption_product_t) - test_foreign_consumption) > 1e-3) {
     warning(paste0("Disagregated foreign consumption does not match agregated foreign consumption ",
                    "for ", curr_year, " and ", curr_hs_version, 
                    ". The absolute value between total total foreign consumption and aggregated foreign consumption is ", 
-                   abs(sum(disagregate_foreign_consumption$foreign_consumption_t) - test_foreign_consumption)))
+                   abs(sum(disagregate_foreign_consumption_all$foreign_consumption_t) - test_foreign_consumption)))
   }
   
   # DATA CHECK ONLY INCLUDE THIS DATA CHECK WHEN NO CODES ARE REMOVED FROM CONSUMPTION:
   # domestic consumption + foreign consumption = production + error exports
   total_consumption <- sum(consumption_domestic$consumption_t) + 
-    sum(disagregate_foreign_consumption$foreign_consumption_t)
+    sum(disagregate_foreign_consumption_all$foreign_consumption_t)
   
   data_check_consumption <- total_consumption / (sum(prod$live_weight_t) + sum(error_exports$live_weight_t))
   if (abs(1 - data_check_consumption) > 1e-3) {
@@ -276,7 +290,7 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
   
   # Join domestic and foreign consumption-----------------------------------------
   
-  complete_consumption <- disagregate_foreign_consumption %>%
+  complete_consumption <- disagregate_foreign_consumption_all %>%
     select(-c(hs_version, import_prop)) %>%
     mutate(consumption_type = "foreign") %>%
     rename(consumer_iso3c = importer_iso3c,
