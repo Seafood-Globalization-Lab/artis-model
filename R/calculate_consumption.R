@@ -349,6 +349,19 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     warning(paste0("Negative consumption values ", 
                    "for ", curr_year, " and ", curr_hs_version))
   }
+  
+  # DATA CHECK
+  # does consumption total by source country add back up to production?
+  
+  test <- complete_consumption %>% 
+    group_by(source_country_iso3c, sciname, habitat, method) %>% 
+    summarise(consumption_t_sum = sum(consumption_t)) %>% 
+    left_join(prod %>% 
+                group_by(country_iso3_alpha, sciname, habitat, method) %>% 
+                summarise(live_weight_t = sum(live_weight_t)), 
+              by = c("source_country_iso3c" = "country_iso3_alpha", "sciname", "habitat", "method")) %>% 
+    mutate(diff = consumption_t_sum - live_weight_t)
+  
     
   # add max per capita (default 100 kg) REMINDER THIS IS IN KG
   # keep both raw consumption and max percapita scaled consumption
