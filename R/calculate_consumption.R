@@ -63,9 +63,9 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
       by = c("iso3c", "sciname", "habitat", "method")
     ) %>%
     # disaggregate species production to hs6 products
-    mutate(production_t = live_weight_t * estimated_X) %>%
+    mutate(production_live_t = live_weight_t * estimated_X) %>%
     group_by(iso3c, hs6, sciname, habitat, method) %>%
-    summarize(production_t = sum(production_t, na.rm = TRUE)) %>%
+    summarize(production_live_t = sum(production_live_t, na.rm = TRUE)) %>%
     ungroup()
   
   
@@ -73,7 +73,8 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
   exports_domestic <- artis %>%
     filter(dom_source == "domestic") %>%
     group_by(source_country_iso3c, hs6, sciname, habitat, method) %>%
-    summarize(domestic_export_t = sum(live_weight_t, na.rm = TRUE)) %>%
+    summarize(domestic_export_live_t = sum(live_weight_t, na.rm = TRUE),
+              domestic_export_product_t = sum(product_weight_t, na.rm = TRUE)) %>%
     ungroup()
   
   # domestic consumption = domestic production - domestic exports
@@ -83,18 +84,18 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
       by = c("iso3c"="source_country_iso3c", "hs6", "sciname", "habitat", "method")
     ) %>%
     # deals with cases where there is production but no exports
-    replace_na(list(domestic_export_t = 0)) %>%
-    mutate(consumption_t = production_t - domestic_export_t)
+    replace_na(list(domestic_export_live_t = 0)) %>%
+    mutate(consumption_live_t = production_live_t - domestic_export_live_t)
   
   # DATA CHECK: domestic exports should not exceed domestic production
   domestic_consumption_threshold <- -1e-3
   data_check_domestic <- consumption_domestic %>%
-    filter(consumption_t < domestic_consumption_threshold)
+    filter(consumption_live_t < domestic_consumption_threshold)
   if (nrow(data_check_domestic) > 0) {
     warning(paste0("Domestic exports EXCEED domestic production", 
                    " for ", curr_year, " and ", curr_hs_version,
                    ", min difference between production and domestic export is ",
-                   min(data_check_domestic$consumption_t)))
+                   min(data_check_domestic$consumption_live_t)))
   }
   #-----------------------------------------------------------------------------
   
@@ -195,8 +196,8 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
   # DATA CHECK:
   # foreign consumption should equal domestic exports + error exports
   error_exports <- artis %>%
-    filter(source_country_iso3c == "unknown")
-  data_check_foreign <- sum(consumption_foreign$foreign_consumption_t) - sum(exports_domestic$domestic_export_t) - sum(error_exports$live_weight_t)
+    filter(dom_source == "error")
+  data_check_foreign <- sum(consumption_foreign$foreign_consumption_product_t) - sum(exports_domestic$domestic_export_product_t) - sum(error_exports$product_weight_t)
   if (abs(data_check_foreign) > 1) {
     warning(paste0("Foreign consumption DOES NOT EQUAL domestic exports + error exports ",
                    "for ", curr_year, " and ", curr_hs_version))
@@ -210,7 +211,7 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
         distinct(),
       by = c("importer_iso3c", "hs6_processed")
     ) %>%
-    mutate(foreign_consumption_original = foreign_consumption_product_t * prop_processed_to_original_product)
+    mutate(foreign_consumption_original_product_t = foreign_consumption_product_t * prop_processed_to_original_product)
   
   # Calculating proportion of imports by original hs6 product
   # to disagregate by intermediate trade partners and sciname, habitat, method
@@ -225,7 +226,9 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     select(-product_weight_t, -live_weight_t, -total)
   
   # record pre-disagregated foreign consumption volume for testing later
-  test_foreign_consumption <- sum(disagregate_foreign_consumption$foreign_consumption_original)
+  test_foreign_consumption <- sum(disagregate_foreign_consumption$foreign_consumption_original_product_t, 
+                                  na.rm = TRUE)
+  ## FIXIT: Why are there NAs in disagregate_foreign_consumption$foreign_consumption_original_product_t ? 
   
   hs_cf_means <- V1_long %>% 
     group_by(hs6) %>% 
@@ -236,7 +239,7 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     # note import props are in the form of the original hs6 product and therefore
     # foreign consumption needs to be aggregated back to importer and hs6 original
     group_by(importer_iso3c, hs6_original) %>%
-    summarize(foreign_consumption_t = sum(foreign_consumption_original)) %>%
+    summarize(foreign_consumption_product_t = sum(foreign_consumption_original_product_t)) %>%
     ungroup() %>%
     mutate(hs6_original = as.numeric(hs6_original)) %>% 
     # join proportions for disagregation
@@ -244,7 +247,7 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
       artis_import_props, 
       by = c("importer_iso3c", "hs6_original"="hs6")) %>%
     # disagregate foreign consumption by import proportions
-    mutate(foreign_consumption_t = foreign_consumption_t * import_prop,
+    mutate(foreign_consumption_product_t = foreign_consumption_product_t * import_prop,
            SciName = paste0(gsub(" ", ".", sciname), "_", habitat, "_", method)) %>% 
     # FIXIT: need to add code to handle "unknown" habitat and method
     left_join(V1_long %>% 
@@ -256,7 +259,7 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
       by = c("hs6_original" = "hs6")) %>% 
     mutate(
       live_weight_cf = replace_na(live_weight_cf_mean),
-      foreign_consumption_live_t = foreign_consumption_t * live_weight_cf) %>%
+      foreign_consumption_live_t = foreign_consumption_product_t * live_weight_cf) %>%
     # Remove the mean column if it's no longer needed
     select(-live_weight_cf_mean)  %>% 
     # remove residual NAs rows with no data
@@ -271,13 +274,13 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     warning(paste0("Disagregated foreign consumption does not match agregated foreign consumption ",
                    "for ", curr_year, " and ", curr_hs_version, 
                    ". The absolute value between total total foreign consumption and aggregated foreign consumption is ", 
-                   abs(sum(disagregate_foreign_consumption_all$foreign_consumption_t) - test_foreign_consumption)))
+                   abs(sum(disagregate_foreign_consumption_all$foreign_consumption_product_t) - test_foreign_consumption)))
   }
   
   # DATA CHECK ONLY INCLUDE THIS DATA CHECK WHEN NO CODES ARE REMOVED FROM CONSUMPTION:
   # domestic consumption + foreign consumption = production + error exports
-  total_consumption <- sum(consumption_domestic$consumption_t) + 
-    sum(disagregate_foreign_consumption_all$foreign_consumption_t)
+  total_consumption <- sum(consumption_domestic$consumption_live_t) + 
+    sum(disagregate_foreign_consumption_all$foreign_consumption_product_t)
   
   data_check_consumption <- total_consumption / (sum(prod$live_weight_t) + sum(error_exports$live_weight_t))
   if (abs(1 - data_check_consumption) > 1e-3) {
@@ -295,11 +298,11 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     mutate(consumption_type = "foreign") %>%
     rename(consumer_iso3c = importer_iso3c,
            hs6 = hs6_original,
-           consumption_t = foreign_consumption_t) %>%
+           consumption_live_t = foreign_consumption_live_t) %>%
     bind_rows(
       consumption_domestic %>%
         rename(consumer_iso3c = iso3c) %>%
-        select(-c(production_t, domestic_export_t)) %>%
+        select(-c(production_live_t, domestic_export_live_t)) %>%
         mutate(consumption_type = "domestic",
                source_country_iso3c = consumer_iso3c,
                exporter_iso3c = as.character(NA),
@@ -330,22 +333,22 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
              TRUE ~ "direct human consumption")) %>% 
     group_by(year, hs_version, source_country_iso3c, exporter_iso3c, consumer_iso3c,
               sciname, sciname_hs_modified, habitat, method, dom_source, consumption_type, end_use) %>%
-    summarize(consumption_t = sum(consumption_t)) %>%
+    summarize(consumption_live_t = sum(consumption_live_t)) %>%
     ungroup()# %>%
     # negative flows are removed so total consumption volume increases
-   # filter(consumption_t > consumption_threshold)
+   # filter(consumption_live_t > consumption_threshold)
   
   # DATA CHECK
   # make sure there are no NA values in consumption
   na_consumption <- complete_consumption %>%
-    filter(is.na(consumption_t))
+    filter(is.na(consumption_live_t))
   if (nrow(na_consumption) != 0) {
     warning(paste0("NAs in complete consumption ", 
                    "for ", curr_year, " and ", curr_hs_version, 
                    ". Number of NAs is ", nrow(na_consumption)))
   }
   
-  if (min(complete_consumption$consumption_t) < 0) {
+  if (min(complete_consumption$consumption_live_t) < 0) {
     warning(paste0("Negative consumption values ", 
                    "for ", curr_year, " and ", curr_hs_version))
   }
@@ -355,12 +358,12 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
   
   test <- complete_consumption %>% 
     group_by(source_country_iso3c, sciname, habitat, method) %>% 
-    summarise(consumption_t_sum = sum(consumption_t)) %>% 
+    summarise(consumption_live_t_sum = sum(consumption_live_t)) %>% 
     left_join(prod %>% 
                 group_by(country_iso3_alpha, sciname, habitat, method) %>% 
                 summarise(live_weight_t = sum(live_weight_t)), 
               by = c("source_country_iso3c" = "country_iso3_alpha", "sciname", "habitat", "method")) %>% 
-    mutate(diff = consumption_t_sum - live_weight_t)
+    mutate(diff = consumption_live_t_sum - live_weight_t)
   
     
   # add max per capita (default 100 kg) REMINDER THIS IS IN KG
@@ -372,14 +375,14 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
     consumption_per_capita <- complete_consumption %>%
       filter(end_use == "direct human consumption") %>% 
       group_by(consumer_iso3c, end_use) %>%
-      summarize(consumption_t = sum(consumption_t, na.rm = TRUE)) %>%
+      summarize(consumption_live_t = sum(consumption_live_t, na.rm = TRUE)) %>%
       ungroup() %>%
       left_join(
         pop %>% 
           filter(year == curr_year), # introduced filter by year to remove many-to-many join
         by = c("consumer_iso3c"="iso3c")
       ) %>%
-      mutate(consumption_percap_t = consumption_t / pop) %>%
+      mutate(consumption_percap_t = consumption_live_t / pop) %>%
       mutate(consumption_percap_kg = 1000 * consumption_percap_t)
     
     percap_outliers <- consumption_per_capita %>%
@@ -390,9 +393,9 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
       filter(consumer_iso3c %in% unique(percap_outliers$consumer_iso3c) & 
                end_use == "direct human consumption") %>%
       group_by(consumer_iso3c) %>%
-      mutate(total = sum(consumption_t, na.rm = TRUE)) %>%
+      mutate(total = sum(consumption_live_t, na.rm = TRUE)) %>%
       ungroup() %>%
-      mutate(prop = consumption_t / total) %>%
+      mutate(prop = consumption_live_t / total) %>%
       left_join(
         percap_outliers %>%
           select(consumer_iso3c, corrected_consumption_t),
@@ -402,7 +405,7 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
       select(-c(total, corrected_consumption_t, prop))
     
     complete_consumption_capped <- complete_consumption %>%
-      mutate(consumption_t_capped = consumption_t) %>% 
+      mutate(consumption_t_capped = consumption_live_t) %>% 
       filter(!(consumer_iso3c %in% unique(percap_outliers$consumer_iso3c) & 
                  end_use == "direct human consumption")) %>%
       bind_rows(consumption_outliers)
