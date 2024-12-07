@@ -7,8 +7,12 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
   
   # Formatting columns so that they match for joins
   artis <- artis %>%
-    filter(!is.na(live_weight_t)) %>% 
-    mutate(hs6 = as.numeric(hs6)) 
+    filter(!is.na(live_weight_t)) %>%
+    mutate(hs6 = as.numeric(hs6),
+           dom_source = case_when(
+             source_country_iso3c == "unknown" ~ "error",
+             TRUE ~ dom_source
+           ))
 
   
   W_long <- W_long %>%
@@ -229,6 +233,7 @@ calculate_consumption <- function(artis, prod, curr_year, curr_hs_version,
   test_foreign_consumption <- sum(disagregate_foreign_consumption$foreign_consumption_original_product_t, 
                                   na.rm = TRUE)
   ## FIXIT: Why are there NAs in disagregate_foreign_consumption$foreign_consumption_original_product_t ? 
+  ## AM thoughts- hs6 codes in consumption_foreign and processed_imports don't exactly match
   
   hs_cf_means <- V1_long %>% 
     group_by(hs6) %>% 
