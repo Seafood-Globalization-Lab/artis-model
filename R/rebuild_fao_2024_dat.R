@@ -1,9 +1,31 @@
+#' Rebuild FAO 2024 Data
+#'
+#' @description Extracts, cleans, and processes FAO global production 2024.1.0 data package
+#' from a provided zip file, joins timeseries with related code lists, and reformats 
+#' it to match the ARTIS 2020 data structure. 
+#'
+#' @param datadir A string representing the path to the directory containing the zip file.
+#' @param filename A string representing the name of the zip file to extract and process.
+#'
+#' @details 
+#' This function performs the following key steps:
+#' 1. Unzips the file if it is not already extracted.
+#' 2. Extracts and cleans the DSD (Data Structure Definition) file.
+#' 3. Reads and processes the time series file, reformatting column names and reordering them to match the DSD.
+#' 4. Iteratively joins the time series with multiple code list (CL) files, 
+#'    disambiguating column names and merging them using lookup codes.
+#' 5. Cleans and renames columns to align with the ARTIS 2020 standard. 
+#'
+#' @return A cleaned and merged FAO production dataframe that matches the ARTIS 2020 data structure.
+#'
 #' @import dplyr
 #' @importFrom magrittr %>%
 #' @importFrom readxl read_excel
 #' @import stringr
 #' @importFrom data.table fread
+#'
 #' @export
+
 rebuild_fao_2024_dat <- function(datadir, filename){
   
 # Get files ---------------------------------------------------------------
