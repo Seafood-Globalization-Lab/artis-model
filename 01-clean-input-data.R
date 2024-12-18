@@ -4,11 +4,17 @@
 # Set directories and file naming variables
 rm(list=ls())
 
-# Set folder paths
+### Set folder paths
+# raw data
 datadir <- "model_inputs_raw"
-outdir <- "AM_local"
+# where to write clean data files
+outdir <- "AM_local/outputs"
+# the BACI version used [yyyyvv]
 baci_version <- "202201"
+# folder with raw BACI data
 tradedatadir <- paste0("baci_raw/baci_", baci_version)
+# name of FAO Global Production .zip file (must be .zip)
+global_prod_filename <- "GlobalProduction_2024.1.0.zip"
 
 # Creating out folder if necessary
 if (!dir.exists(outdir)) {
@@ -23,9 +29,10 @@ library(tidyverse)
 library(countrycode)
 library(doParallel)
 library(rfishbase)
+library(data.table)
 
 # Step 1: Load and clean production data and HS codes---------------------------
-running_sau <- TRUE
+running_sau <- FALSE
 
 ## Set if new SeaLifeBase data collection needed:
 need_new_slb <- FALSE
@@ -67,8 +74,7 @@ current_fb_slb_dir <- fb_slb_info$directory
 # Clean scientific names and add classification info to production data: choose FAO or SAU
 # NOTE: warning message about data_frame() being deprecated is fixed in the development version of rfishbase: run remotes::install_github("ropensci/rfishbase") to implement the fixed version
 prod_list <- classify_prod_dat(datadir = datadir,
-                               filename = "GlobalProduction_2022.1.1.zip", 
-                               # "GlobalProduction_2023.1.1.zip"
+                               filename = global_prod_filename, 
                                prod_data_source = "FAO",
                                fb_slb_dir = current_fb_slb_dir)
 
