@@ -21,7 +21,7 @@ classify_prod_dat <- function(datadir,
     # FAO files were not consistent between 2020 and 2021, so there are now two versions of the rebuild_fao_dat function
     # time_series_join <- rebuild_fao_2020_dat(datadir=datadir, filename=filename)
     # time_series_join <- rebuild_fao_2021_dat(datadir=datadir, filename=filename)
-    time_series_join <- rebuild_fao_2022_dat(datadir = datadir, filename = filename)
+    time_series_join <- rebuild_fao_2024_dat(datadir = datadir, filename = filename)
     
     prod_ts <- time_series_join %>%
       dplyr::rename(CommonName=species_name_en, # Standardize column names between FAO and SAU datasets 
