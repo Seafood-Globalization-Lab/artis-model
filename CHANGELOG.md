@@ -11,7 +11,7 @@ FIXIT: example changelog has Unrealeased header linked to "Comparing changes" pa
 
 ### Added
 
-- xxx
+- New `rebuild_fao_[yyyy]_dat.R` function
 - xxx
 
 ### Changed
@@ -28,7 +28,7 @@ FIXIT: example changelog has Unrealeased header linked to "Comparing changes" pa
 
 ### Added
 
-- xxx (#commithash)
+- xxx (#commithash)?
 - xxx
 
 ### Fixed
