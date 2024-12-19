@@ -97,8 +97,9 @@ prod_habitat <- prod_taxa_classification %>%
 
 prod_data <- prod_data_raw %>%
   filter(quantity > 0) %>%
-  filter(year > 1995)  %>% # Filter to 1996 and on to work with a smaller file
-  # Remove columns not needed for any analysis
+  # Filter to 1996 and on - earlier data quality is too low to justify cleaning 
+  # required to ingest (i.e. breakup of Soviet Union)
+  filter(year > 1995)  %>% 
   select(!c(any_of(c("alternate", "multiplier", "symbol", "symbol_identifier")), contains(c("_ar", "_cn", "_es", "_fr", "_ru")))) %>%
   # Create new column that combines SciName with souce info (i.e., habitat + production method)
   mutate(fao_habitat = case_when(habitat == "Inland waters" ~ "inland",
