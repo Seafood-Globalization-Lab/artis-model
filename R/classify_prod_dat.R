@@ -24,30 +24,32 @@ classify_prod_dat <- function(datadir,
     time_series_join <- rebuild_fao_2024_dat(datadir = datadir, filename = filename)
     
     prod_ts <- time_series_join %>%
-      dplyr::rename(CommonName=species_name_en, # Standardize column names between FAO and SAU datasets 
-                    SciName=species_scientific_name,
-                    country_iso3_alpha = country_iso3_code, # alpha iso code
-                    country_iso3_numeric = country) %>% # numeric iso code 
+      dplyr::rename(
+        CommonName = species_name_en, # Standardize column names between FAO and SAU datasets 
+        SciName = species_scientific_name,
+        country_iso3_alpha = country_iso3_code, # alpha iso code
+        country_iso3_numeric = country) %>% # numeric iso code 
       mutate(CommonName=tolower(as.character(CommonName)),
              SciName=tolower(as.character(SciName))) %>%
       # Trim any leading/trailing whitespace
       mutate_all(str_trim) %>%
       #Filter out groups not considered in this analysis  
-      filter(species_major_group != "PLANTAE AQUATICAE") %>% 
-      filter(species_major_group != "MAMMALIA") %>% 
-      filter(isscaap_group != "Crocodiles and alligators") %>% 
-      filter(isscaap_group != "Turtles") %>% 
-      filter(isscaap_group != "Frogs and other amphibians") %>% 
-      filter(isscaap_group != "Corals") %>% 
-      filter(isscaap_group != "Sponges") %>% 
-      filter(isscaap_group != "Pearls, mother-of-pearl, shells") %>%
+      filter(!species_major_group %in% c("PLANTAE AQUATICAE", 
+                                      "MAMMALIA",
+                                      "Crocodiles and alligators",
+                                      "Turtles",
+                                      "Frogs and other amphibians",
+                                      "Corals",
+                                      "Sponges", 
+                                      "Pearls, mother-of-pearl, shells")) %>%
       # FIXIT: remove unused factor levels - but no columns are factors - could be the difference of reading in with read_csv() that converts text to chr vs read.csv() which can read text as factors. fread() reads in txt as chr
       droplevels() %>%
       
       #Remove unnecessary labels
-      mutate(SciName = gsub(SciName, 
-                            pattern=" \\(\\=.*", 
-                            replacement="")) %>%
+      mutate(
+        SciName = gsub(SciName, 
+                       pattern=" \\(\\=.*", 
+                       replacement="")) %>%
       
       # THESE APPLY SPECIFICALLY TO FAO prod_ts
       # First do some cleaning of SciNames.
@@ -196,7 +198,7 @@ classify_prod_dat <- function(datadir,
         )
       )
     
-    # Identify taxonomic ranks
+    ### Identify taxonomic ranks 
     # prod_ts will eventually be joined with fishbase classification info, 
     # use column name Genus01 to differentiate from column Genus
     prod_ts$Species01 <- 0
@@ -204,11 +206,22 @@ classify_prod_dat <- function(datadir,
     prod_ts$Family01 <- 0
     prod_ts$Other01 <- 0
     
-    prod_ts$Genus01[grepl(prod_ts$SciName, pattern="spp")] <- 1
-    #prod_ts$Family01[prod_ts$SciName==str_to_lower(prod_ts$family)] <- 1 # note: this incorrectly identifies aristeidae as Other01
-    prod_ts$Family01[grepl(pattern = " ", prod_ts$SciName)==FALSE & grepl(pattern = "([^\\s])*dae", prod_ts$SciName)] <- 1
-    prod_ts$Species01[grepl(prod_ts$SciName, pattern=" ") & prod_ts$Family01==0 & prod_ts$Genus01==0] <- 1
-    prod_ts$Other01[prod_ts$Species01==0 & prod_ts$Genus01==0 & prod_ts$Family01==0] <- 1
+    ### One hot encode new taxonomic rank columns based on pattern matching
+    # Code Genus01 if "spp" pattern found in SciName
+    prod_ts$Genus01[grepl(prod_ts$SciName, pattern = "spp")] <- 1
+    # Code Family01 if there is no space (e.g "genus species") in the SciName 
+    # AND "dae" is found in the SciName value
+    prod_ts$Family01[grepl(pattern = " ", prod_ts$SciName) == FALSE &
+                       grepl(pattern = "([^\\s])*dae", prod_ts$SciName)] <- 1
+    # Code Species01 if there is a space in SciName AND 
+    # Family01 AND Genus01 are not already coded
+    prod_ts$Species01[grepl(prod_ts$SciName, pattern = " ") &
+                        prod_ts$Family01 == 0 &
+                        prod_ts$Genus01 == 0] <- 1
+    # Code Other01 if Species01, Genus01, AND Family01 are not already coded
+    prod_ts$Other01[prod_ts$Species01 == 0 &
+                      prod_ts$Genus01 == 0 & 
+                      prod_ts$Family01 == 0] <- 1
     
     # Now the genera are identified, remove " spp"
     prod_ts <- prod_ts %>%
