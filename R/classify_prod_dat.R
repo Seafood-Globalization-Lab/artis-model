@@ -223,9 +223,11 @@ classify_prod_dat <- function(datadir,
                       prod_ts$Genus01 == 0 & 
                       prod_ts$Family01 == 0] <- 1
     
-    # Now the genera are identified, remove " spp"
+    # Now the genera are identified, remove " spp" from SciName
     prod_ts <- prod_ts %>%
-      mutate(SciName = gsub(SciName, pattern=" spp", replacement=""))
+      mutate(SciName = gsub(SciName, 
+                            pattern=" spp", 
+                            replacement=""))
     
     # Finally data formatting
     prod_ts <- prod_ts %>%
