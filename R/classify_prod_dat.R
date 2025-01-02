@@ -24,8 +24,12 @@ classify_prod_dat <- function(datadir,
     time_series_join <- rebuild_fao_2024_dat(datadir = datadir, filename = filename)
     
     prod_ts <- time_series_join %>%
+      # FIXIT: select only columns needed - reduce size of in memory dataframe
+      # select(species_name_en, species_scientific_name, country_iso3_code,
+      #        country, species_major_group, quantity, year) %>% 
+      # Standardize column names between FAO and SAU datasets 
       dplyr::rename(
-        CommonName = species_name_en, # Standardize column names between FAO and SAU datasets 
+        CommonName = species_name_en, 
         SciName = species_scientific_name,
         country_iso3_alpha = country_iso3_code, # alpha iso code
         country_iso3_numeric = country) %>% # numeric iso code 
@@ -33,15 +37,15 @@ classify_prod_dat <- function(datadir,
              SciName=tolower(as.character(SciName))) %>%
       # Trim any leading/trailing whitespace
       mutate_all(str_trim) %>%
-      #Filter out groups not considered in this analysis  
-      filter(!species_major_group %in% c("PLANTAE AQUATICAE", 
-                                      "MAMMALIA",
-                                      "Crocodiles and alligators",
-                                      "Turtles",
-                                      "Frogs and other amphibians",
-                                      "Corals",
-                                      "Sponges", 
-                                      "Pearls, mother-of-pearl, shells")) %>%
+      # Filter out groups not considered in this analysis  
+      filter(!species_major_group %in% c("PLANTAE AQUATICAE",
+                                         "MAMMALIA",
+                                         "Crocodiles and alligators",
+                                         "Turtles",
+                                         "Frogs and other amphibians",
+                                         "Corals",
+                                         "Sponges", 
+                                         "Pearls, mother-of-pearl, shells")) %>%
       # FIXIT: remove unused factor levels - but no columns are factors - could be the difference of reading in with read_csv() that converts text to chr vs read.csv() which can read text as factors. fread() reads in txt as chr
       droplevels() %>%
       
@@ -233,7 +237,7 @@ classify_prod_dat <- function(datadir,
     prod_ts <- prod_ts %>%
       mutate(quantity = as.numeric(quantity),
              year = as.integer(year)) %>%
-      filter(year > 1995) %>%
+     # filter(year > 1995) %>%
       filter(quantity > 0)
     
   }
