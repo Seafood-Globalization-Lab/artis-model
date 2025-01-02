@@ -387,21 +387,23 @@ classify_prod_dat <- function(datadir,
   
   # Load Fishbase and Sealifebase Databases 
   # Fishbase and Sealifebase Taxa Datasets
-  fishbase <- read.csv(file.path(fb_slb_dir, "fb_taxa_info.csv"))
-  sealifebase <- read.csv(file.path(fb_slb_dir, "slb_taxa_info.csv"))
+  fishbase <- fread(file.path(fb_slb_dir, "fb_taxa_info.csv"))
+  sealifebase <- fread(file.path(fb_slb_dir, "slb_taxa_info.csv"))
   
   # reads and cleans Fishbase and Sealifebase synonym datasets
-  fb_df <- read.csv(file.path(fb_slb_dir, "fb_synonyms_clean.csv"))
-  slb_df <- read.csv(file.path(fb_slb_dir, "slb_synonyms_clean.csv"))
+  fishbase_syn <- fread(file.path(fb_slb_dir, "fb_synonyms_clean.csv"))
+  sealifebase_syn <- fread(file.path(fb_slb_dir, "slb_synonyms_clean.csv"))
   
   # Standardize fishbase and sealifebase:
   fishbase <- fishbase %>% 
     mutate_all(tolower) %>%
-    select(-SpecCode)
+    select(-SpecCode) %>% 
+    as.data.frame()
   
   sealifebase <- sealifebase %>%
     mutate_all(tolower) %>%
-    select(-SpecCode)
+    select(-SpecCode) %>% 
+    as.data.frame()
   
   # HIERARCHICAL MATCHING TO CLASSIFICATION INFO
   # For each SciName in prod_taxa_names, use fishbase and sealifebase to add taxonomic classification
@@ -414,9 +416,8 @@ classify_prod_dat <- function(datadir,
   # Hierarchical joining: Before etc. etc. 
   # For Other01=1, join separately for higher groups (Order, Class, and Superclass for fishbase; Order, Class, Phylum, Kingdom for Sealifebase)
   # For Other01=1, assign metadata to positive matches: Order01, Class01, Superclass01, Phylum01, Kingdom01
-  fishbase <- as.data.frame(fishbase)
-  sealifebase <- as.data.frame(sealifebase)
   
+  # Only species level data in both prod and fb
   prod_fb_species <- prod_taxa_names %>%
     filter(Species01==1) %>%
     inner_join(fishbase, 
@@ -430,6 +431,7 @@ classify_prod_dat <- function(datadir,
     mutate(Genus = SciName) %>% # Retain "Genus" column so that filtering by column "Genus" will include all Species with this Genus as well as SciName=Genus
     distinct()
   
+  # Only includes Family level data in both prod and fb
   prod_fb_family <- prod_taxa_names %>% 
     filter(Family01==1) %>%
     inner_join((fishbase %>% select(-c(Species, Genus, Subfamily))), 
@@ -437,24 +439,30 @@ classify_prod_dat <- function(datadir,
     mutate(Family = SciName) %>%
     distinct()
   
+  # Only includes Order data in both prod and fb - determine by matching to fb
+  # order column - not coded into prod like species, genus, and family
   prod_fb_order <- prod_taxa_names %>% 
     filter(Other01==1) %>%
     inner_join((fishbase %>% select(-c(Species, Genus, Subfamily, Family))), 
                by=c("SciName" = "Order")) %>%
     mutate(Order = SciName) %>%
     distinct() %>%
+    # add encoded order col
     mutate(Order01 = 1) %>%
     select(-Other01)
   
+  # Only includes class data in both prod and fb - see order comment above
   prod_fb_class <- prod_taxa_names %>% 
     filter(Other01==1) %>%
     inner_join((fishbase %>% select(-c(Species, Genus, Subfamily, Family, Order))), 
                by=c("SciName" = "Class")) %>%
     mutate(Class = SciName) %>%
     distinct() %>%
+    # add encoded class col
     mutate(Class01 = 1) %>%
     select(-Other01)
   
+  # Only includes superclass data in both prod and fb - see order comment above
   prod_fb_superclass <- prod_taxa_names %>% 
     filter(Other01==1) %>%
     inner_join((fishbase %>% select(-c(Species, Genus, Subfamily, 
@@ -462,15 +470,19 @@ classify_prod_dat <- function(datadir,
                by=c("SciName" = "SuperClass")) %>%
     mutate(SuperClass = SciName) %>%
     distinct() %>%
+    # add encoded superclass col
     mutate(Superclass01 = 1) %>%
     select(-Other01)
   
   # Repeat hierarchical joining with sealifebase: 
+  
+  # Only species level data in both prod and slb
   prod_slb_species <- prod_taxa_names %>% 
     filter(Species01==1) %>%
     inner_join(sealifebase, 
                by=c("SciName" = "Species")) 
   
+  # Only genus level data in both prod and slb
   prod_slb_genus <- prod_taxa_names %>% 
     filter(Genus01==1) %>%
     inner_join((sealifebase %>% select(-Species)), 
@@ -478,6 +490,7 @@ classify_prod_dat <- function(datadir,
     mutate(Genus = SciName) %>%
     distinct()
   
+  # Only family level data in both prod and slb
   prod_slb_family <- prod_taxa_names %>% 
     filter(Family01==1) %>%
     inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily))), 
@@ -485,15 +498,18 @@ classify_prod_dat <- function(datadir,
     mutate(Family = SciName) %>%
     distinct()
   
+  # Only order level data in both prod and slb - inferred by matching - not encoding 
   prod_slb_order <- prod_taxa_names %>% 
     filter(Other01==1) %>%
     inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily, Family))), 
                by=c("SciName" = "Order")) %>%
     mutate(Order = SciName) %>%
     distinct() %>%
+    # add order col
     mutate(Order01 = 1) %>%
     select(-Other01)
   
+  # Only class level data in both prod and slb - inferred by matching - not encoding 
   prod_slb_class <- prod_taxa_names %>% 
     filter(Other01==1) %>%
     inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily, 
@@ -501,9 +517,11 @@ classify_prod_dat <- function(datadir,
                by=c("SciName" = "Class")) %>%
     mutate(Class = SciName) %>%
     distinct() %>%
+    # add class col
     mutate(Class01 = 1) %>%
     select(-Other01)
   
+  # Only phylum level data in both prod and slb - inferred by matching - not encoding 
   prod_slb_phylum <- prod_taxa_names %>% 
     filter(Other01==1) %>%
     inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily, 
@@ -511,6 +529,7 @@ classify_prod_dat <- function(datadir,
                by=c("SciName" = "Phylum")) %>%
     mutate(Phylum = SciName) %>%
     distinct() %>%
+    # add phylum col
     mutate(Phylum01 = 1) %>%
     select(-Other01)
   
@@ -519,19 +538,39 @@ classify_prod_dat <- function(datadir,
   # Only needed metadata columns (Species01, Genus01, etc) to match production data to fishbase and sealifebase classification; can now remove these 
   # Bind all matched data frames together
   prod_fb_full <- prod_fb_species %>% 
-    full_join(prod_fb_genus, by = intersect(names(prod_fb_species), names(prod_fb_genus))) %>%
-    full_join(prod_fb_family, by = intersect(names(.), names(prod_fb_family))) %>%
-    full_join(prod_fb_order, by = intersect(names(.), names(prod_fb_order))) %>%
-    full_join(prod_fb_class, by = intersect(names(.), names(prod_fb_class))) %>%
-    full_join(prod_fb_superclass, by = intersect(names(.), names(prod_fb_superclass))) %>%
+    full_join(prod_fb_genus, 
+              by = intersect(names(prod_fb_species), 
+                             names(prod_fb_genus))) %>%
+    full_join(prod_fb_family, 
+              by = intersect(names(.), 
+                             names(prod_fb_family))) %>%
+    full_join(prod_fb_order, 
+              by = intersect(names(.), 
+                             names(prod_fb_order))) %>%
+    full_join(prod_fb_class, 
+              by = intersect(names(.), 
+                             names(prod_fb_class))) %>%
+    full_join(prod_fb_superclass, 
+              by = intersect(names(.), 
+                             names(prod_fb_superclass))) %>%
     arrange(SciName)
   
   prod_slb_full <- prod_slb_species %>% 
-    full_join(prod_slb_genus,  by = intersect(names(prod_slb_species), names(prod_slb_genus))) %>%
-    full_join(prod_slb_family, by = intersect(names(.), names(prod_slb_family))) %>%
-    full_join(prod_slb_order, by = intersect(names(.), names(prod_slb_order))) %>%
-    full_join(prod_slb_class, by = intersect(names(.), names(prod_slb_class))) %>%
-    full_join(prod_slb_phylum, by = intersect(names(.), names(prod_slb_phylum))) %>%
+    full_join(prod_slb_genus,  
+              by = intersect(names(prod_slb_species), 
+                             names(prod_slb_genus))) %>%
+    full_join(prod_slb_family, 
+              by = intersect(names(.), 
+                             names(prod_slb_family))) %>%
+    full_join(prod_slb_order, 
+              by = intersect(names(.), 
+                             names(prod_slb_order))) %>%
+    full_join(prod_slb_class, 
+              by = intersect(names(.), 
+                             names(prod_slb_class))) %>%
+    full_join(prod_slb_phylum, 
+              by = intersect(names(.), 
+                             names(prod_slb_phylum))) %>%
     # There are no slb superclass or kingdom matches
     arrange(SciName)
   
@@ -557,8 +596,8 @@ classify_prod_dat <- function(datadir,
     next_sciname <- nomatch_species[i]
 
     # Run scientific name through synonym databases in fishbase and sealifebase
-    name_fb_status <- query_synonyms(fb_df, next_sciname)
-    name_slb_status <- query_synonyms(slb_df, next_sciname)
+    name_fb_status <- query_synonyms(fishbase_syn, next_sciname)
+    name_slb_status <- query_synonyms(sealifebase_syn, next_sciname)
     
     # check if this SciName is in fishbase
     if (nrow(name_fb_status) > 0) {
@@ -628,7 +667,7 @@ classify_prod_dat <- function(datadir,
   
   # Get aquarium trade and habitat (Fresh, Brackish, Saltwater) info from fishbase: use this to classify ornamental trade species
   #fb_aquarium_info <- rfishbase::species(str_to_sentence(prod_fb_full$SciName))
-  fb_aquarium_info <- read.csv(file.path(fb_slb_dir, "fb_aquarium.csv"))
+  fb_aquarium_info <- fread(file.path(fb_slb_dir, "fb_aquarium.csv"))
   fb_aquarium_relevant <- fb_aquarium_info %>%
     filter(SciName %in% prod_fb_full$SciName)
   
@@ -636,7 +675,7 @@ classify_prod_dat <- function(datadir,
     left_join(fb_aquarium_relevant, by = "SciName") %>%
     rename(Fresh01 = Fresh, Brack01 = Brack, Saltwater01 = Saltwater) # to make it the same as previous version's code
   
-  slb_aquarium_info <- read.csv(file.path(fb_slb_dir, "slb_aquarium.csv"))
+  slb_aquarium_info <- fread(file.path(fb_slb_dir, "slb_aquarium.csv"))
   slb_aquarium_relevant <- slb_aquarium_info %>%
     filter(SciName %in% unique(prod_slb_full$SciName))
   
