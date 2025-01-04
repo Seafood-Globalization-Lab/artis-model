@@ -612,12 +612,20 @@ classify_prod_dat <- function(datadir,
         inner_join(fishbase, by=c("SciName" = "Species"))
       
       prod_ts <- prod_ts %>%
-        mutate(SciName = if_else(SciName==next_sciname, true = accepted_name, false = SciName))
+        mutate(SciName = if_else(SciName == next_sciname, 
+                                 true = accepted_name, 
+                                 false = SciName))
       
-      if(nrow(prod_fb_full_newdat) > 0){ # if a new row of data was successfully found, join to full classification dataset and replace nomatch_species[i] with accepted species name
-        nomatch_species[i]<-accepted_name # replace nomatch_species with accepted name to keep track further downstream which species are still missing
+      # if a new row of data was successfully found, join to full classification
+      # dataset and replace nomatch_species[i] with accepted species name
+      if(nrow(prod_fb_full_newdat) > 0){ 
+        # replace nomatch_species with accepted name to keep track further 
+        # downstream which species are still missing
+        nomatch_species[i]<-accepted_name 
         prod_fb_full <- prod_fb_full %>%
-          full_join(prod_fb_full_newdat, by = intersect(names(prod_fb_full), names(prod_fb_full_newdat))) # join by all columns
+          full_join(prod_fb_full_newdat, 
+                    by = intersect(names(prod_fb_full), 
+                                   names(prod_fb_full_newdat))) # join by all columns
         fb_switches = fb_switches + 1
       }
     } # end if SciName fb check
