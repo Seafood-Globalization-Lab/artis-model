@@ -699,7 +699,9 @@ classify_prod_dat <- function(datadir,
   
   prod_fb_full <- prod_fb_full %>%
     left_join(fb_aquarium_relevant, by = "SciName") %>%
-    rename(Fresh01 = Fresh, Brack01 = Brack, Saltwater01 = Saltwater) # to make it the same as previous version's code
+    rename(Fresh01 = Fresh, 
+           Brack01 = Brack, 
+           Saltwater01 = Saltwater) # to make it the same as previous version's code
   
   slb_aquarium_info <- fread(file.path(fb_slb_dir, "slb_aquarium.csv"))
   slb_aquarium_relevant <- slb_aquarium_info %>%
@@ -707,18 +709,26 @@ classify_prod_dat <- function(datadir,
   
   prod_slb_full <- prod_slb_full %>%
     left_join(slb_aquarium_relevant, by = c("SciName")) %>%
-    rename(Fresh01 = Fresh, Brack01 = Brack, Saltwater01 = Saltwater) # to make it the same as previous version's code
+    rename(Fresh01 = Fresh, 
+           Brack01 = Brack, 
+           Saltwater01 = Saltwater) # to make it the same as previous version's code
   
   ## FINAL CLEANING STEPS and combine prod_fb_full, prod_slb_full, and prod_ncbi_full
   prod_taxa_classification <- prod_fb_full %>%
-    full_join(prod_slb_full, by = intersect(names(prod_fb_full), names(prod_slb_full))) %>%
+    full_join(prod_slb_full, 
+              by = intersect(names(prod_fb_full), names(prod_slb_full))) %>%
     # Rename clupea pallasii pallasii (rfishbase only recognizes subspecies-level for this taxa) back to clupea pallasii
-    mutate(SciName = if_else(SciName=="clupea pallasii pallasii", true = "clupea pallasii", false = SciName)) %>%
+    mutate(SciName = if_else(SciName=="clupea pallasii pallasii", 
+                             true = "clupea pallasii", 
+                             false = SciName)) %>%
     # rename SuperClass
     rename(Superclass = SuperClass) %>%
     # Remove all metadata columns (e.g., Species01) - these were only used to join FAO production data with fishbase and sealifebase; not needed for hs_commod_matching
-    select(SciName, CommonName, Genus, Subfamily, Family, Order, Class, Superclass, Phylum, Kingdom, 
-           Aquarium, Fresh01, Brack01, Saltwater01) %>% 
+    select(SciName, CommonName, Genus, 
+           Subfamily, Family, Order, 
+           Class, Superclass, Phylum, 
+           Kingdom, Aquarium, Fresh01, 
+           Brack01, Saltwater01) %>% 
     arrange(SciName)
   
   # Check that all SciNames are unique (and if not, they should at least have different CommonNames AND identical classification schemes)
@@ -730,9 +740,11 @@ classify_prod_dat <- function(datadir,
   # These SciNames are not unique, even after removing Common Name - i.e., there are multiple, different rows of classification scheme for each of these SciNames
   classification_to_fix <- data.frame(table(classification_check$SciName)) %>% 
     filter(Freq > 1) %>%
-    pull(Var1)
+    pull(Var1) #%>% 
+    #as_tibble()
   
-  # Check, in each of these cases, there is a discrepancy in the classification scheme: prod_taxa_classification %>% filter(SciName %in% classification_to_fix)
+  # Check, in each of these cases, there is a discrepancy in the classification scheme: 
+  # prod_taxa_classification %>% filter(SciName %in% classification_to_fix)
   # Standardize them by inserting NA for when there is a discrepancy
   prod_taxa_fix <- NULL
   for (i in 1:length(classification_to_fix)){
@@ -757,7 +769,7 @@ classify_prod_dat <- function(datadir,
     # Classification should now be identical, distinct() should return single row
     prod_taxa_fix <- prod_taxa_fix %>%
       bind_rows(prod_taxa_i %>% distinct())
-  }
+  } # end of prod_taxa_fix loop
   
   prod_taxa_classification_clean <- prod_taxa_classification %>%
     filter(SciName %in% classification_to_fix==FALSE)  %>% # Remove SciNames that did not have matching classification schemes
@@ -795,15 +807,25 @@ classify_prod_dat <- function(datadir,
   # Fill in missing rows for perciformes and bryozoa
   prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
     bind_rows(
-      data.frame(SciName = c("perciformes", "actinopterygii", "scorpaeniformes"),
-                 CommonName = c("tuna-like fishes nei", "ray-finned fishes", "mail-cheeked fishes"),
+      data.frame(SciName = c("perciformes", 
+                             "actinopterygii", 
+                             "scorpaeniformes"),
+                 CommonName = c("tuna-like fishes nei", 
+                                "ray-finned fishes", 
+                                "mail-cheeked fishes"),
                  Genus = NA,
                  Subfamily = NA,
                  Family = NA,
-                 Order = c("perciformes", NA, "scorpaeniformes"),
-                 Class = c("actinopterygii", "actinopterygii", "actinopterygii"),
+                 Order = c("perciformes", 
+                           NA, 
+                           "scorpaeniformes"),
+                 Class = c("actinopterygii", 
+                           "actinopterygii", 
+                           "actinopterygii"),
                  Superclass = NA,
-                 Phylum = c("chordata", "chordata", "chordata"),
+                 Phylum = c("chordata", 
+                            "chordata", 
+                            "chordata"),
                  Kingdom = "animalia",
                  Aquarium = NA,
                  Fresh01 = NA,
@@ -819,7 +841,7 @@ classify_prod_dat <- function(datadir,
   missing_scinames <- unique(prod_ts$SciName)[!(unique(prod_ts$SciName) %in% unique(prod_taxa_classification_clean$SciName))]
   if (length(missing_scinames) > 0) {
     warning("Not all scinames in prod_data are in prod_taxa_classification")
-    warning(paste(missing_scinames))
+    warning(paste(missing_scinames, collapse = ", "))
   }
   
   return(list(prod_ts, prod_taxa_classification_clean))
