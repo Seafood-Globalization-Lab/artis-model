@@ -422,6 +422,7 @@ classify_prod_dat <- function(datadir,
     filter(Species01==1) %>%
     inner_join(fishbase, 
                by=c("SciName" = "Species")) 
+  # FITIT: add/define expected relationship = "" arguement to join
   
   # Only includes genuses that appear in BOTH production and fishbase
   prod_fb_genus <- prod_taxa_names %>% 
@@ -430,6 +431,7 @@ classify_prod_dat <- function(datadir,
                by=c("SciName" = "Genus")) %>%
     mutate(Genus = SciName) %>% # Retain "Genus" column so that filtering by column "Genus" will include all Species with this Genus as well as SciName=Genus
     distinct()
+  # FITIT: add/define expected relationship = "" arguement to join
   
   # Only includes Family level data in both prod and fb
   prod_fb_family <- prod_taxa_names %>% 
@@ -438,6 +440,7 @@ classify_prod_dat <- function(datadir,
                by=c("SciName" = "Family")) %>%
     mutate(Family = SciName) %>%
     distinct()
+  # FITIT: add/define expected relationship = "" arguement to join
   
   # Only includes Order data in both prod and fb - determine by matching to fb
   # order column - not coded into prod like species, genus, and family
@@ -450,6 +453,7 @@ classify_prod_dat <- function(datadir,
     # add encoded order col
     mutate(Order01 = 1) %>%
     select(-Other01)
+  # FITIT: add/define expected relationship = "" arguement to join
   
   # Only includes class data in both prod and fb - see order comment above
   prod_fb_class <- prod_taxa_names %>% 
@@ -461,6 +465,7 @@ classify_prod_dat <- function(datadir,
     # add encoded class col
     mutate(Class01 = 1) %>%
     select(-Other01)
+  # FITIT: add/define expected relationship = "" arguement to join
   
   # Only includes superclass data in both prod and fb - see order comment above
   prod_fb_superclass <- prod_taxa_names %>% 
@@ -473,6 +478,7 @@ classify_prod_dat <- function(datadir,
     # add encoded superclass col
     mutate(Superclass01 = 1) %>%
     select(-Other01)
+  # FITIT: add/define expected relationship = "" arguement to join
   
   # Repeat hierarchical joining with sealifebase: 
   
@@ -481,6 +487,7 @@ classify_prod_dat <- function(datadir,
     filter(Species01==1) %>%
     inner_join(sealifebase, 
                by=c("SciName" = "Species")) 
+  # FITIT: add/define expected relationship = "" arguement to join
   
   # Only genus level data in both prod and slb
   prod_slb_genus <- prod_taxa_names %>% 
@@ -489,6 +496,7 @@ classify_prod_dat <- function(datadir,
                by=c("SciName" = "Genus")) %>%
     mutate(Genus = SciName) %>%
     distinct()
+  # FITIT: add/define expected relationship = "" arguement to join
   
   # Only family level data in both prod and slb
   prod_slb_family <- prod_taxa_names %>% 
@@ -497,6 +505,7 @@ classify_prod_dat <- function(datadir,
                by=c("SciName" = "Family")) %>%
     mutate(Family = SciName) %>%
     distinct()
+  # FITIT: add/define expected relationship = "" arguement to join
   
   # Only order level data in both prod and slb - inferred by matching - not encoding 
   prod_slb_order <- prod_taxa_names %>% 
@@ -508,6 +517,7 @@ classify_prod_dat <- function(datadir,
     # add order col
     mutate(Order01 = 1) %>%
     select(-Other01)
+  # FITIT: add/define expected relationship = "" arguement to join
   
   # Only class level data in both prod and slb - inferred by matching - not encoding 
   prod_slb_class <- prod_taxa_names %>% 
@@ -520,6 +530,7 @@ classify_prod_dat <- function(datadir,
     # add class col
     mutate(Class01 = 1) %>%
     select(-Other01)
+  # FITIT: add/define expected relationship = "" arguement to join
   
   # Only phylum level data in both prod and slb - inferred by matching - not encoding 
   prod_slb_phylum <- prod_taxa_names %>% 
@@ -532,10 +543,12 @@ classify_prod_dat <- function(datadir,
     # add phylum col
     mutate(Phylum01 = 1) %>%
     select(-Other01)
+  # FITIT: add/define expected relationship = "" arguement to join
   
   # NO Kingdom matches, so stop here with taxa matching
   
-  # Only needed metadata columns (Species01, Genus01, etc) to match production data to fishbase and sealifebase classification; can now remove these 
+  # Only needed metadata columns (Species01, Genus01, etc) to match production 
+  # data to fishbase and sealifebase classification; can now remove these 
   # Bind all matched data frames together
   prod_fb_full <- prod_fb_species %>% 
     full_join(prod_fb_genus, 
@@ -638,15 +651,19 @@ classify_prod_dat <- function(datadir,
       prod_slb_full_newdat <- prod_taxa_names %>%
         filter(SciName == next_sciname) %>%
         mutate(SciName = accepted_name) %>%
-        inner_join(sealifebase, by=c("SciName" = "Species")) 
+        inner_join(sealifebase, by = c("SciName" = "Species")) 
       
       prod_ts <- prod_ts %>%
-        mutate(SciName = if_else(SciName==next_sciname, true = accepted_name, false = SciName))
+        mutate(SciName = if_else(SciName==next_sciname, 
+                                 true = accepted_name, 
+                                 false = SciName))
       
       if (nrow(prod_slb_full_newdat) > 0) {
         nomatch_species[i] <- accepted_name
         prod_slb_full <-prod_slb_full %>%
-          full_join(prod_slb_full_newdat, intersect(names(prod_slb_full), names(prod_slb_full_newdat))) # join by all columns
+          full_join(prod_slb_full_newdat, 
+                    intersect(names(prod_slb_full), 
+                              names(prod_slb_full_newdat))) # join by all columns
         
         slb_switches = slb_switches + 1
       }
@@ -661,7 +678,8 @@ classify_prod_dat <- function(datadir,
   post_match_missing_species <- post_match_missing_species[!(post_match_missing_species %in% prod_slb_full$SciName)]
   
   # Only species names were screened for synonyms, get all the non-matching, non-species names
-  nomatch_non_species <- nomatch_fb_and_slb[grepl(nomatch_fb_and_slb, pattern = " ") == FALSE]
+  nomatch_non_species <- nomatch_fb_and_slb[grepl(nomatch_fb_and_slb, 
+                                                  pattern = " ") == FALSE]
   
   nomatch_and_nosynonym <- c(post_match_missing_species, nomatch_non_species)
   nomatch_and_nosynonym <- sort(nomatch_and_nosynonym) # length = 0 i.e., all taxa in prod_ts now matched to classification info in rfishbase
