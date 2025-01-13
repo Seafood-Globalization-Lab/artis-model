@@ -1,5 +1,8 @@
 # TITLE: create_metadata.R
 
+
+# Setup -------------------------------------------------------------------
+
 # Load packages
 library(artis)
 library(tidyverse)
@@ -33,9 +36,8 @@ nceas_marine_aquaculture <- read.csv(file.path(datadir, "nceas_marine_aquacultur
 # Load SAU functional group data
 sau_functional_groups <- read.csv(file.path(datadir, "sau_species.csv"))
 
-#___________________________________________________________________________________________________________________#
-# Nutrient data
-#___________________________________________________________________________________________________________________#
+
+# Table - nutrient_metadata ---------------------------------------------------------------
 # Nutrient merge notes
 # - Standardizing names to join them across the data sets
 # - Deciding how best to aggregate up to broader taxonomic groups
@@ -67,9 +69,9 @@ sau_functional_groups <- read.csv(file.path(datadir, "sau_species.csv"))
 # 
 # write.csv(nutrient, file.path(outdir, "nutrient_metadata.csv"), row.names = FALSE)
 
-#___________________________________________________________________________________________________________________#
-# Clean scientific name information
-#___________________________________________________________________________________________________________________#
+
+# Table - sciname_metadata --------------------------------------------------
+
 # Create 1-to-1 matching for ISSCAAP
 isscaap_metadata <- prod %>%
   select(sciname, isscaap_group) %>%
@@ -211,9 +213,9 @@ taxa_metadata <- taxa_metadata %>%
 write.csv(taxa_metadata, file.path(outdir, "sciname_metadata.csv"), row.names = FALSE)
 
 
-#___________________________________________________________________________________________________________________#
-# Create sciname_prod_enviro_metadata
-#___________________________________________________________________________________________________________________#
+
+# Table - sciname_prod_enviro_metadata --------------------------------------
+
 # Create marine capture groups
 marine_capture_sciname <- prod %>%
   select(sciname, common_name, method, habitat, isscaap_group) %>%
@@ -382,9 +384,11 @@ nceas_groups <- marine_capture_sciname %>%
 
 write.csv(nceas_groups, file.path(outdir, "sciname_habitat_method_metadata.csv"), row.names = FALSE)
 
-#___________________________________________________________________________________________________________________#
+
+# Table - code_max_resolved_taxa  ------------------------------------------
+
 # Create commodity metadata
-#___________________________________________________________________________________________________________________#
+
 hs_taxa_match <- data.frame(Code = integer(),
                             SciName = character(),
                             Match_category = character(),
