@@ -692,23 +692,18 @@ classify_prod_dat <- function(datadir,
 # Data Check - missing taxa ------------------------------------------------
   # Check for any species in prod_ts that are not found in prod_fb_full or
   # prod_slb_full - should be exact same result as nomatch_and_nosynonym 
-  if(!any(
-    sort(
-      unique(prod_ts$SciName)[unique(prod_ts$SciName) %in% 
-                              c(prod_fb_full$SciName, prod_slb_full$SciName) == FALSE]) 
-    == nomatch_and_nosynonym)
-  ) {warning("`prod_ts` taxa missing from fb and slb matching does NOT match
+  if(!any(sort(unique(prod_ts$SciName)[unique(prod_ts$SciName) %in%
+                                       c(prod_fb_full$SciName, prod_slb_full$SciName) == FALSE])
+          == nomatch_and_nosynonym)) {
+    warning("`prod_ts` taxa missing from fb and slb matching does NOT match
   `nomatch_and_nosynonym` vector created after synonym matching. Needs to be exactly the same. Check for discrepancies.")
-    }
-  # Check if fb or slb introduced taxa not originally in prod_ts
-  if(length(  
-    c(prod_fb_full$SciName, prod_slb_full$SciName)[c(prod_fb_full$SciName, prod_slb_full$SciName) %in% unique(prod_ts$SciName) == FALSE]) 
-    == 0){warning("Taxa in fb or slb matching not found in original `prod_ts`. Check for discrepancies.")
-    
   }
-
-  # AM notes - not sure if these checks are needed, first one is the same as
-  # nomatch_and_nosynonym if sorted. Maybe that's the purpose. 
+  
+  # Check if fb or slb introduced taxa not originally in prod_ts
+  if (length(c(prod_fb_full$SciName, prod_slb_full$SciName)[c(prod_fb_full$SciName, prod_slb_full$SciName) %in% unique(prod_ts$SciName) == FALSE])
+      != 0) {
+    warning("Taxa in fb or slb matching not found in original `prod_ts`. Check for discrepancies.")
+  }
   
 # Join Aquarium Trade Data ------------------------------------------------
   
@@ -737,15 +732,11 @@ classify_prod_dat <- function(datadir,
            Saltwater01 = Saltwater) # to make it the same as previous version's code
 
 
-# Combine prod_fb_full, prod_slb_full, prod_ncbi_full -------------------------
+# Combine prod_fb_full, prod_slb_full -------------------------
   
   prod_taxa_classification <- prod_fb_full %>%
     full_join(prod_slb_full, 
               by = intersect(names(prod_fb_full), names(prod_slb_full))) %>%
-    # Rename clupea pallasii pallasii (rfishbase only recognizes subspecies-level for this taxa) back to clupea pallasii
-    mutate(SciName = if_else(SciName=="clupea pallasii pallasii", 
-                             true = "clupea pallasii", 
-                             false = SciName)) %>%
     # rename SuperClass
     rename(Superclass = SuperClass) %>%
     # Remove all metadata columns (e.g., Species01) - these were only used to join FAO production data with fishbase and sealifebase; not needed for hs_commod_matching
