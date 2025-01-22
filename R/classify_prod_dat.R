@@ -42,13 +42,10 @@ classify_prod_dat <- function(datadir,
       mutate_all(str_trim) %>%
       # Filter out groups not considered in this analysis  
       filter(!species_major_group %in% c("PLANTAE AQUATICAE",
-                                         "MAMMALIA",
-                                         "Crocodiles and alligators",
-                                         "Turtles",
-                                         "Frogs and other amphibians",
-                                         "Corals",
-                                         "Sponges", 
-                                         "Pearls, mother-of-pearl, shells")) %>%
+                                        "AMPHIBIA, REPTILIA",
+                                        "MAMMALIA"),
+             # includes corals, sponges, pearl oysters, shells 
+             !yearbook_group_en == "Other aq. animals & products") %>%
       # FIXIT: remove unused factor levels - but no columns are factors - could be the difference of reading in with read_csv() that converts text to chr vs read.csv() which can read text as factors. fread() reads in txt as chr
       droplevels() %>%
       
