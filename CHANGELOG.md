@@ -16,7 +16,19 @@ FIXIT: example changelog has Unrealeased header linked to "Comparing changes" pa
 
 ### Changed
 
-- xxx
+- FAO Production data `CL_FI_SPECIES_GROUPS.csv` file added a new column `Major_Group` and removed `Major_Group_En, Major_Group_Fr, Major_Group_Es, Major_Group_Ar, Major_Group_Cn, Major_Group_Ru` columns. New unique values in this column. 
+
+```
+> unique(prod_ts$species_major_group)
+[1] "PISCES"               
+[2] "CRUSTACEA"            
+[3] "MOLLUSCA"             
+[4] "INVERTEBRATA AQUATICA"
+[5] "PLANTAE AQUATICAE"    
+[6] "AMPHIBIA, REPTILIA"   
+[7] "MAMMALIA"  
+```
+
 - xxx
 
 ### Removed
