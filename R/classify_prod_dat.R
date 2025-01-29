@@ -389,6 +389,7 @@ classify_prod_dat <- function(datadir,
     arrange(SciName) %>%
     distinct()
   
+  ########## Fishbase and Sealifebase Matching ------------------------------
   # Load Fishbase and Sealifebase Databases 
   # Fishbase and Sealifebase Taxa Datasets
   fishbase <- fread(file.path(fb_slb_dir, "fb_taxa_info.csv"))
