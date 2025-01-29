@@ -15,22 +15,6 @@ outdir <- "AM_local/outputs"
 # the BACI release version used [yyyymmX]
 baci_version <- "202401b"
 
-# HS versions to run through the pipeline - add new versions here
-# No need to do HS92 when using BACI though as that data starts in 1996
-HS_versions <- c("96", "02", "07", "12", "17", "22")
-# Define start years for each HS_version - add new version here
-hs_start_years <- c("96" = 1996, "02" = 2002, "07" = 2007, "12" = 2012, 
-                    "17" = 2017, "22" = 2022) 
-
-# Get the latest HS version dynamically
-latest_data_year <- hs_start_years[[last(HS_versions)]]
-
-# Generate all possible combinations of HS versions and years dynamically
-hs_yr_combo_df <- do.call(rbind, lapply(HS_versions, function(hs) {
-  data.frame(HS_version = hs, 
-             analysis_year = seq(hs_start_years[[hs]], latest_data_year))
-}))
-
 # folder with raw BACI data
 baci_raw_dir <- file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw_v2_0", "baci_raw")
 baci_filtered_dir <- file.path(outdir, "baci_filtered", paste0("baci_", baci_version))
@@ -43,6 +27,23 @@ if (!dir.exists(outdir)) {
 } else {
   warning("OUTDIR already exists!")
 }
+
+### Set HS versions - add new versions here
+# (No HS92 when using BACI starts in 1996)
+HS_versions <- c("96", "02", "07", "12", "17", "22")
+
+# Define start years for each version - add new version here
+hs_start_years <- c("96" = 1996, "02" = 2002, "07" = 2007, "12" = 2012, 
+                    "17" = 2017, "22" = 2022) 
+
+# Get the latest HS version dynamically
+latest_data_year <- hs_start_years[[last(HS_versions)]]
+
+# Generate all possible combinations of HS versions and years dynamically
+hs_yr_combo_df <- do.call(rbind, lapply(HS_versions, function(hs) {
+  data.frame(HS_version = hs, 
+             analysis_year = seq(hs_start_years[[hs]], latest_data_year))
+}))
 
 # Load packages 
 library(artis)
