@@ -1,7 +1,10 @@
-# Clean input data
+# Clean raw input data
 
 ###############################################################################
-# Set directories and file naming variables
+
+# Setup -------------------------------------------------------------------
+
+# clear environment
 rm(list=ls())
 
 ### Set folder paths
@@ -9,10 +12,16 @@ rm(list=ls())
 datadir <- "model_inputs_raw"
 # where to write clean data files
 outdir <- "AM_local/outputs"
-# the BACI version used [yyyyvv]
-baci_version <- "202201"
+# the BACI version used [yyyymmX]
+baci_version <- "202401b"
+#FIXIT: could add this variable to load_baci setup - or automate further
+baci_latest_data_year <- 2022
+# with this
+HS_year <- c("96", "02", "07", "12", "17", "22")
+
 # folder with raw BACI data
-tradedatadir <- paste0("baci_raw/baci_", baci_version)
+baci_raw_dir <- file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw_v2_0", "baci_raw")
+baci_filtered_dir <- file.path(outdir, "baci_filtered", paste0("baci_", baci_version))
 # name of FAO Global Production .zip file (must be .zip)
 global_prod_filename <- "GlobalProduction_2024.1.0.zip"
 
@@ -23,7 +32,7 @@ if (!dir.exists(outdir)) {
   warning("OUTDIR already exists!")
 }
 
-# Load packages-----------------------------------------------------------------
+# Load packages 
 library(artis)
 library(tidyverse)
 library(countrycode)
@@ -31,13 +40,15 @@ library(doParallel)
 library(rfishbase)
 library(data.table)
 
-# Step 1: Load and clean production data and HS codes---------------------------
+
+# Set model variables -----------------------------------------------
+
+# Set TRUE if running SAU mode, FAO mode is FALSE
 running_sau <- FALSE
 
-## Set if new SeaLifeBase data collection needed:
+## Set if new Fishbase/SeaLifeBase data pull needed:
 need_new_slb <- FALSE
 
-#-------------------------------------------------------------------------------
 # If running a test environment with specific codes scinames this variable should be true else false
 test <- FALSE
 test_year <- 2018
@@ -52,7 +63,7 @@ if(test == TRUE){
   test_codes <- c("030617", "160529", "160521", "030627", "030616", "030626")
 }else{}
 
-#-------------------------------------------------------------------------------
+# Step 1: Production data and HS codes ---------------------------------
 # Load raw HS codes
 hs_data_raw <- fread(file.path(datadir, "All_HS_Codes.csv"), colClasses = "character")
 
@@ -241,6 +252,10 @@ if (running_sau) {
             file.path(outdir, "clean_taxa_combined.csv"),
             row.names = FALSE)
 }
+
+
+# HS taxa classification - sciname habitat --------------------------------
+
 # Make sure that prod taxa classification is classified to at least one of Species, Genus, Family, Other
 
 # Creating sciname habitat dataframe for habitat classification in hs taxa classification
@@ -258,18 +273,21 @@ sciname_habitat <- prod_taxa_classification %>%
 # Step 2: Create V1 and V2 for each HS version----------------------------------
 # Load and clean the conversion factor data and run the matching functions. 
 # This data will be used to create V1 and V2. 
-hs_data_clean <- clean_hs(hs_data_raw = fread(file.path(datadir, "All_HS_Codes.csv"), colClasses = "character"),
+hs_data_clean <- clean_hs(hs_data_raw = fread(file.path(datadir, "All_HS_Codes.csv"),
+                                              colClasses = "character"),
                           fb_slb_dir = current_fb_slb_dir)
 
 # Getting list of fmfo species
-fmfo_species <- get_fmfo_species(
-  datadir,
-  sau_fp = file.path(datadir, 'SAU_Production_Data.csv'),
-  taxa_fp = file.path(datadir, 'TaxonFunctionalCommercial_Clean.csv'),
-  fb_slb_dir = current_fb_slb_dir
+fmfo_species <- get_fmfo_species(datadir,
+                                 sau_fp = file.path(datadir, 'SAU_Production_Data.csv'),
+                                 taxa_fp = file.path(datadir,
+                                                     'TaxonFunctionalCommercial_Clean.csv'),
+                                 fb_slb_dir = current_fb_slb_dir
 )
 
-fwrite(fmfo_species, file.path(datadir, 'fmfo_species_list.csv'), row.names = FALSE)
+fwrite(fmfo_species, 
+       file.path(datadir, 'fmfo_species_list.csv'), 
+       row.names = FALSE)
 
 # List of possible HS versions: HS96, HS02, HS12, HS17
 HS_year <- c("96", "02", "07", "12", "17")
@@ -527,13 +545,14 @@ for(i in 1:length(HS_year)) {
 
 # List of possible HS versions: HS96, HS02, HS12, HS17
 # No need to do HS92 when using BACI though as that data starts in 1996
-df_years <- data.frame(HS_year = c(rep("96", length(1996:2020)),
-                                   rep("02", length(2002:2020)),
-                                   rep("07", length(2007:2020)),
-                                   rep("12", length(2012:2020)),
-                                   rep("17", length(2017:2020))),
-                       analysis_year = c(1996:2020, 2002:2020, 2007:2020,
-                                         2012:2020, 2017:2020))
+df_years <- data.frame(HS_year = c(rep("96", length(1996:2022)),
+                                   rep("02", length(2002:2022)),
+                                   rep("07", length(2007:2022)),
+                                   rep("12", length(2012:2022)),
+                                   rep("17", length(2017:2022)),
+                                   rep("22", length(2022:2022))),
+                       analysis_year = c(1996:2022, 2002:2022, 2007:2022,
+                                         2012:2022, 2017:2022, 2022:2022))
 
 if (test) {
   df_years <- df_years %>%
@@ -549,37 +568,46 @@ if (test) {
 for (i in 1:nrow(df_years)){
   HS_year <- df_years[i,]$HS_year
   analysis_year <- df_years[i,]$analysis_year
-  print(paste(HS_year, analysis_year))
+  #print(paste(HS_year, analysis_year))
   
   # Creating out folder if necessary
-  if (!file.exists(file.path(datadir, paste0("filtered_BACI_", "HS", HS_year, 
-                                             "_Y", analysis_year, "_V", 
-                                             baci_version, ".csv")))) {
-    baci_data_i <- fread(file = file.path(tradedatadir, 
-                                           paste0("BACI_", "HS", HS_year, "_V", baci_version),
-                                           paste0("BACI_", "HS", HS_year, "_Y", analysis_year, 
-                                                  "_V", baci_version, ".csv")),
-                            stringsAsFactors = FALSE)
+  if (!file.exists(file.path(baci_filtered_dir, 
+                             paste0("filtered_BACI_HS", HS_year, "_Y", 
+                                    analysis_year, "_V", baci_version, 
+                                    ".csv")))) {
+    
+    # read in individual baci (e.g. BACI_HS96_V202101/BACI_HS96_Y2021_V202101.csv)
+    baci_data_i <- fread(file = file.path(baci_raw_dir, 
+                                          paste0("BACI_HS", HS_year, "_V", 
+                                                 baci_version),
+                                          paste0("BACI_", "HS", HS_year, "_Y",
+                                                 analysis_year, 
+                                                 "_V", baci_version, ".csv")),
+                         stringsAsFactors = FALSE)
     
     baci_data_i  <- baci_data_i  %>%
       mutate(q = as.numeric(q)) %>%
       # NAs should only arise when q is "           NA" (whitespace included)
       filter(!is.na(q))
     
-    baci_data_i  <- load_baci(
-      baci_data_i ,
-      hs_codes = as.numeric(unique(hs_data_clean$Code)),
-      baci_country_codes = fread(file.path(tradedatadir, 
-                                              paste0("BACI_", "HS", HS_year, "_V", 
-                                                    baci_version),
-                                              paste0("country_codes_V", 
-                                                     baci_version, ".csv")))
-    )
+    baci_data_i <- load_baci(baci_data_i,
+                             hs_codes = as.numeric(unique(hs_data_clean$Code)),
+                             baci_country_codes = fread(file.path(baci_raw_dir, 
+                                                                  paste0("BACI_HS", 
+                                                                         HS_year, 
+                                                                         "_V", 
+                                                                         baci_version),
+                                                                  paste0("country_codes_V", 
+                                                                         baci_version, ".csv")
+                                                                  )
+                                                        )
+                             )
     
-    fwrite(baci_data_i, file.path(datadir, paste0("filtered_BACI_", "HS", 
-                                                  HS_year, "_Y", analysis_year, 
-                                                  "_V", baci_version, ".csv")),
-              row.names = FALSE)
+    fwrite(baci_data_i, 
+           file.path(baci_filtered_dir, paste0("filtered_BACI_", "HS", HS_year, "_Y", 
+                                     analysis_year, "_V", baci_version, ".csv")),
+           row.names = FALSE)
+    message(paste0("HS",HS_year, " ", analysis_year, " filtered BACI file created"))
   } else {
     print("Filtered BACI file already exists")
     }
