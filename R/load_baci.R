@@ -10,9 +10,9 @@ load_baci <- function(baci_data, hs_codes, baci_country_codes){
     full_join(baci_country_codes, 
               by = c("i" = "country_code")) %>%
     select(t, # year
-           exporter_iso3c = country_iso3, #AM - baci_country_codes$country_iso3 ? 
-           exporter_iso3n = i, #AM - still i (BACI country code/key)
-           exporter_country = country_name, #AM - baci_country_codes$country_name
+           exporter_iso3c = country_iso3, 
+           exporter_iso3n = i, 
+           exporter_country = country_name, 
            j, # BACI country code/key
            hs6, # HS product code
            v, # value
@@ -26,8 +26,8 @@ load_baci <- function(baci_data, hs_codes, baci_country_codes){
            exporter_iso3c, 
            exporter_iso3n, 
            exporter_country,
-           importer_iso3c = country_iso3, #AM - baci_country_codes$country_iso3?
-           importer_iso3n = j, # BACI country code/key
+           importer_iso3c = country_iso3, 
+           importer_iso3n = j,
            importer_country = country_name, 
            v, 
            q) %>%

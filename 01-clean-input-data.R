@@ -63,9 +63,7 @@ if(test == TRUE){
   test_codes <- c("030617", "160529", "160521", "030627", "030616", "030626")
 }else{}
 
-# Step 1: Production data and HS codes ---------------------------------
-# Load raw HS codes
-hs_data_raw <- fread(file.path(datadir, "All_HS_Codes.csv"), colClasses = "character")
+# Production sciname cleaning ---------------------------------
 
 # Generate new fishbase and sealifebase data files
 # Note: these do not need to be generated for each model run and can be done once per year/quarter
@@ -92,6 +90,7 @@ prod_list <- classify_prod_dat(datadir = datadir,
 # Reassign to separate objects:
 prod_data_raw <- prod_list[[1]] 
 prod_taxa_classification <- prod_list[[2]] %>%
+  # FIXIT: can this go inside classify_prod_dat?
   mutate(Fresh01 = case_when(
     SciName == "neocaridina denticulata" ~ as.integer(1),
     TRUE ~ as.integer(Fresh01)
@@ -106,6 +105,7 @@ prod_habitat <- prod_taxa_classification %>%
   select(SciName, Fresh01, Brack01, Saltwater01) %>%
   distinct()
 
+# FIXIT: Can this go inside classify_prod_dat?
 prod_data <- prod_data_raw %>%
   filter(quantity > 0) %>%
   # Filter to 1996 and on - earlier data quality is too low to justify cleaning 
@@ -159,6 +159,9 @@ if (test) {
 fwrite(prod_data, file = file.path(outdir, "clean_fao_prod.csv"), row.names = FALSE)
 fwrite(prod_taxa_classification, file = file.path(outdir, "clean_fao_taxa.csv"), row.names = FALSE)
 
+
+# Standardize countries - FAO production ----------------------------------
+
 prod_data <- standardize_countries(prod_data, "FAO")
 fwrite(prod_data, file = file.path(outdir, "standardized_fao_prod.csv"), row.names = FALSE)
 
@@ -166,6 +169,7 @@ rm(prod_list)
 
 # SAU data----------------------------------------------------------------------
 if (running_sau) {
+  # sciname cleaning
   prod_list_sau <- classify_prod_dat(datadir = datadir,
                                      filename = 'SAU_Production_Data.csv',
                                      prod_data_source = 'SAU',
@@ -173,10 +177,11 @@ if (running_sau) {
                                      fb_slb_dir = current_fb_slb_dir)
   
   prod_data_sau <- prod_list_sau[[1]] %>%
+    #FIXIT: is this already in classify_prod_dat?
     mutate(year = as.numeric(year)) %>%
     mutate(quantity = as.numeric(quantity)) %>%
     filter(quantity > 0) %>%
-    filter(year > 1995)
+    filter(year > 1995) 
   
   prod_data_sau <- prod_data_sau %>%
     # FIXIT: This may remove eez, sector, and end_use columns
@@ -270,7 +275,8 @@ sciname_habitat <- prod_taxa_classification %>%
                              Brack01 == 1 & Fresh01 == 0 & Saltwater01 == 0 ~ "marine",
                              TRUE ~ as.character(NA)))
 
-# Step 2: Create V1 and V2 for each HS version----------------------------------
+# Create V1 and V2 for each HS version----------------------------------
+
 # Load and clean the conversion factor data and run the matching functions. 
 # This data will be used to create V1 and V2. 
 hs_data_clean <- clean_hs(hs_data_raw = fread(file.path(datadir, "All_HS_Codes.csv"),
@@ -290,6 +296,7 @@ fwrite(fmfo_species,
        row.names = FALSE)
 
 # List of possible HS versions: HS96, HS02, HS12, HS17
+#FIXIT: move this to setup for more universal access? 
 HS_year <- c("96", "02", "07", "12", "17")
 
 if (test) {
@@ -300,15 +307,15 @@ if (test) {
 
 for(i in 1:length(HS_year)) {
   
-  hs_version <- paste0("HS", HS_year[i])
-  print(hs_version)
+  hs_version_i <- paste0("HS", HS_year[i])
+  print(hs_version_i)
   
   # Match HS codes to production taxa (can be FAO or SAU depending on which was used in clean_and_clasify_prod_dat function)
   hs_taxa_match <- match_hs_to_taxa(hs_data_clean = hs_data_clean,
                                     prod_taxa_classification = prod_taxa_classification,
                                     # species used for FMFO globally based on SAU data
                                     fmfo_species_list = fmfo_species,
-                                    hs_version = hs_version)
+                                    hs_version = hs_version_i)
   
   # Check that all species in hs taxa match are in the production data
   if (sum(!(unique(hs_taxa_match$SciName) %in% unique(prod_data$SciName))) > 0) {
@@ -450,17 +457,17 @@ for(i in 1:length(HS_year)) {
   
   # SAVE HS TAXA MATCH OUTPUT:
   fwrite(hs_taxa_match, file = file.path(outdir, 
-                                         paste0("hs-taxa-match_", hs_version, ".csv")), 
+                                         paste0("hs-taxa-match_", hs_version_i, ".csv")), 
          row.names = FALSE)
   
   
   # Determine which HS codes can be processed and turned into another HS code
   hs_hs_match <- match_hs_to_hs(hs_taxa_match = hs_taxa_match,
-                                hs_version = hs_version,
+                                hs_version = hs_version_i,
                                 prod_taxa_classification) #Can use any HS code year
   
   # SAVE HS TO HS MATCH OUTPUT
-  hs_hs_match_file <- paste0("hs-hs-match_", hs_version, ".csv")
+  hs_hs_match_file <- paste0("hs-hs-match_", hs_version_i, ".csv")
   # Change column names to align with EU terminology
   # Remove columns for taxa list
   hs_hs_output <- hs_hs_match %>%
@@ -500,11 +507,12 @@ for(i in 1:length(HS_year)) {
   # These CF's convert from commodity to the live weight equivalent (min value is therefore 1, for whole fish)
   set_match_criteria = "strict"
   hs_taxa_CF_match <- compile_cf(
-    conversion_factors = fread(file.path(datadir, "seafood_conversion_factors.csv"), stringsAsFactors = FALSE),
-                                 eumofa_data = fread(
-                                   file.path(datadir, "EUMOFA_compiled.csv"), stringsAsFactors = FALSE),
+    conversion_factors = fread(file.path(datadir, "seafood_conversion_factors.csv"),
+                               stringsAsFactors = FALSE),
+    eumofa_data = fread(file.path(datadir, "EUMOFA_compiled.csv"), 
+                        stringsAsFactors = FALSE),
     hs_hs_match,
-    hs_version,
+    hs_version_i,
     match_criteria = set_match_criteria,
     fb_slb_dir = current_fb_slb_dir)
   
@@ -532,18 +540,19 @@ for(i in 1:length(HS_year)) {
   
   # SAVE CONVERSION FACTORS OUTPUT
   cf_csv_name <- paste0("hs-taxa-CF_", set_match_criteria, 
-                        "-match_", hs_version, ".csv")
+                        "-match_", hs_version_i, ".csv")
   fwrite(hs_taxa_CF_match, file.path(outdir, cf_csv_name), row.names = FALSE)
   
-}
+} # end of HS version loop for HS codes and cfs
 
 
-##############################################################################
-# Step 3: Load trade (BACI) data, filter to just seafood products, and standardize countries between production and trade data
-###############################################################################
+
+# BACI filter and standardize ---------------------------
+
 # Create data frame with all hs year and analysis year combinations
 
-# List of possible HS versions: HS96, HS02, HS12, HS17
+# FIXTIT: Can generalize this based on variable set in setup for new data
+# List of possible HS versions: HS96, HS02, HS12, HS17, HS22
 # No need to do HS92 when using BACI though as that data starts in 1996
 df_years <- data.frame(HS_year = c(rep("96", length(1996:2022)),
                                    rep("02", length(2002:2022)),
@@ -560,95 +569,99 @@ if (test) {
            analysis_year == test_year)
 }
 
-###############################################################################
 # Load data file and filter for fish codes (i = exporter, j = importer, hs6 = HS code)
 # Note on warning message "Some values were not matched unambiguously: NULL" means all values were matched
 
-# Filter raw baci data
+# filter baci to relevant products with quantity data available and add country details
 for (i in 1:nrow(df_years)){
-  HS_year <- df_years[i,]$HS_year
-  analysis_year <- df_years[i,]$analysis_year
-  #print(paste(HS_year, analysis_year))
+  HS_year_i <- df_years[i,]$HS_year
+  analysis_year_i <- df_years[i,]$analysis_year
   
-  # Creating out folder if necessary
+  # Only run if filtered BACI file does not exist
   if (!file.exists(file.path(baci_filtered_dir, 
-                             paste0("filtered_BACI_HS", HS_year, "_Y", 
-                                    analysis_year, "_V", baci_version, 
+                             paste0("filtered_BACI_HS", HS_year_i, "_Y", 
+                                    analysis_year_i, "_V", baci_version, 
                                     ".csv")))) {
     
     # read in individual baci (e.g. BACI_HS96_V202101/BACI_HS96_Y2021_V202101.csv)
-    baci_data_i <- fread(file = file.path(baci_raw_dir, 
-                                          paste0("BACI_HS", HS_year, "_V", 
-                                                 baci_version),
-                                          paste0("BACI_", "HS", HS_year, "_Y",
-                                                 analysis_year, 
-                                                 "_V", baci_version, ".csv")),
-                         stringsAsFactors = FALSE)
+    baci_data_i <- fread(
+      file = file.path(baci_raw_dir, 
+                       paste0("BACI_HS", HS_year_i, "_V", baci_version),
+                       paste0("BACI_", "HS", HS_year_i, "_Y", analysis_year_i, 
+                              "_V", baci_version, ".csv")),
+      stringsAsFactors = FALSE)
     
+    # FIXIT: this can be inside load_baci function?
     baci_data_i  <- baci_data_i  %>%
       mutate(q = as.numeric(q)) %>%
       # NAs should only arise when q is "           NA" (whitespace included)
       filter(!is.na(q))
     
-    baci_data_i <- load_baci(baci_data_i,
-                             hs_codes = as.numeric(unique(hs_data_clean$Code)),
-                             baci_country_codes = fread(file.path(baci_raw_dir, 
-                                                                  paste0("BACI_HS", 
-                                                                         HS_year, 
-                                                                         "_V", 
-                                                                         baci_version),
-                                                                  paste0("country_codes_V", 
-                                                                         baci_version, ".csv")
-                                                                  )
-                                                        )
-                             )
-    
+    # join country info from `country_codes_V[release-version].csv` 
+    baci_data_i <- load_baci(
+      baci_data_i,
+      hs_codes = as.numeric(unique(hs_data_clean$Code)),
+      baci_country_codes = fread(file.path(baci_raw_dir, 
+                                           paste0("BACI_HS", HS_year_i, "_V", 
+                                                  baci_version),
+                                           paste0("country_codes_V", 
+                                                  baci_version, ".csv"))
+                                 )
+      )
+    # write out filtered baci data
     fwrite(baci_data_i, 
-           file.path(baci_filtered_dir, paste0("filtered_BACI_", "HS", HS_year, "_Y", 
-                                     analysis_year, "_V", baci_version, ".csv")),
+           file.path(baci_filtered_dir, 
+                     paste0("filtered_BACI_", "HS", HS_year_i, "_Y", 
+                            analysis_year_i, "_V", baci_version, ".csv")),
            row.names = FALSE)
-    message(paste0("HS",HS_year, " ", analysis_year, " filtered BACI file created"))
+    
+    message(paste0("HS",HS_year_i, " ", analysis_year_i, 
+                   " filtered BACI file created"))
+    
   } else {
     print("Filtered BACI file already exists")
     }
   } 
 
-# Standardize BACI data
+# Standardize BACI countries 
 for (i in 1:nrow(df_years)){
-  HS_year <- df_years[i,]$HS_year
-  analysis_year <- df_years[i,]$analysis_year
-  print(paste(HS_year, analysis_year))
+  HS_year_i <- df_years[i,]$HS_year
+  analysis_year_i <- df_years[i,]$analysis_year
+  #print(paste(HS_year, analysis_year))
   
+  # read in filtered BACI data created above
   baci_data <- fread(
-    file.path(datadir, 
-              paste0("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", 
+    file.path(baci_filtered_dir, 
+              paste0("filtered_BACI_", "HS", HS_year_i, "_Y", analysis_year_i, "_V", 
                      baci_version, ".csv")))
   
+  # add year and hs_version columns
   baci_data <- baci_data %>%
-    mutate(year = analysis_year,
-           hs_version = paste0("HS", HS_year))
+    mutate(year = analysis_year_i,
+           hs_version = paste0("HS", HS_year_i))
   
+  # 
   baci_data <- standardize_countries(baci_data, "BACI")
   
   # BACI output used to generate ARTIS (keeps legacy dataframe format)
   fwrite(
     baci_data %>%
       select(-c(total_v)),
-    file.path(outdir, paste0("standardized_baci_seafood_hs", HS_year, "_y", 
-                            analysis_year, ".csv")),
+    file.path(outdir, paste0("standardized_baci_seafood_hs", HS_year_i, "_y", 
+                            analysis_year_i, ".csv")),
     row.names = FALSE
   )
 
   # BACI output with total and unit value
   fwrite(
     baci_data,
-    file.path(outdir, paste0("standardized_baci_seafood_hs", HS_year, "_y", 
-                             analysis_year, "_including_value.csv")),
+    file.path(outdir, paste0("standardized_baci_seafood_hs", HS_year_i, "_y", 
+                             analysis_year_i, "_including_value.csv")),
     row.names = FALSE
   )
-}
+} # end of standardize baci data loop
 
-# Clean FAO population data
+# Clean FAO population data --------------------------------------------------
 pop_raw <- fread(file.path(datadir, "Population_E_All_Data/Population_E_All_Data_NOFLAG.csv"))
 
 clean_pop <- pop_raw %>%
@@ -701,7 +714,7 @@ clean_pop <- clean_pop %>%
 # Standardizing Countries
 clean_fao <- fread(file.path(datadir, "standard_fao_countries.csv"))
 clean_pop <- clean_pop %>%
-  filter(year <= 2020) %>%
+  filter(year <= 2020) %>% #FIXIT: does this need updating? make dynamic with setup variable
   left_join(
     clean_fao,
     by = c("iso3c", "year")

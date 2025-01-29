@@ -29,7 +29,8 @@ FIXIT: example changelog has Unrealeased header linked to "Comparing changes" pa
 [7] "MAMMALIA"  
 ```
 
-- xxx
+- BACI new columns in country_codes_V202401b.csv that requires updating the `load_baci.R` script. Old columns were `country_code`, `country_name_abvbreviation`,`country_name_full`, `iso2digit_alpha`, and `iso3digit_alpha`. The new version columns are `country_code`, `country_name`, `country_iso2`, and `country_iso3`. 
+
 
 ### Removed
 
