@@ -162,7 +162,8 @@ fwrite(prod_taxa_classification, file = file.path(outdir, "clean_fao_taxa.csv"),
 
 # Standardize countries - FAO production ----------------------------------
 
-prod_data <- standardize_countries(prod_data, "FAO")
+prod_data <- standardize_countries(df = prod_data,
+                                   data_source = "FAO")
 fwrite(prod_data, file = file.path(outdir, "standardized_fao_prod.csv"), row.names = FALSE)
 
 rm(prod_list)
@@ -233,8 +234,8 @@ if (running_sau) {
                                               destination = 'iso3n'))
   
   # standardize countries for SAU production
-  prod_data_sau <- standardize_countries(prod_data_sau, 
-                                         "FAO", 
+  prod_data_sau <- standardize_countries(df = prod_data_sau,
+                                         data_source = "FAO", 
                                          all_sau_cols = TRUE)
   
   fwrite(prod_data_sau, file.path(outdir, 'standardized_sau_prod.csv'), row.names = FALSE)
@@ -547,7 +548,7 @@ for(i in 1:length(HS_year)) {
 
 
 
-# BACI filter and standardize ---------------------------
+# BACI filter and standardize ------------------------------------------------
 
 # Create data frame with all hs year and analysis year combinations
 
@@ -630,22 +631,23 @@ for (i in 1:nrow(df_years)){
   #print(paste(HS_year, analysis_year))
   
   # read in filtered BACI data created above
-  baci_data <- fread(
+  baci_data_i <- fread(
     file.path(baci_filtered_dir, 
               paste0("filtered_BACI_", "HS", HS_year_i, "_Y", analysis_year_i, "_V", 
                      baci_version, ".csv")))
   
   # add year and hs_version columns
-  baci_data <- baci_data %>%
+  baci_data_i <- baci_data_i %>%
     mutate(year = analysis_year_i,
            hs_version = paste0("HS", HS_year_i))
   
-  # 
-  baci_data <- standardize_countries(baci_data, "BACI")
+  # Standardize countries
+  baci_data_i <- standardize_countries(df = baci_data_i, 
+                                       data_source = "BACI")
   
   # BACI output used to generate ARTIS (keeps legacy dataframe format)
   fwrite(
-    baci_data %>%
+    baci_data_i %>%
       select(-c(total_v)),
     file.path(outdir, paste0("standardized_baci_seafood_hs", HS_year_i, "_y", 
                             analysis_year_i, ".csv")),
@@ -654,7 +656,7 @@ for (i in 1:nrow(df_years)){
 
   # BACI output with total and unit value
   fwrite(
-    baci_data,
+    baci_data_i,
     file.path(outdir, paste0("standardized_baci_seafood_hs", HS_year_i, "_y", 
                              analysis_year_i, "_including_value.csv")),
     row.names = FALSE
