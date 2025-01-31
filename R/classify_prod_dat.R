@@ -72,14 +72,14 @@ classify_prod_dat <- function(datadir,
           SciName == "auxis thazard, a. rochei" ~ "auxis spp",
           SciName == "clarias gariepinus x c. macrocephalus" ~ "clarias spp",
           # Colossoma macropomum x Piaractus brachypomus
-          SciName == "c. macropomum x p. brachypomus" ~ "serrasalmidae",
+          SciName == "c. macropomum x p. brachypomus" ~ "serrasalmidae", ##### AM - keep no worms match
           SciName == "loliginidae, ommastrephidae" ~ "teuthida",
           SciName == "merluccius capensis, m.paradoxus" ~ "merluccius",
           SciName == "morone chrysops x m. saxatilis" ~ "morone spp",
           SciName == "oreochromis aureus x o. niloticus" ~ "oreochromis",
           SciName == "osmerus spp, hypomesus spp" ~ "osmeridae",
           # Piaractus mesopotamicus x Colossoma macropomum
-          SciName == "p. mesopotamicus x c. macropomum" ~ "serrasalmidae",
+          SciName == "p. mesopotamicus x c. macropomum" ~ "serrasalmidae", #### AM - Keep no worms match
           # essentially, an unidentified shark; code currently defines sharks
           # as a list of orders, assign to carcharhiniformes for now
           SciName == "selachimorpha (pleurotremata)" ~ "carcharhiniformes",
@@ -87,31 +87,31 @@ classify_prod_dat <- function(datadir,
           SciName == "sepiidae, sepiolidae" ~ "sepiidae",
           # two different orders of sharks; code currently defines sharks as a
           # list of orders, assign to carcharhiniformes for now
-          SciName == "squalidae, scyliorhinidae" ~ "carcharhiniformes",
-          SciName == "stolothrissa, limnothrissa" ~ "clupeidae",
-          SciName == "stolothrissa, limnothrissa spp" ~ "clupeidae",
-          SciName == "xiphopenaeus, trachypenaeus" ~ "penaeidae",
-          SciName == "xiphopenaeus, trachypenaeus spp" ~ "penaeidae",
+          SciName == "squalidae, scyliorhinidae" ~ "carcharhiniformes", #AM squaliformes order seems more appropriate. 
+          SciName == "stolothrissa, limnothrissa" ~ "clupeidae", #AM - this is clearly incorrect - should be "dorosomatidae" family.
+          SciName == "stolothrissa, limnothrissa spp" ~ "clupeidae", #AM - not records of this
+          SciName == "xiphopenaeus, trachypenaeus" ~ "penaeidae", #AM - keep this
+          SciName == "xiphopenaeus, trachypenaeus spp" ~ "penaeidae", #AM - not in prod_ts
           # Matched to the larger family because genus was different
-          SciName == "h. longifilis x c. gariepinus" ~ "clariidae",
+          SciName == "h. longifilis x c. gariepinus" ~ "clariidae", #### AM - keep no worms match
           # matched by same genus
-          SciName == "e. fuscoguttatus x e. lanceolatus" ~ "epinephelus",
+          SciName == "e. fuscoguttatus x e. lanceolatus" ~ "epinephelus", ##### AM - keep no worms match
           # common genus between both
           SciName == "alosa alosa, a. fallax" ~ "alosa spp",
 
           #### Manually fix outdated names:
           SciName == "branchiostegidae" ~ "malacanthidae",
           SciName == "caspialosa spp" ~ "alosa spp",
-          SciName == "invertebrata" ~ "asteroidea",
+          SciName == "invertebrata" ~ "asteroidea", #### AM - keep no worms match
           # assign to asteroidea for now; downstream code defines aquatic invertebrates
           # as list of classes (if we went by phylum, ascidians would be omitted as chordata)
           SciName == "mobulidae" ~ "myliobatidae",
           SciName == "natantia" ~ "crangonidae",
           # natantia is obsolete term for "shrimp"; assign to order = crangonidae for now
-          SciName == "reptantia" ~ "cancridae",
+          SciName == "reptantia" ~ "cancridae", #AM- this seems like way to big of a jump
           # reptantia is obsolete term for "crab"; multiple families of crab,
           # assign to family = "cancridae" for now
-          SciName == "siluroidei" ~ "siluriformes",
+          SciName == "siluroidei" ~ "siluriformes", #AM - keep this
           SciName == "aliger gigas" ~ "lobatus gigas",
           # Queen Conch
           SciName == "liza spp" ~ "planiliza spp",
@@ -120,16 +120,16 @@ classify_prod_dat <- function(datadir,
           #### Incorrect Names (corrected via common name):
           SciName == "mytilus unguiculatus" ~ "mytilus coruscus",
           # Korean Mussel
-          SciName == "tritia mutabilis" ~ "nassarius mutabilis",
+          SciName == "tritia mutabilis" ~ "nassarius mutabilis", #AM - OG sciname in slb
           # Mutable/Changeable Nassa
-          SciName == "tritia reticulata" ~ "nassarius reticulatus",
+          SciName == "tritia reticulata" ~ "nassarius reticulatus", #AM remove - worms match
           # Netted Dog whelk
 
           ### Fix spelling errors:
           SciName == "herklotsichthys quadrimaculat." ~ "herklotsichthys quadrimaculatus",
           SciName == "pleuronectes quadrituberculat." ~ "pleuronectes quadrituberculatus",
           SciName == "pseudopleuronectes herzenst." ~ "pseudopleuronectes herzensteini",
-          SciName == "salmonoidei" ~ "salmonidae",
+          SciName == "salmonoidei" ~ "salmonidae", #### AM - keep no worms match
           SciName == "mobulinae" ~ "mobulidae",
           SciName == "moroteuthopsis ingens" ~ "onykia ingens",
           SciName == "pandalus spp, pandalopsis spp" ~ "pandalus spp",
@@ -196,7 +196,7 @@ classify_prod_dat <- function(datadir,
           # whelk
 
           ### Tribe to genus name
-          SciName == "thunnini" ~ "thunnus spp",
+          SciName == "thunnini" ~ "thunnus spp", ### AM - keep no worms match
 
           ### Keep all other SciNames as is:
           TRUE ~ SciName
