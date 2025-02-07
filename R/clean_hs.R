@@ -31,23 +31,35 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
   # Rewrite (Aguilla) and (Channa) as (Aguilla spp.) annd (Channa spp.)
  
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "of the genera pecten, chlamys or placopecten"), 
-                                 str_replace(hs_data$Description, pattern = "of the genera pecten, chlamys or placopecten", replacement = "of pecten spp., chlamy spp., or placopecten spp."),
+    mutate(Description = if_else(str_detect(string = hs_data$Description, 
+                                            pattern = "of the genera pecten, chlamys or placopecten"), 
+                                 str_replace(hs_data$Description, 
+                                             pattern = "of the genera pecten, chlamys or placopecten", 
+                                             replacement = "of pecten spp., chlamy spp., or placopecten spp."),
                                  Description))
 
   hs_data <- hs_data %>%
-    mutate(Description =  if_else(str_detect(string = hs_data$Description, pattern = "of the genus thunnus"), 
-                                  str_replace(hs_data$Description, pattern = "of the genus thunnus", replacement = "of thunnus spp."),
+    mutate(Description =  if_else(str_detect(string = hs_data$Description, 
+                                             pattern = "of the genus thunnus"), 
+                                  str_replace(hs_data$Description, 
+                                              pattern = "of the genus thunnus", 
+                                              replacement = "of thunnus spp."),
                                   Description))
   
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "\\(anguilla\\)"), 
-                                 str_replace(hs_data$Description, pattern = "\\(anguilla\\)", replacement = "\\(anguilla spp.\\)"),
+    mutate(Description = if_else(str_detect(string = hs_data$Description, 
+                                            pattern = "\\(anguilla\\)"), 
+                                 str_replace(hs_data$Description, 
+                                             pattern = "\\(anguilla\\)", 
+                                             replacement = "\\(anguilla spp.\\)"),
                                  Description))
   
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "\\(channa\\)"),
-                                 str_replace(hs_data$Description, pattern = "\\(channa\\)", replacement = "\\(channa spp.\\)"),
+    mutate(Description = if_else(str_detect(string = hs_data$Description, 
+                                            pattern = "\\(channa\\)"),
+                                 str_replace(hs_data$Description, 
+                                             pattern = "\\(channa\\)", 
+                                             replacement = "\\(channa spp.\\)"),
                                  Description))
   
   ###############################################################
@@ -60,7 +72,8 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
   # From full taxa list above, only include those taxa not already mentioned in the 0302.4 heading
   hs_data <- hs_data %>%
     mutate(Description = if_else(str_detect(string = hs_data$Code, pattern = "030249"), 
-                                 str_replace(hs_data$Description, pattern = "fresh or chilled,", 
+                                 str_replace(hs_data$Description, 
+                                             pattern = "fresh or chilled,", 
                                              replacement = "fresh or chilled (rastrelliger spp., scomberomorus spp., caranx spp., pampus spp., 
                                              cololabis saira, decapterus spp., mallotus villosus, euthynnus affinis, sarda spp., istiophoridae),"),
                                  Description))
@@ -69,15 +82,18 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
   # Note, the list of possible taxa in 2012 (H4 classification) was later split into two in 2017 (H5 classification)
   # For H5 Classification year: Bregmacerotidae, Euclichthyidae Gadidae, Macrouridae, Melanonidae, Merlucciidae, Moridae and Muraenolepididae
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Code, pattern = "030259") & hs_data$Classification == "H5", 
+    mutate(Description = if_else(str_detect(string = hs_data$Code, 
+                                            pattern = "030259") & hs_data$Classification == "H5", 
                                  str_replace(hs_data$Description, pattern = "fresh or chilled,", 
                                              replacement = "fresh or chilled, bregmacerotidae, euclichthyidae, gadidae, macrouridae, melanonidae, merlucciidae, moridae, and muraenolepididae"),
                                  Description))
   
   # For H4 Classification year, 030259 is a combination of 030249 and 030259 from H5 Classification year
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Code, pattern = "030259") & hs_data$Classification == "H4", 
-                                 str_replace(hs_data$Description, pattern = "fresh or chilled,", 
+    mutate(Description = if_else(str_detect(string = hs_data$Code, 
+                                            pattern = "030259") & hs_data$Classification == "H4", 
+                                 str_replace(hs_data$Description, 
+                                             pattern = "fresh or chilled,", 
                                              replacement = "fresh or chilled (rastrelliger spp., scomberomorus spp., caranx spp., pampus spp., cololabis saira, decapterus spp.,
                                              mallotus villosus, euthynnus affinis, sarda spp., istiophoridae, bregmacerotidae, euclichthyidae, gadidae, macrouridae, melanonidae, 
                                              merlucciidae, moridae, muraenolepididae"),
@@ -100,11 +116,14 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
   # Description for Codes 030419, 030429, and 030499 break from rest of parent group 0304 by indicating species rather than heading number
   # Heading number is needed to identify codes where remaining possible_prod_taxa should be matched and then reset
   hs_data <- hs_data %>%
-    mutate(Description = case_when(Code == "030419" ~ str_replace(hs_data$Description, pattern = "swordfish \\(xiphias gladius\\) and toothfish \\(dissostichus spp.\\)", 
+    mutate(Description = case_when(Code == "030419" ~ str_replace(hs_data$Description, 
+                                                                  pattern = "swordfish \\(xiphias gladius\\) and toothfish \\(dissostichus spp.\\)", 
                                                                   replacement = "fish of heading 0304.1"),
-                                   Code == "030429" ~ str_replace(hs_data$Description, pattern = "swordfish \\(xiphias gladius\\) and toothfish \\(dissostichus spp.\\)", 
+                                   Code == "030429" ~ str_replace(hs_data$Description, 
+                                                                  pattern = "swordfish \\(xiphias gladius\\) and toothfish \\(dissostichus spp.\\)", 
                                                                   replacement = "fish of heading 0304.2"),
-                                   Code == "030499" ~ str_replace(hs_data$Description, pattern = "swordfish \\(xiphias gladius\\) and toothfish \\(dissostichus spp.\\)", 
+                                   Code == "030499" ~ str_replace(hs_data$Description, 
+                                                                  pattern = "swordfish \\(xiphias gladius\\) and toothfish \\(dissostichus spp.\\)", 
                                                                   replacement = "fish of heading 0304.9"),
                                    TRUE ~ Description))
   
@@ -113,34 +132,44 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
   # Pattern: other than cod (Gadus morhua, Gadus ogac, Gadus macrocephalus)
   # Replacement: n.e.c. in item no. 0305.5
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Code, pattern = "030559"), 
-                                 str_replace(hs_data$Description, pattern = "other than cod \\(gadus morhua, gadus ogac, gadus macrocephalus\\)", 
+    mutate(Description = if_else(str_detect(string = hs_data$Code, 
+                                            pattern = "030559"), 
+                                 str_replace(hs_data$Description, 
+                                             pattern = "other than cod \\(gadus morhua, gadus ogac, gadus macrocephalus\\)", 
                                              replacement = "n.e.c. in item no. 0305.5"),
                                  Description))
   
   # Description for code 030890 is a "true" NEC code in that all taxa not matched to other codes in this parent group should go here
   # Change Description to have "NEC" pattern so that it fits into matching logic
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Code, pattern = "030890"), 
-                                 str_replace(hs_data$Description, pattern = "other than crustaceans, molluscs, sea urchins, sea cucumbers and jellyfish", 
+    mutate(Description = if_else(str_detect(string = hs_data$Code, 
+                                            pattern = "030890"), 
+                                 str_replace(hs_data$Description, 
+                                             pattern = "other than crustaceans, molluscs, sea urchins, sea cucumbers and jellyfish", 
                                              replacement = "n.e.c. in heading 0308"),
                                  Description))
   
   ##############################################################################################################
   # Deal with species names that are weirdly formatted (violates assumption of comma-delimited lists of species)
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "oncorhynchus mykiss/clarki/aguabonita/gilae/apache/chrysogaster"), 
-                                 str_replace(hs_data$Description, pattern = "oncorhynchus mykiss/clarki/aguabonita/gilae/apache/chrysogaster",
+    mutate(Description = if_else(str_detect(string = hs_data$Description, 
+                                            pattern = "oncorhynchus mykiss/clarki/aguabonita/gilae/apache/chrysogaster"), 
+                                 str_replace(hs_data$Description, 
+                                             pattern = "oncorhynchus mykiss/clarki/aguabonita/gilae/apache/chrysogaster",
                                              replacement = "oncorhynchus mykiss, oncorhynchus clarki, oncorhynchus aguabonita, 
                                              oncorhynchus gilae, oncorhynchus apache, oncorhynchus chrysogaster"),
                                  
-                                 if_else(str_detect(string = hs_data$Description, pattern = "oncorhynchus nerka, gorbuscha, keta, tschawytscha, kisutch, masou, rhodurus"), 
-                                         str_replace(hs_data$Description, pattern = "oncorhynchus nerka, gorbuscha, keta, tschawytscha, kisutch, masou, rhodurus",
+                                 if_else(str_detect(string = hs_data$Description, 
+                                                    pattern = "oncorhynchus nerka, gorbuscha, keta, tschawytscha, kisutch, masou, rhodurus"), 
+                                         str_replace(hs_data$Description, 
+                                                     pattern = "oncorhynchus nerka, gorbuscha, keta, tschawytscha, kisutch, masou, rhodurus",
                                                      replacement = "oncorhynchus nerka, oncorhynchus gorbuscha, oncorhynchus keta, oncorhynchus tschawytscha, 
                                                      oncorhynchus kisutch, oncorhynchus masou, oncorhynchus rhodurus"),
                                          
-                                         if_else(str_detect(string = hs_data$Description, pattern = "oncorhynchus gorbuscha/keta/tschawytscha/ kisutch/masou/rhodurus"), 
-                                                 str_replace(hs_data$Description, pattern = "oncorhynchus gorbuscha/keta/tschawytscha/ kisutch/masou/rhodurus",
+                                         if_else(str_detect(string = hs_data$Description, 
+                                                            pattern = "oncorhynchus gorbuscha/keta/tschawytscha/ kisutch/masou/rhodurus"), 
+                                                 str_replace(hs_data$Description, 
+                                                             pattern = "oncorhynchus gorbuscha/keta/tschawytscha/ kisutch/masou/rhodurus",
                                                              replacement = "oncorhynchus gorbuscha, oncorhynchus keta, oncorhynchus tschawytscha, 
                                                              oncorhynchus kisutch, oncorhynchus masou, oncorhynchus rhodurus"),
                                                  
@@ -151,8 +180,10 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
                                                                      replacement = "cyprinus spp., carassius spp., ctenopharyngodon idellus, hypophthalmichthys spp., cirrhinus spp., mylopharyngodon piceus, catla catla, labeo spp., 
                                                                      osteochilus hasselti, leptobarbus hoeveni, megalobrama spp."),
                                                          
-                                                         if_else(str_detect(string = hs_data$Description, pattern = "oncorhynchus gorbuscha/keta/tschawytscha/kisutch/masou/rhodurus"), 
-                                                                 str_replace(hs_data$Description, pattern = "oncorhynchus gorbuscha/keta/tschawytscha/kisutch/masou/rhodurus",
+                                                         if_else(str_detect(string = hs_data$Description, 
+                                                                            pattern = "oncorhynchus gorbuscha/keta/tschawytscha/kisutch/masou/rhodurus"), 
+                                                                 str_replace(hs_data$Description, 
+                                                                             pattern = "oncorhynchus gorbuscha/keta/tschawytscha/kisutch/masou/rhodurus",
                                                                              replacement = "oncorhynchus gorbuscha, oncorhynchus keta, oncorhynchus tschawytscha, oncorhynchus kisutch, oncorhynchus masou, oncorhynchus rhodurus"),
                                                                              Description))))))
   
@@ -163,24 +194,31 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
   # FLAT FISH defined as: Pleuronectiformes
   # hs_data$Description[grep("flat fish", hs_data$Description)] check which rows should be changed
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "flat fish"), 
-                                 str_replace(hs_data$Description, pattern = "flat fish", replacement = "flat fish, pleuronectiformes"),
+    mutate(Description = if_else(str_detect(string = hs_data$Description, 
+                                            pattern = "flat fish"), 
+                                 str_replace(hs_data$Description, 
+                                             pattern = "flat fish", 
+                                             replacement = "flat fish, pleuronectiformes"),
                                  Description))
   
   # SKIPJACK (or stripe-bellied bonito) defined as: "(Katsuwonus pelamis)" - parentheses important because this is what downstream code uses to extract species 
   # hs_data$Description[grep("skipjack", hs_data$Description)] check which rows should be changed
   # Match pattern with "skipjack" instead of "stripe-bellied bonito" so that it doesn't get confused with "bonito" (Sarda spp.)
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "skipjack"), 
-                                 str_replace(hs_data$Description, pattern = "skipjack", replacement = "skipjack \\(katsuwonus pelamis\\)"),
+    mutate(Description = if_else(str_detect(string = hs_data$Description, 
+                                            pattern = "skipjack"), 
+                                 str_replace(hs_data$Description, pattern = "skipjack", 
+                                             replacement = "skipjack \\(katsuwonus pelamis\\)"),
                                  Description))
   
   # SKIPJACK, in some cases is defined as: (Euthynnus (Katsuwonus) pelamis)
   # Weirdly formatted species name, just remove this
   # hs_data$Description[grep("Katsuwonus", x = hs_data$Description)]
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "\\(euthynnus \\(katsuwonus\\) pelamis\\)"), 
-                                 str_remove(hs_data$Description, pattern = "\\(euthynnus \\(katsuwonus\\) pelamis\\)"),
+    mutate(Description = if_else(str_detect(string = hs_data$Description, 
+                                            pattern = "\\(euthynnus \\(katsuwonus\\) pelamis\\)"), 
+                                 str_remove(hs_data$Description, 
+                                            pattern = "\\(euthynnus \\(katsuwonus\\) pelamis\\)"),
                                  Description))
   
   
@@ -188,8 +226,10 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
   # Note: need to grep Descriptions that have "tuna" but not "Thunnus" (or "thunnus") - i.e., don't already give species name
   # grep_check <- grepl("tuna", hs_data$Description)==TRUE & grepl("Thunnus|thunnus", hs_data$Description)==FALSE
   hs_data <- hs_data %>% 
-    mutate(Description = if_else(grepl("tuna", hs_data$Description)==TRUE & grepl("thunnus", hs_data$Description)==FALSE, 
-                                 str_replace(hs_data$Description, pattern = "tuna", replacement = "tuna (thunnus spp., allothunnus spp., auxis spp., euthynnus spp., katsuwonus spp.)"),
+    mutate(Description = if_else(grepl("tuna", hs_data$Description) == TRUE & 
+                                   grepl("thunnus", hs_data$Description)==FALSE, 
+                                 str_replace(hs_data$Description, pattern = "tuna", 
+                                             replacement = "tuna (thunnus spp., allothunnus spp., auxis spp., euthynnus spp., katsuwonus spp.)"),
                                  Description))
 
   # SHARKS defined as: (Order %in% c("carcharhiniformes", "heterodontiformes", "hexanchiformes", "lamniformes", "orectolobiformes", "pristiophoriformes", "squaliformes", "squantiniformes"))
@@ -197,15 +237,16 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
   # Note: Do this replacement for both "sharks" and "shark fins" 
   hs_data <- hs_data %>% 
     mutate(Description = if_else(grepl("sharks|shark fins", hs_data$Description), 
-                                 paste(hs_data$Description, " (carcharhiniformes, chimaeriformes, heterodontiformes, hexanchiformes, lamniformes, orectolobiformes, 
-                                       pristiophoriformes, squaliformes, squantiniformes)", sep = ""),
+                                 paste0(hs_data$Description, " (carcharhiniformes, chimaeriformes, heterodontiformes, hexanchiformes, lamniformes, orectolobiformes, 
+                                       pristiophoriformes, squaliformes, squantiniformes)"),
                                  Description))
   
   
   # CARP defined as: "Cyprinus spp., Carassius spp., Ctenopharyngodon idellus, Hypophthalmichthys spp., Cirrhinus spp., Mylopharyngodon piceus, Catla catla, Labeo spp., Osteochilus hasselti, Leptobarbus hoeveni, Megalobrama spp."
   # Only insert definitions for those descriptions that don't already have a carp definition (i.e., Cyprinus == FALSE)
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "carp")==TRUE & str_detect(string = hs_data$Description, pattern = "cyprinus")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "carp") == TRUE & 
+                                   str_detect(string = hs_data$Description, pattern = "cyprinus") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "carp", 
                                              replacement = "carp (cyprinus spp., carassius spp., ctenopharyngodon idellus, hypophthalmichthys spp., 
                                              cirrhinus spp., mylopharyngodon piceus, catla catla, labeo spp., osteochilus hasselti, leptobarbus hoeveni, megalobrama spp.)"),
@@ -214,161 +255,184 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
   # TILAPIA defined as: Oreochromis spp.
   # Some codes already have a definition so only insert definitions for those that don't already have one (i.e., Oreochromis == FALSE)
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "tilapia")==TRUE & str_detect(string = hs_data$Description, pattern = "oreochromis")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "tilapia") == TRUE & 
+                                   str_detect(string = hs_data$Description, pattern = "oreochromis")==FALSE, 
                                  str_replace(hs_data$Description, pattern = "tilapia", 
                                              replacement = "tilapia (oreochromis spp.)"),
                                  Description))
   
   # CATFISH defined as: Pangasius spp., Silurus spp., Clarias spp., Ictalurus spp.
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "catfish")==TRUE & str_detect(string = hs_data$Description, pattern = "pangasius")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "catfish") == TRUE & 
+                                   str_detect(string = hs_data$Description, pattern = "pangasius") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "catfish", 
                                              replacement = "catfish (pangasius spp., silurus spp., clarias spp., ictalurus spp.)"),
                                  Description))
   
   # EEL defined as Anguilla sp.
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "eel")==TRUE & str_detect(string = hs_data$Description, pattern = "anguilla")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "eel") == TRUE & 
+                                   str_detect(string = hs_data$Description, pattern = "anguilla") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "eel", 
                                              replacement = "eel (anguilla spp.)"),
                                  Description))
   
   # NILE PERCH defined as: Lates niloticus
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "nile perch")==TRUE & str_detect(string = hs_data$Description, pattern = "lates")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "nile perch") == TRUE &
+                                   str_detect(string = hs_data$Description, pattern = "lates") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "nile perch", 
                                              replacement = "nile perch (lates niloticus)"),
                                  Description))
   
   # SNAKEHEAD defined as: Channa spp.
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "snakehead")==TRUE & str_detect(string = hs_data$Description, pattern = "channa")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "snakehead") == TRUE &
+                                   str_detect(string = hs_data$Description, pattern = "channa") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "snakehead", 
                                              replacement = "snakehead (channa spp.)"),
                                  Description))
   
   # HERRING defined as: Clupea harengus, Clupea pallasii
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "herring")==TRUE & str_detect(string = hs_data$Description, pattern = "clupea")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "herring") == TRUE & 
+                                   str_detect(string = hs_data$Description, pattern = "clupea") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "herring", 
                                              replacement = "herring (clupea harengus, clupea pallasii)"),
                                  Description))
   
   # SARDINES defined as: Sardina pilchardus, Sardinops spp.
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "sardine")==TRUE & str_detect(string = hs_data$Description, pattern = "sardina")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "sardine") == TRUE & 
+                                   str_detect(string = hs_data$Description, pattern = "sardina") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "sardine", 
                                              replacement = "sardine (sardina pilchardus, sardinops spp.)"),
                                  Description))
   
   # ANCHOVY defined as: Engraulis spp.
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "anchov")==TRUE & str_detect(string = hs_data$Description, pattern = "engraulis")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "anchov") == TRUE & 
+                                   str_detect(string = hs_data$Description, pattern = "engraulis") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "anchov", 
                                              replacement = "anchov (engraulis spp.)"),
                                  Description))
   
   # SARDINELLA defined as: Sardinella spp.
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "sardinella")==TRUE & str_detect(string = hs_data$Description, pattern = "sardinella spp.")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "sardinella") == TRUE &
+                                   str_detect(string = hs_data$Description, pattern = "sardinella spp.") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "sardinella", 
                                              replacement = "sardinella (sardinella spp.)"),
                                  Description))
   
   # BRISLINGS or SPRATS defined as: Sprattus sprattus
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "sprat")==TRUE & str_detect(string = hs_data$Description, pattern = "sprattus")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "sprat") == TRUE & 
+                                   str_detect(string = hs_data$Description, pattern = "sprattus") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "sprat", 
                                              replacement = "sprat (sprattus sprattus)"),
                                  Description))
   
   # MACKEREL defined as: Scomber scombrus, Scomber australasicus, Scomber japonicus
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "mackerel")==TRUE & str_detect(string = hs_data$Description, pattern = "scomber")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "mackerel") == TRUE & 
+                                   str_detect(string = hs_data$Description, pattern = "scomber")==FALSE, 
                                  str_replace(hs_data$Description, pattern = "mackerel", 
                                              replacement = "mackerel (scomber scombrus, scomber australasicus, scomber japonicus)"),
                                  Description))
   
   # INDIAN, JACK, and HORSE MACKEREL defined as: Rastrelliger spp. (indian) and Trachurus spp. (jack and horse)
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "\\(incl indian, jack, or horse\\)")==TRUE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, 
+                                            pattern = "\\(incl indian, jack, or horse\\)") == TRUE, 
                                  str_replace(hs_data$Description, pattern = "\\(incl indian, jack, or horse\\)", 
                                              replacement = ", indian, jack, or horse mackerel (rastrelliger spp., trachurus spp.)"),
                                  Description))
   
   # BONITOS defined as: Sarda spp.
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "bonito")==TRUE & str_detect(string = hs_data$Description, pattern = "stripe-bellied")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "bonito") == TRUE & 
+                                   str_detect(string = hs_data$Description, pattern = "stripe-bellied") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "bonito", 
                                              replacement = "bonito (sarda spp.)"),
                                  Description))
   
   # COBIA defined as: Rachycentron canadum
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "cobia")==TRUE & str_detect(string = hs_data$Description, pattern = "rachycentron")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "cobia") == TRUE & 
+                                   str_detect(string = hs_data$Description, pattern = "rachycentron") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "cobia", 
                                              replacement = "cobia (rachycentron canadum)"),
                                  Description))
   
   # SWORDFISH defined as: Xiphias gladius
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "swordfish")==TRUE & str_detect(string = hs_data$Description, pattern = "xiphias")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "swordfish") == TRUE &
+                                   str_detect(string = hs_data$Description, pattern = "xiphias") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "swordfish", 
                                              replacement = "swordfish (xiphias gladius)"),
                                  Description))
   
   # SEERFISH defined as: Scomberomorus spp.
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "seerfish")==TRUE & str_detect(string = hs_data$Description, pattern = "scomberomorus")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "seerfish") == TRUE &
+                                   str_detect(string = hs_data$Description, pattern = "scomberomorus") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "seerfish", 
                                              replacement = "seerfish (scomberomorus spp.)"),
                                  Description))
   
   # JACKS and CREVALLES defined as: Caranx spp.
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "crevalles")==TRUE & str_detect(string = hs_data$Description, pattern = "caranx")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "crevalles") == TRUE &
+                                   str_detect(string = hs_data$Description, pattern = "caranx") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "crevalles", 
                                              replacement = "crevalles (caranx spp.)"),
                                  Description))
   
   # SILVER POMFRETS defined as: Pampus spp.
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "silver pomfret")==TRUE & str_detect(string = hs_data$Description, pattern = "pampus")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "silver pomfret") == TRUE &
+                                   str_detect(string = hs_data$Description, pattern = "pampus") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "silver pomfret", 
                                              replacement = "silver pomfret (pampus spp.)"),
                                  Description))
   
   # PACIFIC SAURY defined as: Cololabis saira
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "pacific saury")==TRUE & str_detect(string = hs_data$Description, pattern = "cololabis")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "pacific saury") == TRUE &
+                                   str_detect(string = hs_data$Description, pattern = "cololabis") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "pacific saury", 
                                              replacement = "pacific saury (cololabis saira)"),
                                  Description))
   
   # SCADS defined as: Decapterus spp.
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "scad")==TRUE & str_detect(string = hs_data$Description, pattern = "decapterus")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "scad") == TRUE & 
+                                   str_detect(string = hs_data$Description, pattern = "decapterus") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "scad", 
                                              replacement = "scad (decapterus spp.)"),
                                  Description))
   
   # CAPELIN defined as: Mallotus villosus
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "capelin")==TRUE & str_detect(string = hs_data$Description, pattern = "mallotus")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "capelin") == TRUE & 
+                                   str_detect(string = hs_data$Description, pattern = "mallotus") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "capelin", 
                                              replacement = "capelin (mallotus villosus)"),
                                  Description))
   
   # KAWAKAWA defined as: Euthynnus affinis
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "kawakawa")==TRUE & str_detect(string = hs_data$Description, pattern = "euthynnus")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "kawakawa") == TRUE &
+                                   str_detect(string = hs_data$Description, pattern = "euthynnus") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "kawakawa", 
                                              replacement = "kawakawa (euthynnus affinis)"),
                                  Description))
   
   # MARLINS, SAILFISH, SPEARFISH defined as: Istiophoridae
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "spearfish")==TRUE & str_detect(string = hs_data$Description, pattern = "istiophoridae")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "spearfish") == TRUE &
+                                   str_detect(string = hs_data$Description, pattern = "istiophoridae") == FALSE, 
                                  str_replace(hs_data$Description, pattern = "spearfish", 
                                              replacement = "spearfish (istiophoridae)"),
                                  Description))
@@ -379,24 +443,30 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
   ## LOBSTERS: all Lobster HS descriptions specify genera or species except for 160530 ("Crustacean preparations; lobster prepared or preserved")
   # Combining genera listed in 030611, 030612, and 030615
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "lobster, prepared or preserved")==TRUE, 
-                                 str_replace(hs_data$Description, pattern = "lobster, prepared or preserved", replacement = "lobster (homarus spp., palinurus spp., panulirus spp., 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, 
+                                            pattern = "lobster, prepared or preserved") == TRUE, 
+                                 str_replace(hs_data$Description, 
+                                             pattern = "lobster, prepared or preserved", 
+                                             replacement = "lobster (homarus spp., palinurus spp., panulirus spp., 
                                              jasus spp., nephrops norvegicus)"), 
                                  Description))
   
   ## OYSTERS
   # hs_data$Description[grep("oyster", hs_data$Description)] check which rows should be changed
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "oyster")==TRUE & str_detect(string = hs_data$Description, pattern = "ostreidae")==FALSE, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "oyster") == TRUE & 
+                                   str_detect(string = hs_data$Description, pattern = "ostreidae") == FALSE, 
                                  # Ostreidae are true oysters and Pteriidae are pearl oysters (Note: there are other obscure families of oysters, but none of these show up in prod_taxa_classification)
-                                 str_replace(hs_data$Description, pattern = "oyster", replacement = "oyster (ostreidae, pteriidae)"), 
+                                 str_replace(hs_data$Description, pattern = "oyster", 
+                                             replacement = "oyster (ostreidae, pteriidae)"),
                                  Description))
   
   # CUTTLE FISH (Order = Sepiida) AND SQUID (Order = Teuthida):
   # check_grep <- grep("cuttle fish and squid", hs_data$Description) check which rows should be changed
   hs_data <- hs_data %>%
     mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "cuttle fish and squid"), 
-                                 str_replace(hs_data$Description, pattern = "cuttle fish and squid", replacement = "cuttle fish \\(sepiida\\) and squid \\(teuthida\\)"), 
+                                 str_replace(hs_data$Description, pattern = "cuttle fish and squid", 
+                                             replacement = "cuttle fish \\(sepiida\\) and squid \\(teuthida\\)"), 
                                  Description))
   
   
@@ -407,40 +477,50 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
   # check_grep <- grep("scallop", hs_data$Description) check which rows should be changed
   hs_data <- hs_data %>%
     mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "queen scallop"), 
-                                 str_replace(hs_data$Description, pattern = "queen scallop", replacement = "queen scallop \\(aequipecten opercularis\\)"), 
+                                 str_replace(hs_data$Description, pattern = "queen scallop", 
+                                             replacement = "queen scallop \\(aequipecten opercularis\\)"), 
                                  Description))
   
   # SNAILS - Class Gastropoda
   hs_data <- hs_data %>%
     mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "snails"), 
-                                 str_replace(hs_data$Description, pattern = "snails", replacement = "snails \\(gastropoda\\)"), 
+                                 str_replace(hs_data$Description, pattern = "snails", 
+                                             replacement = "snails \\(gastropoda\\)"), 
                                  Description))
   
   # JELLYFISH: defined as Rhopilema spp.
   # NOTE: in some HS code descriptions, jellyfish is specifed as (Rhopilema spp.) rather than all of Scyphozoa, code below maintains this description throughout
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "jellyfish")==TRUE & str_detect(string = hs_data$Description, pattern = "rhopilema")==FALSE, 
-                                 str_replace(hs_data$Description, pattern = "jellyfish", replacement = "jellyfish \\(rhopilema spp.\\)"), 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "jellyfish") == TRUE &
+                                   str_detect(string = hs_data$Description, pattern = "rhopilema") == FALSE, 
+                                 str_replace(hs_data$Description, pattern = "jellyfish", 
+                                             replacement = "jellyfish \\(rhopilema spp.\\)"), 
                                  Description))
   
   # SEA URCHIN: defined as Strongylocentrotus spp., Paracentrotus lividus, Loxechinus albus, Echinus esculentus
   # Note: rather than defining as class, echinoidea, maintaining HS definition as: Strongylocentrotus spp., Paracentrotus lividus, Loxechinus albus, Echinus esculentus (note: some descriptions spell this incorrectly as Echichinus but this is corrected at the top of clean_hs.R)
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "sea urchin")==TRUE & str_detect(string = hs_data$Description, pattern = "strongylocentrotus")==FALSE, 
-                                 str_replace(hs_data$Description, pattern = "sea urchin", replacement = "sea urchin \\(strongylocentrotus spp., paracentrotus lividus, 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "sea urchin") == TRUE &
+                                   str_detect(string = hs_data$Description, pattern = "strongylocentrotus") == FALSE, 
+                                   str_replace(hs_data$Description, pattern = "sea urchin", 
+                                   replacement = "sea urchin \\(strongylocentrotus spp., paracentrotus lividus, 
                                              loxechinus albus, echinus esculentus)"), 
                                  Description))
   
   # SEA CUCUMBERS: defined as Stichopus japonicus, Holothuroidea
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "sea cucumber")==TRUE & str_detect(string = hs_data$Description, pattern = "stichopus")==FALSE, 
-                                 str_replace(hs_data$Description, pattern = "sea cucumber", replacement = "sea cucumber \\(stichopus japonicus, holothuroidea\\)"), 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "sea cucumber") == TRUE &
+                                   str_detect(string = hs_data$Description, pattern = "stichopus") == FALSE, 
+                                 str_replace(hs_data$Description, pattern = "sea cucumber", 
+                                             replacement = "sea cucumber \\(stichopus japonicus, holothuroidea\\)"), 
                                  Description))
   
   # CAVIAR: defined as from family Acipenseridae
   hs_data <- hs_data %>%
-    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "caviar")==TRUE & str_detect(string = hs_data$Description, pattern = "substitute")==FALSE, 
-                                 str_replace(hs_data$Description, pattern = "caviar", replacement = "caviar, acipenseridae"), 
+    mutate(Description = if_else(str_detect(string = hs_data$Description, pattern = "caviar") == TRUE & 
+                                   str_detect(string = hs_data$Description, pattern = "substitute") == FALSE, 
+                                 str_replace(hs_data$Description, pattern = "caviar", 
+                                             replacement = "caviar, acipenseridae"), 
                                  Description))
   
   # Change Oncorhynchus clarki to clarkii:
