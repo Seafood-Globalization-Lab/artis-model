@@ -1,3 +1,24 @@
+#' Title
+#'
+#' @param artis 
+#' @param prod 
+#' @param curr_year 
+#' @param curr_hs_version 
+#' @param W_long 
+#' @param X_long 
+#' @param V1_long 
+#' @param V2 
+#' @param pop 
+#' @param code_max_resolved 
+#' @param max_percap_consumption 
+#' @param consumption_threshold 
+#' @param dev_mode 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+
 calculate_consumption <- function(artis = s_net, 
                                   prod = prod_data_analysis_year,
                                   curr_year = analysis_year, 
@@ -13,6 +34,8 @@ calculate_consumption <- function(artis = s_net,
                                   dev_mode = FALSE){
   # FIXIT: add all needed arguments to function (so objects are explicitly called)
   # set of arguments then need updated in main script
+  
+  
   
   # Format data to match for joins----------------------------------------------
   
