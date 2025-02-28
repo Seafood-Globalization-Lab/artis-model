@@ -386,9 +386,85 @@ calculate_consumption <- function(artis = s_net,
     
     fwrite(diff_large, file.path("output", paste0("consumption_large_diffs_",Sys.Date(),".csv")))
            }
-  }
+
   
   # FIXIT: need to add in the code to calculate the per capita consumption 
   # and capped per capita consumption
+
+  # DATA CHECK
+  # make sure there are no NA values in consumption
+  na_consumption <- complete_consumption %>%
+    filter(is.na(consumption_t))
+  if (nrow(na_consumption) != 0) {
+    warning(
+      paste0(
+        "NAs in complete consumption ",
+        "for ",
+        curr_year,
+        " and ",
+        curr_hs_version,
+        ". Number of NAs is ",
+        nrow(na_consumption)
+      )
+    )
+  }
+  
+  if (min(complete_consumption$consumption_t) < 0) {
+    warning(paste0(
+      "Negative consumption values ",
+      "for ",
+      curr_year,
+      " and ",
+      curr_hs_version
+    ))
+  }
+  
+
+# Max per capita ----------------------------------------------------------
+# add max per capita (default 100 kg) REMINDER THIS IS IN KG
+# keep both raw consumption and max percapita scaled consumption
+
+  if (!is.na(max_percap_consumption)) {
+    
+    # calculating consumption per capita
+    consumption_per_capita <- complete_consumption %>%
+      filter(end_use == "direct human consumption") %>% 
+      group_by(consumer_iso3c, end_use) %>%
+      summarize(consumption_t = sum(consumption_t, na.rm = TRUE)) %>%
+      ungroup() %>%
+      left_join(
+        pop %>% 
+          filter(year == curr_year), # introduced filter by year to remove many-to-many join
+        by = c("consumer_iso3c"="iso3c")
+      ) %>%
+      mutate(consumption_percap_t = consumption_t / pop) %>%
+      mutate(consumption_percap_kg = 1000 * consumption_percap_t)
+    
+    percap_outliers <- consumption_per_capita %>%
+      filter(consumption_percap_kg > max_percap_consumption) %>%
+      mutate(corrected_consumption_t = (pop * max_percap_consumption) / 1000)
+    
+    consumption_outliers <- complete_consumption %>%
+      filter(consumer_iso3c %in% unique(percap_outliers$consumer_iso3c)) %>%
+      group_by(consumer_iso3c) %>%
+      mutate(total = sum(consumption_t, na.rm = TRUE)) %>%
+      ungroup() %>%
+      mutate(prop = consumption_t / total) %>%
+      left_join(
+        percap_outliers %>%
+          select(consumer_iso3c, corrected_consumption_t),
+        by = c("consumer_iso3c")
+      ) %>%
+      mutate(consumption_t_capped = prop * corrected_consumption_t) %>%
+      select(-c(total, corrected_consumption_t, prop))
+    
+    complete_consumption_capped <- complete_consumption %>%
+      mutate(consumption_t_capped = consumption_t) %>% 
+      filter(!(consumer_iso3c %in% unique(percap_outliers$consumer_iso3c) & 
+                 end_use == "direct human consumption")) %>%
+      bind_rows(consumption_outliers)
+  }
+  
+  return(complete_consumption_capped)
     
 }
