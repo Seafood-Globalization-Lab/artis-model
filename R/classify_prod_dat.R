@@ -54,7 +54,6 @@ classify_prod_dat <- function(datadir,
         SciName = gsub(SciName, 
                        pattern=" \\(\\=.*", 
                        replacement="")) 
-    #%>%
       
       # THESE APPLY SPECIFICALLY TO FAO prod_ts
       # First do some cleaning of SciNames.
@@ -830,7 +829,7 @@ classify_prod_dat <- function(datadir,
       data.frame(SciName = c("perciformes", 
                              "actinopterygii", 
                              "scorpaeniformes"),
-                 CommonName = c("tuna-like fishes nei", 
+                 CommonName = c("tuna-like fishes nei", # FIXIT: This isn't accurate, is this for additional common name searches? 
                                 "ray-finned fishes", 
                                 "mail-cheeked fishes"),
                  Genus = NA,
