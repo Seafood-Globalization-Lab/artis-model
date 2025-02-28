@@ -1,20 +1,25 @@
-#' Title
+#' Calculate Consumption
+#' This function estimates seafood consumption by country using trade, production, 
+#' and processing data. It accounts for domestic and foreign consumption by integrating 
+#' trade flow data and conversion factors for processed seafood products.
 #'
-#' @param artis 
-#' @param prod 
-#' @param curr_year 
-#' @param curr_hs_version 
-#' @param W_long 
-#' @param X_long 
-#' @param V1_long 
-#' @param V2 
-#' @param pop 
+#' @param artis dataframe. containing trade data from ARTIS, including exports and imports.
+#' @param prod dataframe. containing seafood production data by country, species, and method.
+#' @param curr_year Numeric. the year for which consumption is being calculated.
+#' @param curr_hs_version Character. the HS code version used for trade classifications.
+#' @param W_long dataframe. containing product reallocation factors for processing seafood products.
+#' @param X_long dataframe. mapping production species to HS6 codes based on available trade data.
+#' @param V1_long dataframe. mapping species to HS6 codes using an alternative approach.
+#' @param V2 Matrix. containing processing conversion factors between HS6 codes.
+#' @param pop dataframe. containing country population data for per capita consumption calculations.
 #' @param code_max_resolved 
-#' @param max_percap_consumption 
-#' @param consumption_threshold 
-#' @param dev_mode 
+#' @param max_percap_consumption Numeric. maximum allowable per capita consumption in kg (default 100).
+#' @param consumption_threshold Numeric. minimum threshold for recorded consumption to avoid rounding errors (default 1e-9).
+#' @param dev_mode Logical. if TRUE, enables debugging output and writes out discrepancies in consumption estimates.
 #'
-#' @return
+#' @return A data frame with estimated seafood consumption by country, species, and end use. 
+#' The output includes both raw consumption estimates and a capped version adjusted for per capita consumption limits.
+#'
 #' @export
 #'
 #' @examples
