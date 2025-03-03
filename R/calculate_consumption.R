@@ -3,8 +3,8 @@
 #' and processing data. It accounts for domestic and foreign consumption by integrating 
 #' trade flow data and conversion factors for processed seafood products.
 #'
-#' @param artis dataframe. containing trade data from ARTIS, including exports and imports.
-#' @param prod dataframe. containing seafood production data by country, species, and method.
+#' @param artis dataframe. Trade flows from ARTIS, including exports and imports.
+#' @param prod dataframe. Seafood production data by country, species, and method.
 #' @param curr_year Numeric. the year for which consumption is being calculated.
 #' @param curr_hs_version Character. the HS code version used for trade classifications.
 #' @param W_long dataframe. containing product reallocation factors for processing seafood products.
@@ -42,7 +42,7 @@ calculate_consumption <- function(artis = s_net,
   
   
   
-  # Format data to match for joins----------------------------------------------
+  # New V2 and reweight_W_long ----------------------------------------------
   
   V2_long <- data.frame(V2) 
   rownames(V2_long) <- colnames(V2)
@@ -350,8 +350,8 @@ calculate_consumption <- function(artis = s_net,
              sciname, habitat, method) %>%
     summarise(consumption_product_t = sum(consumption_product_t, na.rm = TRUE),
               consumption_live_t = sum(consumption_live_t, na.rm = TRUE)) %>%
-    ungroup() %>%
-    filter(consumption_live_t > 0.001)
+    ungroup()
+
     
   # Format and join all consumption-----------------------------------------------
   # clean each consumption file and join all consumption sources
@@ -368,20 +368,22 @@ calculate_consumption <- function(artis = s_net,
     mutate(consumption_source = "foreign step 1") %>%
     select(year, hs_version, source_country_iso3c, exporter_iso3c, 
            "consumer_iso3c" = "importer_iso3c", 
-           consumption_source, hs6, sciname, habitat, method, consumption_live_t)
+           consumption_source, hs6, sciname, habitat, method, consumption_live_t) %>% 
+    filter(consumption_live_t > 0.001)
   
   consumption_export_2 <- consumption_export_2 %>%
     mutate(consumption_source = "foreign step 2") %>%
     select(year, hs_version, source_country_iso3c, exporter_iso3c, 
            "consumer_iso3c" = "importer_iso3c",  consumption_source, end_use, 
-           sciname, habitat, method, consumption_live_t)
+           sciname, habitat, method, consumption_live_t) %>%
+    filter(consumption_live_t > 0.001)
   
   
   complete_consumption <- consumption_domestic %>%
     bind_rows(consumption_export_1) %>%
     bind_rows(consumption_export_2)
   
-  consumption <- complete_consumption %>%
+  complete_consumption <- complete_consumption %>%
     mutate(end_use = case_when(
       hs6 == 230120 ~ "fishmeal",
       hs6 %in% c(30110, 30111, 30119) ~ "other",
@@ -396,7 +398,7 @@ calculate_consumption <- function(artis = s_net,
   # FIXIT: need to decide how to formalize this test (or what information to 
   # write out related to it)
   # test total consumption compared to production by source country
-  test <- consumption %>%
+  test <- complete_consumption %>%
     group_by(source_country_iso3c, sciname, habitat, method) %>% 
     summarise(consumption_live_t_sum = sum(consumption_live_t, na.rm = TRUE)) %>% 
     left_join(prod %>% 
@@ -406,45 +408,39 @@ calculate_consumption <- function(artis = s_net,
     mutate(diff = consumption_live_t_sum - live_weight_t)
   
   # if dev_mode enabled - filter and write out large consumption negatives to csv
+  # FIXIT: file not writing out correctly
   if (dev_mode){
     
-    # look at large differences
-    diff_large <- test %>%
+    diff_large <- complete_consumption %>%
+      group_by(source_country_iso3c, sciname, habitat, method) %>% 
+      summarise(consumption_live_t_sum = sum(consumption_live_t, na.rm = TRUE)) %>% 
+      left_join(prod %>% 
+                  group_by(country_iso3_alpha, sciname, habitat, method) %>% 
+                  summarise(live_weight_t = sum(live_weight_t)), 
+                by = c("source_country_iso3c" = "country_iso3_alpha", 
+                       "sciname", 
+                       "habitat", 
+                       "method")) %>% 
+      mutate(diff = consumption_live_t_sum - live_weight_t) %>% 
       filter(abs(diff) > 10)
     
-    fwrite(diff_large, file.path("output", paste0("consumption_large_diffs_",Sys.Date(),".csv")))
+    fwrite(diff_large, 
+           file.path("./output", paste0("consumption_large_diffs_",Sys.Date(),".csv")))
            }
-
-  
-  # FIXIT: need to add in the code to calculate the per capita consumption 
-  # and capped per capita consumption
 
   # DATA CHECK
   # make sure there are no NA values in consumption
   na_consumption <- complete_consumption %>%
-    filter(is.na(consumption_t))
+    filter(is.na(consumption_live_t))
   if (nrow(na_consumption) != 0) {
-    warning(
-      paste0(
-        "NAs in complete consumption ",
-        "for ",
-        curr_year,
-        " and ",
-        curr_hs_version,
-        ". Number of NAs is ",
-        nrow(na_consumption)
-      )
-    )
+    warning(paste0(
+            "NAs in complete consumption for", curr_year, " and ", curr_hs_version,
+            ". Number of NAs is ", nrow(na_consumption)))
   }
   
-  if (min(complete_consumption$consumption_t) < 0) {
-    warning(paste0(
-      "Negative consumption values ",
-      "for ",
-      curr_year,
-      " and ",
-      curr_hs_version
-    ))
+  if (min(complete_consumption$consumption_live_t) < 0) {
+    warning(paste0("Negative consumption values for ", curr_year,
+      " and ", curr_hs_version))
   }
   
 
@@ -458,41 +454,55 @@ calculate_consumption <- function(artis = s_net,
     consumption_per_capita <- complete_consumption %>%
       filter(end_use == "direct human consumption") %>% 
       group_by(consumer_iso3c, end_use) %>%
-      summarize(consumption_t = sum(consumption_t, na.rm = TRUE)) %>%
+      summarize(consumption_live_t = sum(consumption_live_t, na.rm = TRUE)) %>%
       ungroup() %>%
       left_join(
         pop %>% 
           filter(year == curr_year), # introduced filter by year to remove many-to-many join
         by = c("consumer_iso3c"="iso3c")
       ) %>%
-      mutate(consumption_percap_t = consumption_t / pop) %>%
+      mutate(consumption_percap_t = consumption_live_t / pop) %>%
       mutate(consumption_percap_kg = 1000 * consumption_percap_t)
     
     percap_outliers <- consumption_per_capita %>%
       filter(consumption_percap_kg > max_percap_consumption) %>%
-      mutate(corrected_consumption_t = (pop * max_percap_consumption) / 1000)
+      mutate(corrected_consumption_live_t = (pop * max_percap_consumption) / 1000)
     
     consumption_outliers <- complete_consumption %>%
       filter(consumer_iso3c %in% unique(percap_outliers$consumer_iso3c)) %>%
       group_by(consumer_iso3c) %>%
-      mutate(total = sum(consumption_t, na.rm = TRUE)) %>%
+      mutate(total = sum(consumption_live_t, na.rm = TRUE)) %>%
       ungroup() %>%
-      mutate(prop = consumption_t / total) %>%
+      mutate(prop = consumption_live_t / total) %>%
       left_join(
         percap_outliers %>%
-          select(consumer_iso3c, corrected_consumption_t),
+          select(consumer_iso3c, corrected_consumption_live_t),
         by = c("consumer_iso3c")
       ) %>%
-      mutate(consumption_t_capped = prop * corrected_consumption_t) %>%
-      select(-c(total, corrected_consumption_t, prop))
+      mutate(consumption_live_t_capped = prop * corrected_consumption_live_t) %>%
+      select(-c(total, corrected_consumption_live_t, prop))
     
     complete_consumption_capped <- complete_consumption %>%
-      mutate(consumption_t_capped = consumption_t) %>% 
+      mutate(consumption_live_t_capped = consumption_live_t) %>% 
       filter(!(consumer_iso3c %in% unique(percap_outliers$consumer_iso3c) & 
                  end_use == "direct human consumption")) %>%
-      bind_rows(consumption_outliers)
-  }
-  
-  return(complete_consumption_capped)
+      bind_rows(consumption_outliers) %>% 
+      left_join(pop %>% 
+                  filter(year == curr_year), # introduced filter by year to remove many-to-many join
+                by = c("consumer_iso3c"="iso3c",
+                       "year")) %>%
+      mutate(consumption_percap_live_kg = case_when(end_use == "direct human consumption" ~ 
+                                                 1000 * consumption_live_t / pop,
+                                               TRUE ~ NA),
+             consumption_percap_live_kg_capped = case_when(end_use == "direct human consumption" ~
+                                                        1000 * consumption_live_t_capped / pop,
+                                                      TRUE ~ NA)) %>% 
+      select(-pop)
     
+    return(complete_consumption_capped) 
+    
+  } else(
+    return(complete_consumption)
+  )
+  
 }
