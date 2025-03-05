@@ -8,9 +8,9 @@
 #' @param curr_year Numeric. the year for which consumption is being calculated.
 #' @param curr_hs_version Character. the HS code version used for trade classifications.
 #' @param W_long dataframe. containing product reallocation factors for processing seafood products.
+#' @param reweight_W_long dataframe. containing reweighted product reallocation factors for processing seafood products.
 #' @param X_long dataframe. mapping production species to HS6 codes based on available trade data.
 #' @param V1_long dataframe. mapping species to HS6 codes using an alternative approach.
-#' @param V2 Matrix. containing processing conversion factors between HS6 codes.
 #' @param pop dataframe. containing country population data for per capita consumption calculations.
 #' @param code_max_resolved 
 #' @param max_percap_consumption Numeric. maximum allowable per capita consumption in kg (default 100).
@@ -29,9 +29,10 @@ calculate_consumption <- function(artis = s_net,
                                   curr_year = analysis_year, 
                                   curr_hs_version = curr_hs,
                                   W_long = W_long, 
+                                  reweight_W_long = reweight_W_long,
                                   X_long = X_long, 
                                   V1_long = V1_long, 
-                                  V2 = V2,
+                                  V2_long = V2_long,
                                   pop = pop, 
                                   code_max_resolved = code_max_resolved,
                                   max_percap_consumption = 100,
@@ -42,55 +43,6 @@ calculate_consumption <- function(artis = s_net,
   
   
   
-  # New V2 and reweight_W_long ----------------------------------------------
-  
-  V2_long <- data.frame(V2) 
-  rownames(V2_long) <- colnames(V2)
-  
-  V2_long <- V2_long %>%
-    rownames_to_column("hs6_processed") %>%
-    pivot_longer(-hs6_processed, 
-                 names_to = "hs6_original", 
-                 values_to = "processing_cf") %>%
-    mutate(hs6_original = gsub('^.', '', hs6_original)) %>%
-    mutate(hs6_original = as.numeric(hs6_original),
-           hs6_processed = as.numeric(hs6_processed)) %>%
-    filter(processing_cf > 0)
-  
-  # FIXIT: need to use this corrected alternate version of reweight_W_long
-  # it should be integrated in the original function
-  # this fixes the negative consumption issue that was appearing before
-  reweight_W_long <- W_long %>%
-    left_join(
-      # get total imports by country and hs6 code for weighting
-      baci_data_analysis_year %>%
-        group_by(importer_iso3c, hs6) %>%
-        summarize(product_weight_t = sum(product_weight_t)) %>%
-        ungroup() %>%
-        rename(iso3c = importer_iso3c),
-      by = c("exporter_iso3c"="iso3c", "hs6_original"="hs6")
-    ) %>%
-    # remove flows where country did not have imports of hs6 original products
-    filter(!is.na(product_weight_t)) %>%
-    mutate(hs6_original = as.numeric(hs6_original),
-           hs6_processed = as.numeric(hs6_processed)) %>%
-    # add processing conversion factors to account for product loss
-    left_join(V2_long %>%
-                # V2 converts hs6_original to hs6_processed - invert to reverse process
-                mutate(unprocessing_cf = 1 / processing_cf),
-              by = c("hs6_processed", "hs6_original")) %>%
-    # weight estimated W by the total imports of each hs6 original code by country
-    mutate(estimated_W = processing_cf * estimated_W * product_weight_t) %>%
-    select(-product_weight_t) %>%
-    # reweight estimated W such that you calculate the prop of hs6 processed
-    # that came from 'x' hs6 originals
-    group_by(exporter_iso3c, hs6_processed) %>%
-    mutate(row_sum = sum(estimated_W)) %>%
-    ungroup() %>%
-    mutate(reweighted_W = estimated_W / row_sum) %>%
-    # remove columns that are no longer needed
-    select(-c(row_sum, estimated_W))
-  
   # Format data to match for joins----------------------------------------------
   artis <- artis %>%
     filter(!is.na(live_weight_t)) %>%
@@ -98,6 +50,13 @@ calculate_consumption <- function(artis = s_net,
   
   V1_long <- V1_long %>%
     mutate(hs6 = as.numeric(hs6)) 
+  
+  V2_long <- V2_long %>%
+    rename(hs6_original = from_hs6,
+           hs6_processed = to_hs6,
+           processing_cf = product_cf) %>%
+    mutate(hs6_original = as.numeric(hs6_original),
+           hs6_processed = as.numeric(hs6_processed)) 
   
   X_long <- X_long %>%
     mutate(hs6 = as.numeric(hs6))
