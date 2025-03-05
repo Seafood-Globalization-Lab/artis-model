@@ -367,7 +367,6 @@ calculate_consumption <- function(artis = s_net,
     mutate(diff = consumption_live_t_sum - live_weight_t)
   
   # if dev_mode enabled - filter and write out large consumption negatives to csv
-  # FIXIT: file not writing out correctly
   if (dev_mode){
     
     diff_large <- complete_consumption %>%
@@ -384,7 +383,8 @@ calculate_consumption <- function(artis = s_net,
       filter(abs(diff) > 10)
     
     fwrite(diff_large, 
-           file.path("./output", paste0("consumption_large_diffs_",Sys.Date(),".csv")))
+           file.path("./outputs", 
+                     paste0("consumption_large_diffs_",Sys.Date(),".csv")))
            }
 
   # DATA CHECK
