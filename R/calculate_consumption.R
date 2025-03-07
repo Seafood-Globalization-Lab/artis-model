@@ -315,7 +315,7 @@ calculate_consumption <- function(artis = s_net,
   # Format and join all consumption-----------------------------------------------
   # clean each consumption file and join all consumption sources
   consumption_domestic <- consumption_domestic %>%
-    mutate(year = curr_year, hs_version = curr_hs, 
+    mutate(year = curr_year, hs_version = curr_hs_version, 
            source_country_iso3c = iso3c, exporter_iso3c = NA,
            consumption_source = "domestic") %>%
     select(year, hs_version, source_country_iso3c, exporter_iso3c,
