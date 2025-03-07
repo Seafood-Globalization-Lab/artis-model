@@ -411,7 +411,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
                                          code_max_resolved = code_max_resolved,
                                          max_percap_consumption = 100,
                                          consumption_threshold = 1e-9,
-                                         dev_mode = FALSE)
+                                         dev_mode = TRUE)
     
     write.csv(consumption, consumption_fp, row.names = FALSE)
 
