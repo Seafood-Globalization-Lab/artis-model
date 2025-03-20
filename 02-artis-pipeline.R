@@ -6,7 +6,7 @@
 rm(list=ls())
 
 #-------------------------------------------------------------------------------
-run_env <- "local"
+run_env <- "aws"
 
 if (run_env == "aws") {
   # High Performance Computing on AWS Setup
@@ -29,7 +29,7 @@ prod_data_type <- "FAO"
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()
-test_years <- c(2017)
+test_years <- c()
 #--------------------------------------------------------
 # This section generates the solutions for the mass balance problem for all
 # countries across all years and HS versions

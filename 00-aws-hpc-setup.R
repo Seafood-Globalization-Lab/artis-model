@@ -27,8 +27,11 @@ artis_bucket_region <- "us-east-1"
 # HS version being run
 hs_version_run <- "07"
 
-test_years <- c(2018)
+test_years <- c()
 
 datadir <- "model_inputs"
 outdir <- "outputs"
+
+estimate_data_type <- "midpoint"
+outdir_snet <- file.path(outdir, "snet")
 
