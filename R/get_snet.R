@@ -1,3 +1,4 @@
+#' @importFrom tibble rownames_to_column
 #' @export
 get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
                      hs_version = NA, test_years = c(), prod_type = "FAO",

@@ -21,8 +21,7 @@
 #' The output includes both raw consumption estimates and a capped version adjusted for per capita consumption limits.
 #'
 #' @export
-#'
-#' @examples
+
 
 calculate_consumption <- function(artis = s_net, 
                                   prod = prod_data_analysis_year,
