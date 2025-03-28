@@ -505,14 +505,23 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
       
       if (special_codes_row_c$Special_Treatment=="fmfo"){
         # MATCH FISH MEALS and FISH OILS (FMFO Species List)
-        possible_prod_taxa <- possible_prod_taxa %>%
-          filter(possible_prod_taxa$SciName %in% tolower(fmfo_species_list$scientific_name)) 
+        possible_prod_taxa_fm <- fmfo_species_list %>% 
+          pull(SciName)
+        
+        possible_prod_taxa_fm_priority <- fmfo_species_list %>% 
+          filter(primary_fishmeal == 1) %>% 
+          pull(SciName)
+        
         match_special_output <- rbind(match_special_output, data.table(Code = special_codes_row_c$Code, 
-                                                                       SciName = possible_prod_taxa %>% pull(SciName), 
+                                                                       SciName = possible_prod_taxa_fm, 
                                                                        Match_category = "fmfo_match",
                                                                        HS_version = hs_version, 
                                                                        Description = special_codes_row_c$Description, 
-                                                                       Modification = special_codes_row_c$Modification))
+                                                                       Modification = special_codes_row_c$Modification)) %>% 
+          mutate(Match_category = case_when(
+            (Match_category == "fmfo_match" & SciName %in% possible_prod_taxa_fm_priority) ~ "explicit_taxa_match",
+            TRUE ~ Match_category))
+        
         match_special_output <- unique(match_special_output)
         special_output_list[[c]] <- match_special_output
       } # end (special_codes_row_c$Special_Treatment=="fmfo")
