@@ -1,8 +1,14 @@
 #' @export
 get_fmfo_species <- function(datadir, sau_fp, taxa_fp,
                              fb_slb_dir = "model_inputs_raw/fishbase_sealifebase",
-                             threshold = 1) {
-  # Percent threshold default is 1% of production going to FM
+                             fishmeal_min_threshold = 1,
+                             fishmeal_primary_threshold = 75) {
+  
+  # fishmeal_min_threshold default is 1% of production going to FM: 
+  #this defines the species allowed to go into FM
+  
+  # fishmeal_primary_threshold default is min of 75% of production is going into FM : 
+  # this defines the species that are favored to go into FM
   
   #-----------------------------------------------------------------------------
   # Production Data
@@ -23,7 +29,10 @@ get_fmfo_species <- function(datadir, sau_fp, taxa_fp,
     mutate(percent = 100 * quantity / total)
   
   fmfo_species <- sau_grouped %>%
-    filter(end_use == "Fishmeal and fish oil" & percent > threshold)
+    filter(end_use == "Fishmeal and fish oil" & percent > fishmeal_min_threshold) %>% 
+    mutate(primary_fishmeal = case_when(
+      percent >= fishmeal_primary_threshold ~ 1,
+      TRUE ~ 0))
   
   #-----------------------------------------------------------------------------
   # standardize fmfo species names
@@ -94,4 +103,5 @@ get_fmfo_species <- function(datadir, sau_fp, taxa_fp,
   
   return(scinames_translated)
 }
+
 
