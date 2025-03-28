@@ -5,7 +5,7 @@
 rm(list=ls())
 
 # Set folder paths
-datadir <- "model_inputs_raw"
+datadir <- file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw")
 outdir <- "AM_local"
 baci_version <- "202201"
 tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
@@ -25,7 +25,7 @@ library(doParallel)
 library(rfishbase)
 
 # Step 1: Load and clean production data and HS codes---------------------------
-running_sau <- TRUE
+running_sau <- FALSE
 
 ## Set if new SeaLifeBase data collection needed:
 need_new_slb <- FALSE
