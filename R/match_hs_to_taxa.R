@@ -14,6 +14,10 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
   hs_data_version <- hs_data_clean %>% 
     filter(Classification==HS_classification)
   
+  # 
+  fmfo_species_list <- fmfo_species_list %>% 
+    filter(SciName %in% prod_taxa_classification$SciName)
+  
   # FILTER OUT SPECIAL CASES:
   # Assumption is that HS codes are grouped by broad commodity type at the 4-digit level (only one type of fish, crustaceans, molluscs, or crustaceans for a given 4 digit parent)
   # Filter these codes out of because they: 
