@@ -21,16 +21,20 @@ get_fmfo_species <- function(sau_fp,
     summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
     ungroup() %>% 
     group_by(SciName) %>%
+    # Sciname total quantity across all end_uses - assigned to each row of a sciname
     mutate(total = sum(quantity, na.rm = TRUE)) %>%
     ungroup() %>% 
     filter(end_use == "Fishmeal and fish oil") %>% 
+    # quantity is fishmeal only quantity
+           # percent_sp is percent of species production going into FM
     mutate(percent_sp = 100 * quantity / total,
+           # percent_global is percent FM prod by species of all global FM prod
            percent_global = 100 * quantity / sum(quantity)) %>% 
     arrange(desc(percent_global)) %>% 
     mutate(percent_cumulative = cumsum(percent_global))
   
   fmfo_species <- sau_grouped %>%
-    filter(percent_sp > fishmeal_min_threshold | percent_global > fishmeal_min_threshold_global) %>% 
+    filter(percent_sp > fishmeal_min_threshold_sp | percent_global > fishmeal_min_threshold_global) %>% 
     mutate(primary_fishmeal = case_when(
       percent_sp >= fishmeal_primary_threshold ~ 1,
       TRUE ~ 0))
