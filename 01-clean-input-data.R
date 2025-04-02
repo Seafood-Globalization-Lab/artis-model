@@ -210,7 +210,14 @@ prod_data_sau <- prod_data_sau %>%
 # standardize countries for SAU production
 prod_data_sau <- standardize_countries(prod_data_sau, "FAO")
 
-write.csv(prod_data_sau, file.path(outdir, 'standardized_sau_prod_all_cols.csv'), 
+prod_data_sau <- prod_data_sau %>% 
+  group_by(country_iso3_alpha, SciName, CommonName, taxa_source, year, 
+           Species01, Genus01, Family01, Other01, habitat, prod_method, gear,
+           eez, sector, end_use) %>% 
+  summarise(quantity = sum(quantity)) %>%
+  ungroup()
+
+write.csv(prod_data_sau, file.path(outdir, 'standardized_sau_prod_more_cols.csv'), 
           row.names = FALSE)
 
 prod_data_sau <- prod_data_sau %>% 
@@ -262,7 +269,7 @@ hs_data_clean <- clean_hs(hs_data_raw = read.csv(file.path(datadir, "All_HS_Code
 
 # Getting list of fmfo species
 fmfo_species <- get_fmfo_species(
-  sau_fp = file.path(outdir, 'standardized_sau_prod_all_cols.csv'),
+  sau_fp = file.path(outdir, 'standardized_sau_prod_more_cols.csv'),
   fishmeal_min_threshold_sp = 1,
   fishmeal_min_threshold_global = 0.5,
   fishmeal_primary_threshold = 75
