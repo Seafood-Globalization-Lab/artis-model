@@ -16,13 +16,13 @@ library(aws.s3)
 start_date <- as.character(Sys.Date())
 
 # Directory for inputs to create the ARTIS database
-datadir <- "model_inputs"
+datadir <- "AM_local/model_inputs"
 # Directory where ARTIS database will be generated
-outdir <- "outputs"
+outdir <- "AM_local/outputs"
 
 # HS version for trade records and timespan for ARTIS
 # ie HS12 will generate all trade records from 2012 - 2020
-hs_version_run <- "12"
+hs_version_run <- "96"
 
 # Linking python environment set up during installation for use in the pipeline
 #python_path <- file.path(getwd(), "venv", "bin", "python3")
