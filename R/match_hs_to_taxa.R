@@ -14,7 +14,7 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
   hs_data_version <- hs_data_clean %>% 
     filter(Classification==HS_classification)
   
-  # 
+  # only allow species present in prod data
   fmfo_species_list <- fmfo_species_list %>% 
     filter(SciName %in% prod_taxa_classification$SciName)
   
