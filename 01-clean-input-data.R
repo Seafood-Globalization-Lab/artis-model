@@ -6,7 +6,7 @@ rm(list=ls())
 
 # Set folder paths
 datadir <- file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw")
-outdir <- "AM_local/outputs"
+outdir <- "AM_local/model_inputs"
 baci_version <- "202201"
 tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
 
@@ -136,6 +136,12 @@ if (test) {
   prod_taxa_classification<- prod_taxa_classification %>%
     filter(SciName %in% test_scinames)
 }
+
+prod_data <- prod_data %>% 
+  filter(!SciName %in% c("austromegabalanus psittacus", "calanus finmarchicus", "lepadidae", "lepas", "pollicipes elegans", "pollicipes pollicipes", "semibalanus balanoides"))
+
+prod_taxa_classification <- prod_taxa_classification %>% 
+  filter(!SciName %in% c("austromegabalanus psittacus", "calanus finmarchicus", "lepadidae", "lepas", "pollicipes elegans", "pollicipes pollicipes", "semibalanus balanoides"))
 
 # SAVE PRODUCTION OUTPUT:
 write.csv(prod_data, file = file.path(outdir, "clean_fao_prod.csv"), row.names = FALSE)
