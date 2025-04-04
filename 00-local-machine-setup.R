@@ -16,7 +16,7 @@ library(aws.s3)
 start_date <- as.character(Sys.Date())
 
 # Directory for inputs to create the ARTIS database
-datadir <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs"
+datadir <- "AM_local/model_inputs"
 # Directory where ARTIS database will be generated
 outdir <- "AM_local/outputs"
 
