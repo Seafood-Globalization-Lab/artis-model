@@ -14,9 +14,21 @@ get_fmfo_species <- function(sau_fp,
   # Production Data
   sau <- read.csv(sau_fp)
   
+  # create taxa list that assigns end_use fishmeal to all taxa - allows function flexibility
+  # to match all taxa to fishmeal when thresholds set to 0
+  sau_sp <- sau %>% 
+    select(SciName) %>% 
+    distinct() %>% 
+    mutate(end_use = "Fishmeal and fish oil") 
+  
   #-----------------------------------------------------------------------------
   # Get fmfo list based on percent produced (SAU)
-  sau_grouped <- sau %>%
+  sau_grouped <- sau_sp %>%
+    # include sau taxa and end_use catagorization
+    full_join(sau,
+              by = c("SciName", "end_use")) %>%   
+    # set quantity to 0 for sau_sp observations
+    replace_na(list(quantity = 0)) %>% 
     group_by(SciName, end_use) %>%
     summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
     ungroup() %>% 
@@ -34,7 +46,7 @@ get_fmfo_species <- function(sau_fp,
     mutate(percent_cumulative = cumsum(percent_global))
   
   fmfo_species <- sau_grouped %>%
-    filter(percent_sp > fishmeal_min_threshold_sp | percent_global > fishmeal_min_threshold_global) %>% 
+    filter(percent_sp >= fishmeal_min_threshold_sp | percent_global >= fishmeal_min_threshold_global) %>% 
     mutate(primary_fishmeal = case_when(
       percent_sp >= fishmeal_primary_threshold ~ 1,
       TRUE ~ 0))
