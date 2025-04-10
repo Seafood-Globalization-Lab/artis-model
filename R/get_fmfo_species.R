@@ -12,7 +12,7 @@ get_fmfo_species <- function(sau_fp,
   
   #-----------------------------------------------------------------------------
   # Production Data
-  sau <- read.csv(sau_fp)
+  sau <- fread(sau_fp)
   
   # create taxa list that assigns end_use fishmeal to all taxa - allows function flexibility
   # to match all taxa to fishmeal when thresholds set to 0

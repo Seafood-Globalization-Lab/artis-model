@@ -23,6 +23,7 @@ library(tidyverse)
 library(countrycode)
 library(doParallel)
 library(rfishbase)
+library(data.table)
 
 # Step 1: Load and clean production data and HS codes---------------------------
 running_sau <- FALSE
@@ -276,9 +277,9 @@ hs_data_clean <- clean_hs(hs_data_raw = read.csv(file.path(datadir, "All_HS_Code
 # Getting list of fmfo species
 fmfo_species <- get_fmfo_species(
   sau_fp = file.path(outdir, 'standardized_sau_prod_more_cols.csv'),
-  fishmeal_min_threshold_sp = 0,
-  fishmeal_min_threshold_global = 0,
-  fishmeal_primary_threshold = 0
+  fishmeal_min_threshold_sp = 1,
+  fishmeal_min_threshold_global = 0.5,
+  fishmeal_primary_threshold = 75
 )
 
 write.csv(fmfo_species, file.path(datadir, 'fmfo_species_list.csv'), row.names = FALSE)
