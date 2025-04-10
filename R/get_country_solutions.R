@@ -217,6 +217,8 @@ convert = TRUE)
       
       # Convert to r object with as.numeric()
       qp_sol <- as.numeric(py$x)
+
+    if(length(qp_sol) > 0 )  {
       
       # Write out raw output from solver for comparison
       cond_num <- as.numeric(py$cond_num)
@@ -243,8 +245,9 @@ convert = TRUE)
           bucket = s3_bucket_name
         )
       }
-      
+    } # end of qp_sol  
       print(paste("end of ", i, " solution"))
+
       
       # Since all the outputs were assigned to the global environment,
       # clear workspace before starting next country
