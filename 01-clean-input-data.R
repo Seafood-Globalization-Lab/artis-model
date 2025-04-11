@@ -138,12 +138,6 @@ if (test) {
     filter(SciName %in% test_scinames)
 }
 
-prod_data <- prod_data %>% 
-  filter(!SciName %in% c("austromegabalanus psittacus", "calanus finmarchicus", "lepadidae", "lepas", "pollicipes elegans", "pollicipes pollicipes", "semibalanus balanoides"))
-
-prod_taxa_classification <- prod_taxa_classification %>% 
-  filter(!SciName %in% c("austromegabalanus psittacus", "calanus finmarchicus", "lepadidae", "lepas", "pollicipes elegans", "pollicipes pollicipes", "semibalanus balanoides"))
-
 # SAVE PRODUCTION OUTPUT:
 write.csv(prod_data, file = file.path(outdir, "clean_fao_prod.csv"), row.names = FALSE)
 write.csv(prod_taxa_classification, file = file.path(outdir, "clean_fao_taxa.csv"), row.names = FALSE)
@@ -285,7 +279,8 @@ fmfo_species <- get_fmfo_species(
 write.csv(fmfo_species, file.path(datadir, 'fmfo_species_list.csv'), row.names = FALSE)
 
 # List of possible HS versions: HS96, HS02, HS12, HS17
-HS_year <- c("96", "02", "07", "12", "17")
+#HS_year <- c("96", "02", "07", "12", "17")
+HS_year <- c("96")
 
 if (test) {
   HS_year <- HS_year[HS_year %in% test_hs]
@@ -526,7 +521,7 @@ for(i in 1:length(HS_year)) {
   cf_csv_name <- paste("hs-taxa-CF_", set_match_criteria, "-match_", hs_version, ".csv", sep = "")
   write.csv(hs_taxa_CF_match, file.path(outdir, cf_csv_name), row.names = FALSE)
   
-}
+} # end of for loop
 
 
 ##############################################################################
