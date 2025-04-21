@@ -1,13 +1,17 @@
 #' @export
-build_artis_data <- function(artis_dir, outdir,
-                             run_env = "aws", s3_bucket_name = "", s3_region = "") {
+build_artis_data <- function(artis_dir, 
+                             outdir,
+                             estimate_data_type = "midpoint", 
+                             run_env = "", 
+                             s3_bucket_name = "", 
+                             s3_region = "") {
   
   # Collect all trade data------------------------------------------------------
   if (estimate_data_type == "midpoint") {
     print("Collecting trade midpoint data")
     snet_midpoint_regexr <- "S-net_raw_midpoint"
     trade_midpoint <- collect_data(artis_dir, snet_midpoint_regexr,
-                                   run_env = "aws", s3_bucket_name, s3_region)
+                                   run_env = run_env, s3_bucket_name, s3_region)
     
     trade_mid_fp <- file.path(outdir, "snet_midpoint_all_hs_all_years.csv")
     

@@ -1,97 +1,60 @@
 #' @export
-get_fmfo_species <- function(datadir, sau_fp, taxa_fp,
-                             fb_slb_dir = "model_inputs_raw/fishbase_sealifebase",
-                             threshold = 1) {
-  # Percent threshold default is 1% of production going to FM
+get_fmfo_species <- function(sau_fp,
+                             fishmeal_min_threshold_sp = 1,
+                             fishmeal_min_threshold_global = 0.5,
+                             fishmeal_primary_threshold = 75) {
+  
+  # fishmeal_min_threshold default is 1% of production going to FM: 
+  #this defines the species allowed to go into FM
+  
+  # fishmeal_primary_threshold default is min of 75% of production is going into FM : 
+  # this defines the species that are favored to go into FM
   
   #-----------------------------------------------------------------------------
   # Production Data
-  sau <- read.csv(sau_fp)
-  # Taxanomic information
-  taxa <- read.csv(taxa_fp) %>%
-    mutate(scientific_name = tolower(scientific_name))
+  sau <- fread(sau_fp)
+  
+  # create taxa list that assigns end_use fishmeal to all taxa - allows function flexibility
+  # to match all taxa to fishmeal when thresholds set to 0
+  sau_sp <- sau %>% 
+    select(SciName) %>% 
+    distinct() %>% 
+    mutate(end_use = "Fishmeal and fish oil") 
   
   #-----------------------------------------------------------------------------
-  # Get initial NON-standardized fmfo list based on percent produced (SAU)
-  sau_grouped <- sau %>%
-    group_by(scientific_name, end_use) %>%
-    summarize(quantity = sum(sum, na.rm = TRUE)) %>%
-    ungroup() %>%
-    group_by(scientific_name) %>%
+  # Get fmfo list based on percent produced (SAU)
+  sau_grouped <- sau_sp %>%
+    # include sau taxa and end_use catagorization
+    full_join(sau,
+              by = c("SciName", "end_use")) %>%   
+    # set quantity to 0 for sau_sp observations
+    replace_na(list(quantity = 0)) %>% 
+    group_by(SciName, end_use) %>%
+    summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
+    ungroup() %>% 
+    group_by(SciName) %>%
+    # Sciname total quantity across all end_uses - assigned to each row of a sciname
     mutate(total = sum(quantity, na.rm = TRUE)) %>%
-    ungroup() %>%
-    mutate(percent = 100 * quantity / total)
+    ungroup() %>% 
+    filter(end_use == "Fishmeal and fish oil") %>% 
+    # quantity is fishmeal only quantity
+           # percent_sp is percent of species production going into FM
+    mutate(percent_sp = 100 * quantity / total,
+           # percent_global is percent FM prod by species of all global FM prod
+           percent_global = 100 * quantity / sum(quantity)) %>% 
+    arrange(desc(percent_global)) %>% 
+    mutate(percent_cumulative = cumsum(percent_global))
   
   fmfo_species <- sau_grouped %>%
-    filter(end_use == "Fishmeal and fish oil" & percent > threshold)
+    filter(percent_sp >= fishmeal_min_threshold_sp | percent_global >= fishmeal_min_threshold_global) %>% 
+    mutate(primary_fishmeal = case_when(
+      percent_sp >= fishmeal_primary_threshold ~ 1,
+      TRUE ~ 0))
   
-  #-----------------------------------------------------------------------------
-  # standardize fmfo species names
-  
-  # reads and cleans fishbase and sealifebase synonym datasets
-  fb_df <- read.csv(file.path(fb_slb_dir, "fb_synonyms_clean.csv"))
-  slb_df <- read.csv(file.path(fb_slb_dir, "slb_synonyms_clean.csv"))
-  
-  # Get a list of standardized species names
-  non_standard_scinames <- unique(tolower(sau$scientific_name))
-  accepted_scinames <- rep(NA, length(non_standard_scinames))
-  
-  # Species name standardizing (just for true species)
-  for (i in 1:length(non_standard_scinames)) {
-    curr_sciname <- non_standard_scinames[i]
-    fb_result <- query_synonyms(fb_df, curr_sciname)
-    
-    # Only process synonyms for true species names
-    if (str_detect(curr_sciname, " ")) {
-      
-      if (nrow(fb_result) > 0) {
-        accepted_syn <- fb_result$synonym
-        accepted_scinames[i] <- accepted_syn
-      } else {
-        slb_result <- query_synonyms(slb_df, curr_sciname)
-        
-        if (nrow(slb_result) > 0) {
-          accepted_syn <- slb_result$synonym
-        }
-      }
-    }
-  }
-  
-  scinames_translated <- data.frame(
-    sciname = non_standard_scinames,
-    accepted_sciname = accepted_scinames
-  )
-  
-  # Non true species name cleaning
-  scinames_translated <- scinames_translated %>%
-    left_join(
-      taxa %>%
-        select(scientific_name, taxon_level_id) %>%
-        distinct(),
-      by = c("sciname" = "scientific_name")
-    ) %>%
-    mutate(accepted_sciname = case_when(
-      !str_detect(sciname, ' ')  & !is.na(taxon_level_id) ~ sciname,
-      sciname == "marine finfishes not identified" ~ "actinopterygii", 
-      sciname == "marine fishes not identified" ~ "actinopterygii",
-      sciname == "marine groundfishes not identified" ~ "actinopterygii",
-      sciname == "marine pelagic fishes not identified" ~ "actinopterygii", 
-      sciname == "miscellaneous aquatic invertebrates" ~ "asteroidea", # assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum, ascidians would be omitted as chordata)
-      sciname == "miscellaneous diadromous fishes" ~ "actinopterygii",
-      sciname == "miscellaneous marine crustaceans" ~ "malacostraca", # assuming some sort of crab/lobster/shrimp/prawn/crayfish crustacean
-      TRUE ~ accepted_sciname
-    )) %>%
-    mutate(accepted_sciname = case_when(
-      is.na(accepted_sciname) ~ sciname,
-      TRUE ~ accepted_sciname
-    )) %>%
-    select(scientific_name = accepted_sciname)
-  
-  
-  if (sum(is.na(scinames_translated$scientific_name)) > 0) {
-    warning('NOT ALL fmfo species names have been cleaned')
-  }
-  
-  return(scinames_translated)
+  fmfo_species_output <- fmfo_species %>% 
+    select(SciName, primary_fishmeal)
+
+  return(fmfo_species_output)
 }
+
 

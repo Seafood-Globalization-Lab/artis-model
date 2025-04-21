@@ -192,7 +192,7 @@ ub = array(r.u,dtype=float).reshape((P.shape[0],))
 
 cond_num = linalg.cond(A)
 
-x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"quadprog\", verbose = True)',
+x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"quadprog\")',
                       convert = TRUE)
       } else {
         py_run_string(
@@ -211,12 +211,14 @@ ub = array(r.u,dtype=float).reshape((P.shape[0],))
 
 cond_num = linalg.cond(A)
 
-x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\", verbose = True)',
+x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
 convert = TRUE)
       }
       
       # Convert to r object with as.numeric()
       qp_sol <- as.numeric(py$x)
+
+    if(length(qp_sol) > 0 )  {
       
       # Write out raw output from solver for comparison
       cond_num <- as.numeric(py$cond_num)
@@ -243,8 +245,9 @@ convert = TRUE)
           bucket = s3_bucket_name
         )
       }
-      
+    } # end of qp_sol  
       print(paste("end of ", i, " solution"))
+
       
       # Since all the outputs were assigned to the global environment,
       # clear workspace before starting next country

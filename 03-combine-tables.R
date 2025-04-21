@@ -4,7 +4,7 @@
 # Start with a clean working environment
 # rm(list=ls())
 #-------------------------------------------------------------------------------
-run_env <- "aws"
+run_env <- "local"
 
 if (run_env == "aws") {
   # High Performance Computing on AWS Setup
@@ -44,8 +44,10 @@ if (!dir.exists("outputs")) { dir.create("outputs") }
 # Ensure the 'artis_outputs' directory exists on the aws "local" machine
 if (!dir.exists(final_outdir)) { dir.create(final_outdir) }
 
-build_artis_data(outdir_snet, final_outdir,
+build_artis_data(artis_dir = outdir_snet, 
+                 outdir = final_outdir,
                  run_env = run_env,
+                 estimate_data_type = "midpoint",
                  s3_bucket_name = artis_bucket,
                  s3_region = artis_bucket_region)
 
