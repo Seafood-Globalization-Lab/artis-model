@@ -19,6 +19,8 @@ start_date <- as.character(Sys.Date())
 datadir <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs"
 # Directory where ARTIS database will be generated
 outdir <- "AM_local/outputs"
+# Path for collecting ARTIS database files
+outdir_snet <- file.path(outdir, "snet")
 
 # HS version for trade records and timespan for ARTIS
 # ie HS12 will generate all trade records from 2012 - 2020
@@ -38,4 +40,7 @@ demo_run <- FALSE
 # ARTIS folder structure needs to be created differently when running on the
 # High Performance Computing sytem
 hpc_run <- FALSE
+
+artis_bucket <- ""
+artis_bucket_region <- ""
 

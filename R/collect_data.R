@@ -1,7 +1,7 @@
 #' @export
 collect_data <- function(artis_dir,
                          file_pattern,
-                         run_env = "aws",
+                         run_env = "",
                          s3_bucket_name = "", s3_region = "") {
   
   # Get list of AWS files to download
