@@ -6,7 +6,7 @@
 rm(list=ls())
 
 #-------------------------------------------------------------------------------
-run_env <- "local"
+run_env <- "aws"
 
 if (run_env == "aws") {
   # High Performance Computing on AWS Setup
@@ -25,7 +25,7 @@ if (run_env == "aws") {
 }
 
 # Set production data type variable
-prod_data_type <- "SAU"
+prod_data_type <- "FAO"
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()

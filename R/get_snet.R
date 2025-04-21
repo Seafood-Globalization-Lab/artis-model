@@ -1,3 +1,4 @@
+#' @importFrom tibble rownames_to_column
 #' @export
 get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
                      hs_version = NA, test_years = c(), prod_type = "FAO",
@@ -47,13 +48,19 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
   # Product-to-Product
   # This is going from original product weight to new product weight
   # (ie represents processing losses, all values should be <= 1)
-  V2_long <- data.frame(V2) %>%
-    mutate(to_hs6 = as.character(cc_m)) %>%
-    pivot_longer(cols = -to_hs6, names_to = "from_hs6", values_to = "product_cf") %>%
-    mutate(from_hs6 = substr(from_hs6, 2, str_length(from_hs6))) %>%
+  
+  V2_long <- data.frame(V2) 
+  rownames(V2_long) <- colnames(V2)
+  V2_long <- V2_long %>% 
+    rownames_to_column("to_hs6") %>%
+    pivot_longer(cols = -to_hs6, 
+                 names_to = "from_hs6", 
+                 values_to = "product_cf") %>%
+    mutate(from_hs6 = gsub('^.', '', from_hs6)) %>%
     filter(product_cf > 0)
   
-  V2_long_fp <- file.path(outdir, paste("HS", hs_version, "/V2_long_HS", hs_version, ".csv", sep = ""))
+  V2_long_fp <- file.path(outdir, 
+                          paste0("HS", hs_version, "/V2_long_HS", hs_version, ".csv"))
   
   write.csv(V2_long, V2_long_fp, row.names = FALSE)
   
@@ -238,8 +245,8 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
 
     # Step 6: Make S_net assuming commodity processing only occurs one trade-flow back
     rm(list=ls()[!(ls() %in% c("baci_data_analysis_year", "country_est", "V1",
-                               "V2", "V1_long", "countries_to_analyze","analysis_year",
-                               "coproduct_codes", "fao_pop", "hs_dir",
+                                "V1_long", "V2", "V2_long", "countries_to_analyze",
+                               "analysis_year", "coproduct_codes", "fao_pop", "hs_dir",
                                "analysis_setup", analysis_setup,
                                "analysis_info", analysis_info))])
     gc()
@@ -318,7 +325,9 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
       rename(product_weight_t = total_q) %>%
       filter(!(hs6 %in% coproduct_codes))
     
-    reweight_W_long <- create_reweight_W_long(W_long, baci_data_analysis_year)
+    reweight_W_long <- create_reweight_W_long(W_long = W_long, 
+                                              baci_data_analysis_year = baci_data_analysis_year,
+                                              V2_long = V2_long)
     reweight_W_long_fp <- file.path(hs_analysis_year_dir,
                                     paste("reweight_W_long_", analysis_year, "_HS",
                                           HS_year_rep, ".csv", sep = ""))
@@ -390,9 +399,20 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
       )
     }
 
-    consumption <- calculate_consumption(s_net, prod_data_analysis_year,
-                                             analysis_year, curr_hs, W_long, X_long,
-                                             pop, code_max_resolved)
+    consumption <- calculate_consumption(artis = s_net, 
+                                         prod = prod_data_analysis_year,
+                                         curr_year = analysis_year, 
+                                         curr_hs_version = curr_hs,
+                                         W_long = W_long, 
+                                         reweight_W_long = reweight_W_long,
+                                         X_long = X_long, 
+                                         V1_long = V1_long, 
+                                         V2_long = V2_long,
+                                         pop = pop, 
+                                         code_max_resolved = code_max_resolved,
+                                         max_percap_consumption = 100,
+                                         consumption_threshold = 1e-9,
+                                         dev_mode = FALSE)
     
     write.csv(consumption, consumption_fp, row.names = FALSE)
 
