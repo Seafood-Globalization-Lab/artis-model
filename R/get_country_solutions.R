@@ -192,7 +192,7 @@ ub = array(r.u,dtype=float).reshape((P.shape[0],))
 
 cond_num = linalg.cond(A)
 
-x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"quadprog\", verbose = FALSE)',
+x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"quadprog\")',
                       convert = TRUE)
       } else {
         py_run_string(
@@ -211,7 +211,7 @@ ub = array(r.u,dtype=float).reshape((P.shape[0],))
 
 cond_num = linalg.cond(A)
 
-x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\", verbose = True)',
+x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
 convert = TRUE)
       }
       
