@@ -1,37 +1,51 @@
 # TITLE: create_metadata.R
 
+# Start with a clean working environment
+rm(list=ls())
+
+run_env <- "local"
+
+# setup local model environment
+# directories included
+if(run_env == "local") {
+  source("00-local-machine-setup.R")
+}
+
+# create attribute directory if doesn't exist
+if (!dir.exists(outdir_attribute)) { dir.create(outdir_attribute) }
+
 # Load packages
-library(artis)
-library(tidyverse)
-library(janitor)
+# library(artis)
+# library(tidyverse)
+# library(janitor)
 
 # Set directories
-datadir <- "model_inputs_raw"
-inputsdir <- "model_inputs"
-outdir <- "outputs/clean_metadata"
+# datadir_raw <- "model_inputs_raw"
+# inputsdir <- "model_inputs"
+# outdir <- "outputs/clean_metadata"
 
 # Load production data
-prod <- read.csv(file.path(inputsdir, "clean_fao_prod.csv"))
+prod <- read.csv(file.path(datadir, "clean_fao_prod.csv"))
 prod <- prod %>%
   rename(sciname = SciName, common_name = CommonName,
          method = prod_method)
 
 # Load cleaned taxa details
-taxa <- read.csv(file.path(inputsdir, "clean_fao_taxa.csv")) %>%
+taxa <- read.csv(file.path(datadir, "clean_fao_taxa.csv")) %>%
   rename(sciname = SciName, common_name = CommonName) %>%
   distinct()
 
 # Load nutrient data
 # Note that values are all expressed per 100 g
 # Nutrient data for FAO 2020 version
-#nutrient <- read.csv(file.path(datadir, "ARTIS_spp_nutrients.csv")) #FIX IT: update nutrient file and add it
+#nutrient <- read.csv(file.path(datadir_raw, "ARTIS_spp_nutrients.csv")) #FIX IT: update nutrient file and add it
 
 # Load NCEAS group files
-#nceas_marine_capture <- read.csv(file.path(datadir, "nceas_marine_capture_groups.csv"))
-nceas_marine_aquaculture <- read.csv(file.path(datadir, "nceas_marine_aquaculture_groups.csv"))
+#nceas_marine_capture <- read.csv(file.path(datadir_raw, "nceas_marine_capture_groups.csv"))
+nceas_marine_aquaculture <- read.csv(file.path(datadir_raw, "nceas_marine_aquaculture_groups.csv"))
 
 # Load SAU functional group data
-sau_functional_groups <- read.csv(file.path(datadir, "sau_species.csv"))
+sau_functional_groups <- read.csv(file.path(datadir_raw, "sau_species.csv"))
 
 #___________________________________________________________________________________________________________________#
 # Nutrient data
@@ -208,7 +222,7 @@ taxa_metadata <- taxa_metadata %>%
   slice_min(order_by = sum_na, n = 1, with_ties = FALSE) %>%
   select(-sum_na)
 
-write.csv(taxa_metadata, file.path(outdir, "sciname_metadata.csv"), row.names = FALSE)
+write.csv(taxa_metadata, file.path(outdir_attribute, "sciname_metadata.csv"), row.names = FALSE)
 
 
 #___________________________________________________________________________________________________________________#
@@ -380,7 +394,7 @@ nceas_groups <- marine_capture_sciname %>%
   bind_rows(inland_capture_sciname) %>%
   bind_rows(inland_aquaculture_sciname)
 
-write.csv(nceas_groups, file.path(outdir, "sciname_habitat_method_metadata.csv"), row.names = FALSE)
+write.csv(nceas_groups, file.path(outdir_attribute, "sciname_habitat_method_metadata.csv"), row.names = FALSE)
 
 #___________________________________________________________________________________________________________________#
 # Create commodity metadata
@@ -400,7 +414,7 @@ hs_clade_match <- data.frame(Code = character(),
 for(i in c("96", "02", "07", "12", "17")){
   HS_year_rep <- i
   
-  hs_taxa_match_i <- read.csv(file.path(inputsdir, paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = "")))
+  hs_taxa_match_i <- read.csv(file.path(datadir, paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = "")))
     
   hs_clade_match_i <- match_hs_to_clade(hs_taxa_match = hs_taxa_match_i ,
                                       prod_taxa_classification = taxa %>%
@@ -514,4 +528,4 @@ code_max_resolved_taxa <- hs_taxa_match %>%
   mutate(hs6 = as.character(hs6)) %>%
   distinct()
 
-write.csv(code_max_resolved_taxa, file.path(outdir, "code_max_resolved_taxa.csv"), row.names = FALSE)
+write.csv(code_max_resolved_taxa, file.path(outdir_attribute, "code_max_resolved_taxa.csv"), row.names = FALSE)

@@ -10,8 +10,11 @@ build_artis_data <- function(artis_dir,
   if (estimate_data_type == "midpoint") {
     print("Collecting trade midpoint data")
     snet_midpoint_regexr <- "S-net_raw_midpoint"
-    trade_midpoint <- collect_data(artis_dir, snet_midpoint_regexr,
-                                   run_env = run_env, s3_bucket_name, s3_region)
+    trade_midpoint <- collect_data(artis_dir = artis_dir, 
+                                   file_pattern = snet_midpoint_regexr,
+                                   run_env = run_env, 
+                                   s3_bucket_name = s3_bucket_name, 
+                                   s3_region = s3_region)
     
     trade_mid_fp <- file.path(outdir, "snet_midpoint_all_hs_all_years.csv")
     
@@ -124,7 +127,7 @@ build_artis_data <- function(artis_dir,
     print("Collecting consumption midpoint")
     consumption_midpoint_regexr <- "consumption_midpoint"
     consumption_midpoint <- collect_data(artis_dir, consumption_midpoint_regexr,
-                                         run_env = "aws", s3_bucket_name, s3_region)
+                                         run_env = run_env, s3_bucket_name, s3_region)
     
     consumption_mid_fp <- file.path(outdir, "consumption_midpoint_all_hs_all_years.csv")
     
@@ -161,7 +164,7 @@ build_artis_data <- function(artis_dir,
     print("Collecting consumption max")
     consumption_max_regexr <- "consumption_max"
     consumption_max <- collect_data(artis_dir, consumption_max_regexr,
-                                    run_env = "aws", s3_bucket_name, s3_region)
+                                    run_env = run_env, s3_bucket_name, s3_region)
     
     consumption_max_fp <- file.path(outdir, "consumption_max_all_hs_all_years.csv")
     
@@ -198,7 +201,7 @@ build_artis_data <- function(artis_dir,
     print("Collecting consumption min")
     consumption_min_regexr <- "consumption_min"
     consumption_min <- collect_data(artis_dir, consumption_min_regexr,
-                                    run_env = "aws", s3_bucket_name, s3_region)
+                                    run_env = run_env, s3_bucket_name, s3_region)
     
     consumption_min_fp <- file.path(outdir, "consumption_min_all_hs_all_years.csv")
     

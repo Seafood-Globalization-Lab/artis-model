@@ -2,7 +2,7 @@
 # Setup based on the kind of analysis and machine you are working with
 
 # Start with a clean working environment
-# rm(list=ls())
+rm(list=ls())
 #-------------------------------------------------------------------------------
 run_env <- "local"
 

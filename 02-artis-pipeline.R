@@ -6,7 +6,7 @@
 rm(list=ls())
 
 #-------------------------------------------------------------------------------
-run_env <- "aws"
+run_env <- "local"
 
 if (run_env == "aws") {
   # High Performance Computing on AWS Setup
