@@ -11,16 +11,20 @@ library(slam)
 library(tidyverse)
 library(doParallel)
 library(aws.s3)
+library(countrycode)
 
 # Getting the start date to identify files generated in this ARTIS run
 start_date <- as.character(Sys.Date())
 
+datadir_raw <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw"
 # Directory for inputs to create the ARTIS database
 datadir <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs"
 # Directory where ARTIS database will be generated
 outdir <- "AM_local/outputs"
 # Path for collecting ARTIS database files
 outdir_snet <- file.path(outdir, "snet")
+outdir_attribute <- file.path(outdir, "attribute_tables")
+outdir_sql <- file.path(outdir, "sql_database")
 
 # HS version for trade records and timespan for ARTIS
 # ie HS12 will generate all trade records from 2012 - 2020

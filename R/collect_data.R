@@ -2,7 +2,8 @@
 collect_data <- function(artis_dir,
                          file_pattern,
                          run_env = "",
-                         s3_bucket_name = "", s3_region = "") {
+                         s3_bucket_name = "", 
+                         s3_region = "") {
   
   # Get list of AWS files to download
   # Amazon S3 does not have a traditional folder structure like a file system. Instead, S3 uses a flat namespace, and what might appear as folders are actually part of the object's key (the full path of the object). 
@@ -44,7 +45,8 @@ collect_data <- function(artis_dir,
       bind_rows(curr_df)
     
     # delete file from local server to preserve space
-    file.remove(df_files[i])
+    # FIXIT - AM commented out for testing 2025-04-24 - will replace collect data with something else soon
+    # file.remove(df_files[i])
     gc()
   }
   
