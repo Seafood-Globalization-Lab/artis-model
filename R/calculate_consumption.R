@@ -1,4 +1,5 @@
-#' Calculate Consumption
+#' Calculate Seafood Consumption
+#' 
 #' This function estimates seafood consumption by country using trade, production, 
 #' and processing data. It accounts for domestic and foreign consumption by integrating 
 #' trade flow data and conversion factors for processed seafood products.
