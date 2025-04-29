@@ -409,7 +409,6 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
                                          V1_long = V1_long, 
                                          V2_long = V2_long,
                                          pop = pop, 
-                                         code_max_resolved = code_max_resolved,
                                          max_percap_consumption = 100,
                                          consumption_threshold = 1e-9,
                                          dev_mode = FALSE)
