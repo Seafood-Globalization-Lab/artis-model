@@ -13,7 +13,6 @@
 #' @param X_long dataframe. mapping production species to HS6 codes based on available trade data.
 #' @param V1_long dataframe. mapping species to HS6 codes using an alternative approach.
 #' @param pop dataframe. containing country population data for per capita consumption calculations.
-#' @param code_max_resolved 
 #' @param max_percap_consumption Numeric. maximum allowable per capita consumption in kg (default 100).
 #' @param consumption_threshold Numeric. minimum threshold for recorded consumption to avoid rounding errors (default 1e-9).
 #' @param dev_mode Logical. if TRUE, enables debugging output and writes out discrepancies in consumption estimates.
@@ -34,7 +33,6 @@ calculate_consumption <- function(artis = s_net,
                                   V1_long = V1_long, 
                                   V2_long = V2_long,
                                   pop = pop, 
-                                  code_max_resolved = code_max_resolved,
                                   max_percap_consumption = 100,
                                   consumption_threshold = 1e-9,
                                   dev_mode = FALSE){
