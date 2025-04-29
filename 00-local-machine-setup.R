@@ -29,11 +29,6 @@ outdir_sql <- file.path(outdir, "sql_database")
 baci_version <- "202201"
 tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
 
-# HS version for trade records and timespan for ARTIS
-# ie HS12 ["12"] will generate all trade records for designated years with HS12 
-# product code definitions
-hs_version_run <- "96"
-
 # set years to run - 02-artis-pipeline 
 # empty if all years [c()]
 test_years <- c(2006) 
