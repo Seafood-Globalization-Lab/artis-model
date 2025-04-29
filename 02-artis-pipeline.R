@@ -24,12 +24,9 @@ if (run_env == "aws") {
   source("00-local-machine-setup.R")
 }
 
-# Set production data type variable
-prod_data_type <- "FAO"
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()
-test_years <- c(1996)
 #--------------------------------------------------------
 # This section generates the solutions for the mass balance problem for all
 # countries across all years and HS versions
