@@ -6,15 +6,15 @@ rm(list=ls())
 
 # Set folder paths
 datadir_raw <- file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw")
-outdir <- "AM_local/model_inputs"
+datadir <- "AM_local/model_inputs"
 baci_version <- "202201"
 tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
 
 # Creating out folder if necessary
-if (!dir.exists(outdir)) {
-  dir.create(outdir)
+if (!dir.exists(datadir)) {
+  dir.create(datadir)
 } else {
-  warning("OUTDIR already exists!")
+  warning(glue::glue("datadir `{datadir}` already exists!"))
 }
 
 # Load packages-----------------------------------------------------------------
@@ -139,11 +139,11 @@ if (test) {
 }
 
 # SAVE PRODUCTION OUTPUT:
-write.csv(prod_data, file = file.path(outdir, "clean_fao_prod.csv"), row.names = FALSE)
-write.csv(prod_taxa_classification, file = file.path(outdir, "clean_fao_taxa.csv"), row.names = FALSE)
+write.csv(prod_data, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
+write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)
 
 prod_data <- standardize_countries(prod_data, "FAO")
-write.csv(prod_data, file = file.path(outdir, "standardized_fao_prod.csv"), row.names = FALSE)
+write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod.csv"), row.names = FALSE)
 
 rm(prod_list)
 
@@ -175,9 +175,9 @@ prod_data_sau <- prod_data_sau %>%
 rm(prod_list_sau)
 
 # FIXIT: check if this data gets read back in - may be able to remove if not
-write.csv(prod_data_sau, file.path(outdir, "clean_sau_prod.csv"), 
+write.csv(prod_data_sau, file.path(datadir, "clean_sau_prod.csv"), 
           row.names = FALSE)
-write.csv(prod_classification_sau, file.path(outdir, "clean_sau_taxa.csv"), 
+write.csv(prod_classification_sau, file.path(datadir, "clean_sau_taxa.csv"), 
           row.names = FALSE)
 
 # initial country name cleaning and adding iso3c for SAU data
@@ -218,7 +218,7 @@ prod_data_sau <- prod_data_sau %>%
   summarise(quantity = sum(quantity)) %>%
   ungroup()
 
-write.csv(prod_data_sau, file.path(outdir, 'standardized_sau_prod_more_cols.csv'), 
+write.csv(prod_data_sau, file.path(datadir, 'standardized_sau_prod_more_cols.csv'), 
           row.names = FALSE)
 
 prod_data_sau <- prod_data_sau %>% 
@@ -227,7 +227,7 @@ prod_data_sau <- prod_data_sau %>%
     summarise(quantity = sum(quantity)) %>%
     ungroup()
 
-write.csv(prod_data_sau, file.path(outdir, 'standardized_sau_prod.csv'), row.names = FALSE)
+write.csv(prod_data_sau, file.path(datadir, 'standardized_sau_prod.csv'), row.names = FALSE)
   
 if (running_sau) {
   # Combine SAU production data with FAO data
@@ -235,7 +235,7 @@ if (running_sau) {
     filter(!(habitat == 'marine' & prod_method == 'capture')) %>%
     bind_rows(prod_data_sau)
   
-  write.csv(prod_data, file.path(outdir, 'standardized_combined_prod.csv'),
+  write.csv(prod_data, file.path(datadir, 'standardized_combined_prod.csv'),
             row.names = FALSE)
   
   # combine prod taxa classification
@@ -245,7 +245,7 @@ if (running_sau) {
     filter(SciName %in% unique(prod_data$SciName))
   
   write.csv(prod_taxa_classification, 
-            file.path(outdir, "clean_taxa_combined.csv"),
+            file.path(datadir, "clean_taxa_combined.csv"),
             row.names = FALSE)
 }
 # Make sure that prod taxa classification is classified to at least one of Species, Genus, Family, Other
@@ -270,7 +270,7 @@ hs_data_clean <- clean_hs(hs_data_raw = read.csv(file.path(datadir_raw, "All_HS_
 
 # Getting list of fmfo species
 fmfo_species <- get_fmfo_species(
-  sau_fp = file.path(outdir, 'standardized_sau_prod_more_cols.csv'),
+  sau_fp = file.path(datadir, 'standardized_sau_prod_more_cols.csv'),
   fishmeal_min_threshold_sp = 1,
   fishmeal_min_threshold_global = 0.5,
   fishmeal_primary_threshold = 75
@@ -439,7 +439,7 @@ for(i in 1:length(HS_year)) {
   # }
   
   # SAVE HS TAXA MATCH OUTPUT:
-  write.csv(hs_taxa_match, file = file.path(outdir, paste("hs-taxa-match_", hs_version, ".csv", sep="")), row.names = FALSE)
+  write.csv(hs_taxa_match, file = file.path(datadir, paste("hs-taxa-match_", hs_version, ".csv", sep="")), row.names = FALSE)
   
   
   # Determine which HS codes can be processed and turned into another HS code
@@ -483,7 +483,7 @@ for(i in 1:length(HS_year)) {
     ) %>%
     select(-c(pre_code_habitat, post_code_habitat))
   
-  write.csv(hs_hs_output, file = file.path(outdir, hs_hs_match_file), row.names = FALSE)
+  write.csv(hs_hs_output, file = file.path(datadir, hs_hs_match_file), row.names = FALSE)
   
   # Load and clean the live weight conversion factor data
   # These CF's convert from commodity to the live weight equivalent (min value is therefore 1, for whole fish)
@@ -519,7 +519,7 @@ for(i in 1:length(HS_year)) {
   
   # SAVE CONVERSION FACTORS OUTPUT
   cf_csv_name <- paste("hs-taxa-CF_", set_match_criteria, "-match_", hs_version, ".csv", sep = "")
-  write.csv(hs_taxa_CF_match, file.path(outdir, cf_csv_name), row.names = FALSE)
+  write.csv(hs_taxa_CF_match, file.path(datadir, cf_csv_name), row.names = FALSE)
   
 } # end of for loop
 
@@ -600,14 +600,14 @@ for (i in 1:nrow(df_years)){
   write.csv(
     baci_data %>%
       select(-c(total_v)),
-    file.path(outdir, paste("standardized_baci_seafood_hs", HS_year, "_y", analysis_year, ".csv", sep = "")),
+    file.path(datadir, paste("standardized_baci_seafood_hs", HS_year, "_y", analysis_year, ".csv", sep = "")),
     row.names = FALSE
   )
 
   # BACI output with total and unit value
   write.csv(
     baci_data,
-    file.path(outdir, paste("standardized_baci_seafood_hs", HS_year, "_y", analysis_year, "_including_value.csv", sep = "")),
+    file.path(datadir, paste("standardized_baci_seafood_hs", HS_year, "_y", analysis_year, "_including_value.csv", sep = "")),
     row.names = FALSE
   )
 }
@@ -680,6 +680,6 @@ if (test) {
     filter(year == test_year)
 }
 
-write.csv(clean_pop, file.path(outdir, "fao_annual_pop.csv"), row.names = FALSE)
+write.csv(clean_pop, file.path(datadir, "fao_annual_pop.csv"), row.names = FALSE)
 
 
