@@ -24,7 +24,6 @@ readRenviron(".Renviron")
 use_virtualenv("/usr/src/ARTIS/venv", required = TRUE)
 
 # AWS variables -----------------------------------------------------------
-# Download files to create ARTIS R package from AWS S3
 artis_bucket <- "s3://artis-s3-bucket/"
 artis_bucket_region <- "us-east-1"
 

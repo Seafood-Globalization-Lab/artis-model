@@ -1,4 +1,4 @@
-# Clean input data
+# Clean raw input data
 
 ###############################################################################
 # Set directories and file naming variables
@@ -6,7 +6,6 @@ rm(list=ls())
 
 # Local Machine Configuration setup
 source("00-local-machine-setup.R")
-
 
 # Creating folder for clean data if necessary
 if (!dir.exists(datadir)) {
