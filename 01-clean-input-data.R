@@ -4,47 +4,16 @@
 # Set directories and file naming variables
 rm(list=ls())
 
-# Set folder paths
-datadir_raw <- file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw")
-datadir <- "AM_local/model_inputs"
-baci_version <- "202201"
-tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
+# Local Machine Configuration setup
+source("00-local-machine-setup.R")
 
-# Creating out folder if necessary
+
+# Creating folder for clean data if necessary
 if (!dir.exists(datadir)) {
   dir.create(datadir)
 } else {
-  warning(glue::glue("datadir `{datadir}` already exists!"))
+  warning(glue::glue("Directory datadir `{datadir}` already exists!"))
 }
-
-# Load packages-----------------------------------------------------------------
-library(artis)
-library(tidyverse)
-library(countrycode)
-library(doParallel)
-library(rfishbase)
-library(data.table)
-
-# Step 1: Load and clean production data and HS codes---------------------------
-running_sau <- TRUE
-
-## Set if new SeaLifeBase data collection needed:
-need_new_slb <- FALSE
-
-#-------------------------------------------------------------------------------
-# If running a test environment with specific codes scinames this variable should be true else false
-test <- FALSE
-test_year <- 2018
-test_hs <- "12"
-
-if(test == TRUE){
-  test_scinames <- read.csv("demo/sciname_shrimps_prawns.csv") %>%
-    select(sciname) %>%
-    distinct() %>%
-    pull(sciname)
-  
-  test_codes <- c("030617", "160529", "160521", "030627", "030616", "030626")
-}else{}
 
 #-------------------------------------------------------------------------------
 # Load raw HS codes
@@ -54,7 +23,7 @@ hs_data_raw <- read.csv(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses =
 # Note: these do not need to be generated for each model run and can be done once per year/quarter
 # Directory Structure:
   # creates fishbase_sealifebase_[MOST RECENT DATE] within model_inputs_raw (ie. "model_inputs_raw/fishbase_sealifebase_[MOST_RECENT_DATE]")
-if(need_new_slb == TRUE) {
+if(need_new_fb_slb == TRUE) {
   collect_fb_slb_data(datadir_raw)
   message("New fishbase and sealifebase data files have been generated.")
 } else {
