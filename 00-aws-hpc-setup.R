@@ -1,6 +1,7 @@
 # Model configuration parameters for running ARTIS pipeline on AWS infrastructure
 
 # sourced from 02-artis-pipeline
+
 # R packages required ------------------------------------------------------
 library(data.table)
 library(magrittr)
@@ -43,6 +44,13 @@ estimate_data_type <- "midpoint"
 # directories -------------------------------------------------------------
 datadir <- "model_inputs"
 outdir <- "outputs"
+# Path for sub folder within outputs that will contain all country-level solutions
+# to mass balance equation, solved using the python solver "quadprog"
+outdir_quadprog <- file.path(outdir, "quadprog_snet")
+# Path for sub folder within outputs that will contain all country-level solutions
+# to mass balance equation, solved using the python solver "cvxopt"
+outdir_cvxopt <- file.path(outdir, "cvxopt_snet")
+# Path for collecting ARTIS database files
 outdir_snet <- file.path(outdir, "snet")
 
 

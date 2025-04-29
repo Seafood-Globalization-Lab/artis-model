@@ -18,40 +18,48 @@ library(countrycode)
 # Getting the start date to identify files generated in this ARTIS run
 start_date <- as.character(Sys.Date())
 
-# Directory paths --------------------------------------------------
+# Input data directory paths --------------------------------------------------
 datadir_raw <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw"
 # Directory for inputs to create the ARTIS database
 datadir <- "AM_local/model_inputs"
-# Directory where ARTIS database will be generated
-outdir <- "AM_local/outputs"
-# Path for collecting ARTIS database files
-outdir_snet <- file.path(outdir, "snet")
-outdir_attribute <- file.path(outdir, "attribute_tables")
-outdir_sql <- file.path(outdir, "sql_database")
 baci_version <- "202201"
 tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
 
-# ARTIS model parameters 02-artis-pipeline ------------------------------------
+# Model output directory paths --------------------------------------------
+# Directory where ARTIS database will be generated
+outdir <- "AM_local/outputs"
+# Path for sub folder within outputs that will contain all country-level solutions
+# to mass balance equation, solved using the python solver "quadprog"
+outdir_quadprog <- file.path(outdir, "quadprog_snet")
+# Path for sub folder within outputs that will contain all country-level solutions
+# to mass balance equation, solved using the python solver "cvxopt"
+outdir_cvxopt <- file.path(outdir, "cvxopt_snet")
+# Path for collecting ARTIS database files
+outdir_snet <- file.path(outdir, "snet")
+
+
+# Postprocessing output directory paths -----------------------------------
+outdir_attribute <- file.path(outdir, "attribute_tables")
+outdir_sql <- file.path(outdir, "sql_database")
+
+# 01-clean-model-inputs parameters --------------------------------
+# Model Mode for 01-clean-model-inputs - TRUE for SAU; FALSE for FAO
+running_sau <- TRUE
+## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
+need_new_fb_slb <- FALSE
+
+# 02-artis-pipeline parameters ------------------------------------
 # set years to run - empty if all years [c()]
 test_years <- c(2006) 
-
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
-
 # Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
 prod_data_type <- "SAU"
 
 # hs_version_run is set in 02-artis-pipeline because of current `artis-hpc` setup
 
-# data cleaning options 01-clean-model-inputs --------------------------------
-# Model Mode for 01-clean-model-inputs - TRUE for SAU; FALSE for FAO
-running_sau <- TRUE
 
-## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
-need_new_fb_slb <- FALSE
-
-
-# python environment - 02-artis-pipeline ----------------------------------
+# 02-artis-pipeline python environment -----------------------------------
 # Linking python environment set up during installation for use in the pipeline
 #python_path <- file.path(getwd(), "venv", "bin", "python3")
 #use_python(python_path, required = TRUE)
