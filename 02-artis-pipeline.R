@@ -62,23 +62,25 @@ message("Starting `get_country_solutions()` with quadprog solver")
 
 if (run_env == "aws") {
   get_country_solutions(
-    datadir,
-    outdir_quadprog,
+    datadir = datadir,
+    outdir = outdir_quadprog,
     hs_version = hs_version_run,
-    prod_type = prod_data_type,
     test_year = test_years,
+    prod_type = prod_data_type,
+    solver_type = "quadprog",
+    num_cores = 3,
     run_env = "aws",
     s3_bucket_name = artis_bucket,
-    s3_region = artis_bucket_region,
-    num_cores = 3
+    s3_region = artis_bucket_region
   )
 } else {
   get_country_solutions(
-    datadir,
-    outdir_quadprog,
+    datadir = datadir,
+    outdir = outdir_quadprog,
     hs_version = hs_version_run,
-    prod_type = prod_data_type,
     test_year = test_years,
+    prod_type = prod_data_type,
+    solver_type = "quadprog",
     num_cores = 1,
     run_env = "demo"
   )
@@ -146,27 +148,27 @@ if (nrow(no_solve_countries) > 0) {
   # cvxopt solver output folder.
   if (run_env == "aws") {
     get_country_solutions(
-      datadir,
-      outdir_cvxopt,
+      datadir = datadir,
+      outdir = outdir_cvxopt,
       hs_version = hs_version_run,
+      test_year = test_years,
+      prod_type = prod_data_type,
       solver_type = "cvxopt",
       no_solve_countries = no_solve_countries,
-      prod_type = prod_data_type,
-      test_year = test_years,
+      num_cores = 3,
       run_env = "aws",
       s3_bucket_name = artis_bucket,
-      s3_region = artis_bucket_region,
-      num_cores = 3
+      s3_region = artis_bucket_region
     )
   } else {
     get_country_solutions(
-      datadir,
-      outdir_cvxopt,
+      datadir = datadir,
+      outdir = outdir_cvxopt,
       hs_version = hs_version_run,
+      test_year = test_years,
+      prod_type = prod_data_type,
       solver_type = "cvxopt",
       no_solve_countries = no_solve_countries,
-      prod_type = prod_data_type,
-      test_year = test_years,
       num_cores = 1,
       run_env = "demo"
     )
@@ -193,30 +195,30 @@ message("Starting `get_snet()`")
 
 if (run_env == "aws") {
   get_snet(
-    outdir_quadprog,
-    outdir_cvxopt,
-    datadir,
-    outdir_snet,
+    quadprog_dir = outdir_quadprog,
+    cvxopt_dir = outdir_cvxopt,
+    datadir = datadir,
+    outdir = outdir_snet,
     num_cores = 3,
     hs_version = hs_version_run,
+    test_years = test_years,
     prod_type = prod_data_type,
     estimate_type = "midpoint",
-    test_years = test_years,
     run_env = "aws",
     s3_bucket_name = artis_bucket,
     s3_region = artis_bucket_region
   )
 } else {
   get_snet(
-    outdir_quadprog,
-    outdir_cvxopt,
-    datadir,
-    outdir_snet,
+    quadprog_dir = outdir_quadprog,
+    cvxopt_dir = outdir_cvxopt,
+    datadir = datadir,
+    outdir = outdir_snet,
     num_cores = 1,
     hs_version = hs_version_run,
+    test_years = test_years,
     prod_type = prod_data_type,
     estimate_type = "midpoint",
-    test_years = test_years,
     run_env = "demo"
   )
 }
