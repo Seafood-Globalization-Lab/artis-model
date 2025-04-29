@@ -88,6 +88,11 @@ prod_data <- prod_data_raw %>%
   summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
   ungroup()
 
+# AM 2025-04-29 - reduce redundant prod rows - moved from calculate_consumption() line 70 - may affect get_countries_solutions
+prod_data <- prod_data %>% 
+  group_by(country_iso3_alpha, country_name_en, SciName, taxa_source, habitat, prod_method, year) %>%
+  summarise(quantity = sum(quantity))
+
 # Changing class name based on FAO 2022 species list
 # some sources call actinopterygii a class others call it a superclass (might need to change with osteichthyes instead)
 prod_taxa_classification <- prod_taxa_classification %>%
