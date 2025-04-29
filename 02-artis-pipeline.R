@@ -41,7 +41,7 @@ start_date <- Sys.Date()
 # Creating general outputs folder if necessary, will delete contents of folder
 # if it already exists
 if(dir.exists(outdir)) {
-  warning("General output folder already exists, all contents are being deleted to create an empty folder.")
+  warning(glue::glue("`{outdir}/` folder already exists, all contents are being deleted to create an empty folder."))
   unlink(outdir, recursive = TRUE)
 }
 dir.create(outdir)
@@ -61,6 +61,9 @@ dir.create(outdir_quadprog)
 # Formats and prepares all inputs for the country-level mass balance problems,
 # and passes them into the python quadprog solver. All solutions are saved in the
 # quadprog solver output folder.
+
+message("Starting `get_country_solutions()` with quadprog solver")
+
 if (run_env == "aws") {
   get_country_solutions(
     datadir,
@@ -85,10 +88,14 @@ if (run_env == "aws") {
   )
 }
 
+message("Finished `get_country_solutions()` with quadprog solver")
+
 # Depending on the HS version and year, some mass balance problems were not
 # solved by the quadprog solver. This function goes through all years for a
 # specific HS version and finds all the countries where no solution was found by
 # the quadprog solver by year and HS version
+
+message("Starting `get_no_solve_countries()`")
 if (run_env == "aws") {
   no_solve_countries <- get_no_solve_countries(
     snet_dir = outdir_quadprog,
@@ -141,6 +148,7 @@ dir.create(outdir_cvxopt)
 # that were not solved by the quadprog solver
 if (nrow(no_solve_countries) > 0) {
 
+  message("Starting `get_country_solutions()` with cvxopt solver")
   # Formats and prepares all inputs for the country-level mass balance problems,
   # and passes them into the python cvxopt solver. All solutions are saved in the
   # cvxopt solver output folder.
@@ -171,6 +179,7 @@ if (nrow(no_solve_countries) > 0) {
       run_env = "demo"
     )
   }
+  message("Finished `get_country_solutions()` with cvxopt solver")
 }
 
 #-------------------------------------------------------------------------------
@@ -190,6 +199,9 @@ dir.create(outdir_snet)
 
 # Takes all solutions of country mass balance problems and calculates ARTIS database
 # records, along with corresponding consumption records
+
+message("Starting `get_snet()`")
+
 if (run_env == "aws") {
   get_snet(
     outdir_quadprog,
@@ -220,3 +232,4 @@ if (run_env == "aws") {
   )
 }
 
+message("Finished `get_snet()` and `02-artis-pipeline`")
