@@ -5,7 +5,7 @@
 rm(list=ls())
 
 # Set folder paths
-datadir <- file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw")
+datadir_raw <- file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw")
 outdir <- "AM_local/model_inputs"
 baci_version <- "202201"
 tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
@@ -26,7 +26,7 @@ library(rfishbase)
 library(data.table)
 
 # Step 1: Load and clean production data and HS codes---------------------------
-running_sau <- FALSE
+running_sau <- TRUE
 
 ## Set if new SeaLifeBase data collection needed:
 need_new_slb <- FALSE
@@ -48,26 +48,26 @@ if(test == TRUE){
 
 #-------------------------------------------------------------------------------
 # Load raw HS codes
-hs_data_raw <- read.csv(file.path(datadir, "All_HS_Codes.csv"), colClasses = "character")
+hs_data_raw <- read.csv(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "character")
 
 # Generate new fishbase and sealifebase data files
 # Note: these do not need to be generated for each model run and can be done once per year/quarter
 # Directory Structure:
   # creates fishbase_sealifebase_[MOST RECENT DATE] within model_inputs_raw (ie. "model_inputs_raw/fishbase_sealifebase_[MOST_RECENT_DATE]")
 if(need_new_slb == TRUE) {
-  collect_fb_slb_data(datadir)
+  collect_fb_slb_data(datadir_raw)
   message("New fishbase and sealifebase data files have been generated.")
 } else {
   message("Existing fishbase and sealifebase data files are being used; Not collecting new data.")
 }
 
 # Find the most recent version of the fishbase and sealifebase data files needed
-fb_slb_info <- get_most_recent_dir(datadir, "fishbase_sealifebase")
+fb_slb_info <- get_most_recent_dir(datadir_raw, "fishbase_sealifebase")
 current_fb_slb_dir <- fb_slb_info$directory
 
 # Clean scientific names and add classification info to production data: choose FAO or SAU
 # NOTE: warning message about data_frame() being deprecated is fixed in the development version of rfishbase: run remotes::install_github("ropensci/rfishbase") to implement the fixed version
-prod_list <- classify_prod_dat(datadir = datadir,
+prod_list <- classify_prod_dat(datadir = datadir_raw,
                                filename = "GlobalProduction_2022.1.1.zip", 
                                # "GlobalProduction_2023.1.1.zip"
                                prod_data_source = "FAO",
@@ -148,7 +148,7 @@ write.csv(prod_data, file = file.path(outdir, "standardized_fao_prod.csv"), row.
 rm(prod_list)
 
 # SAU data----------------------------------------------------------------------
-prod_list_sau <- classify_prod_dat(datadir = datadir,
+prod_list_sau <- classify_prod_dat(datadir = datadir_raw,
                                    filename = 'SAU_Production_Data.csv',
                                    prod_data_source = 'SAU',
                                    SAU_sci_2_common = "TaxonFunctionalCommercial_Clean.csv",
@@ -265,7 +265,7 @@ sciname_habitat <- prod_taxa_classification %>%
 # Step 2: Create V1 and V2 for each HS version----------------------------------
 # Load and clean the conversion factor data and run the matching functions. 
 # This data will be used to create V1 and V2. 
-hs_data_clean <- clean_hs(hs_data_raw = read.csv(file.path(datadir, "All_HS_Codes.csv"), colClasses = "character"),
+hs_data_clean <- clean_hs(hs_data_raw = read.csv(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "character"),
                           fb_slb_dir = current_fb_slb_dir)
 
 # Getting list of fmfo species
@@ -276,7 +276,7 @@ fmfo_species <- get_fmfo_species(
   fishmeal_primary_threshold = 75
 )
 
-write.csv(fmfo_species, file.path(datadir, 'fmfo_species_list.csv'), row.names = FALSE)
+write.csv(fmfo_species, file.path(datadir_raw, 'fmfo_species_list.csv'), row.names = FALSE)
 
 # List of possible HS versions: HS96, HS02, HS12, HS17
 #HS_year <- c("96", "02", "07", "12", "17")
@@ -488,8 +488,8 @@ for(i in 1:length(HS_year)) {
   # Load and clean the live weight conversion factor data
   # These CF's convert from commodity to the live weight equivalent (min value is therefore 1, for whole fish)
   set_match_criteria = "strict"
-  hs_taxa_CF_match <- compile_cf(conversion_factors = read.csv(file.path(datadir, "seafood_conversion_factors.csv"), stringsAsFactors = FALSE),
-                                 eumofa_data = read.csv(file.path(datadir, "EUMOFA_compiled.csv"), stringsAsFactors = FALSE),
+  hs_taxa_CF_match <- compile_cf(conversion_factors = read.csv(file.path(datadir_raw, "seafood_conversion_factors.csv"), stringsAsFactors = FALSE),
+                                 eumofa_data = read.csv(file.path(datadir_raw, "EUMOFA_compiled.csv"), stringsAsFactors = FALSE),
                                  hs_hs_match,
                                  hs_version,
                                  match_criteria = set_match_criteria,
@@ -556,7 +556,7 @@ for (i in 1:nrow(df_years)){
   print(paste(HS_year, analysis_year))
   
   # Creating out folder if necessary
-  if (!file.exists(file.path(datadir, paste("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))) {
+  if (!file.exists(file.path(datadir_raw, paste("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))) {
     baci_data_i <- read.csv(file = file.path(tradedatadir, 
                                            paste("BACI_", "HS", HS_year, "_V", baci_version, sep = ""),
                                            paste("BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
@@ -575,7 +575,7 @@ for (i in 1:nrow(df_years)){
                                               paste("country_codes_V", baci_version, ".csv", sep = "")))
     )
     
-    write.csv(baci_data_i, file.path(datadir, paste("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
+    write.csv(baci_data_i, file.path(datadir_raw, paste("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
               row.names = FALSE)
   } else {
     print("Filtered BACI file already exists")
@@ -588,7 +588,7 @@ for (i in 1:nrow(df_years)){
   analysis_year <- df_years[i,]$analysis_year
   print(paste(HS_year, analysis_year))
   
-  baci_data <- read.csv(file.path(datadir, paste("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))
+  baci_data <- read.csv(file.path(datadir_raw, paste("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))
   
   baci_data <- baci_data %>%
     mutate(year = analysis_year,
@@ -613,7 +613,7 @@ for (i in 1:nrow(df_years)){
 }
 
 # Clean FAO population data
-pop_raw <- read.csv(file.path(datadir, "Population_E_All_Data/Population_E_All_Data_NOFLAG.csv"))
+pop_raw <- read.csv(file.path(datadir_raw, "Population_E_All_Data/Population_E_All_Data_NOFLAG.csv"))
 
 clean_pop <- pop_raw %>%
   # Total population all inclusive
@@ -663,7 +663,7 @@ clean_pop <- clean_pop %>%
   )
 
 # Standardizing Countries
-clean_fao <- read.csv(file.path(datadir, "standard_fao_countries.csv"))
+clean_fao <- read.csv(file.path(datadir_raw, "standard_fao_countries.csv"))
 clean_pop <- clean_pop %>%
   filter(year <= 2020) %>%
   left_join(
