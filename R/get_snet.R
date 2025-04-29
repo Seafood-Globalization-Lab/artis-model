@@ -79,7 +79,6 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
   }
   #-------------------------------------------------------------------------------
   pop_fp <- file.path(datadir, "fao_annual_pop.csv")
-  code_max_resolved_fp <- file.path(datadir, "code_max_resolved.csv")
   
   if (run_env == "aws") {
     save_object(
@@ -88,17 +87,9 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
       region = s3_region,
       file = pop_fp
     )
-    
-    save_object(
-      object = code_max_resolved_fp,
-      bucket = s3_bucket_name,
-      region = s3_region,
-      file = code_max_resolved_fp
-    )
   }
   
   fao_pop <- read.csv(pop_fp)
-  code_max_resolved <- read.csv(code_max_resolved_fp)
   
   # Non-human codes
   non_human_codes <- c("230120", "051191", "030110", "030111", "030119")
