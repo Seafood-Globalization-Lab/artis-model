@@ -50,8 +50,9 @@ need_new_fb_slb <- FALSE
 # List of possible HS versions: HS96, HS02, HS12, HS17
 #HS_year <- c("96", "02", "07", "12", "17")
 HS_year <- c("96")
-# AM - I think this is leftover code - can set HS year and 
+# AM - I think this is leftover code - can set HS year and year for running tests
 test <- FALSE
+test_year <- c(1996)
 
 # 02-artis-pipeline parameters ------------------------------------
 # set years to run - empty if all years [c()]
