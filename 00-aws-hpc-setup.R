@@ -41,6 +41,11 @@ test_years <- c()
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
 
+# Set up Start date for finding no solution countries
+start_date <- Sys.Date()
+
+dev_mode <- FALSE
+
 # directories -------------------------------------------------------------
 datadir <- "model_inputs"
 outdir <- "outputs"
@@ -52,7 +57,6 @@ outdir_quadprog <- file.path(outdir, "quadprog_snet")
 outdir_cvxopt <- file.path(outdir, "cvxopt_snet")
 # Path for collecting ARTIS database files
 outdir_snet <- file.path(outdir, "snet")
-
 
 
 
