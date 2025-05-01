@@ -91,7 +91,8 @@ prod_data <- prod_data_raw %>%
 # AM 2025-04-29 - reduce redundant prod rows - moved from calculate_consumption() line 70 - may affect get_countries_solutions
 prod_data <- prod_data %>% 
   group_by(country_iso3_alpha, country_name_en, SciName, taxa_source, habitat, prod_method, year) %>%
-  summarise(quantity = sum(quantity))
+  summarise(quantity = sum(quantity)) %>% 
+  ungroup()
 
 # Changing class name based on FAO 2022 species list
 # some sources call actinopterygii a class others call it a superclass (might need to change with osteichthyes instead)
@@ -115,7 +116,8 @@ if (test) {
 write.csv(prod_data, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
 write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)
 
-prod_data <- standardize_countries(prod_data, "FAO")
+prod_data <- standardize_countries(df = prod_data, 
+                                   data_source = "FAO")
 write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod.csv"), row.names = FALSE)
 
 rm(prod_list)
@@ -585,7 +587,7 @@ for (i in 1:nrow(df_years)){
   )
 }
 
-# Clean FAO population data
+# Clean FAO population data ------------------------------------------------
 pop_raw <- read.csv(file.path(datadir_raw, "Population_E_All_Data/Population_E_All_Data_NOFLAG.csv"))
 
 clean_pop <- pop_raw %>%
