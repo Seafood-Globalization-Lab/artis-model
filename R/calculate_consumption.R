@@ -66,10 +66,7 @@ calculate_consumption <- function(artis = s_net,
   prod <- prod %>%
     rename(sciname = SciName,
            method = prod_method,
-           live_weight_t = quantity) # %>%
-    #FIXIT: This should happen earlier in data cleaning script
-    # group_by(country_iso3_alpha, sciname, habitat, method) %>%
-    # summarise(live_weight_t = sum(live_weight_t))
+           live_weight_t = quantity)
   
   # Calculate Domestic Consumption----------------------------------------------
   # calculating all products exported by countries
