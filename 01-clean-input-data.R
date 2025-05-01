@@ -186,8 +186,8 @@ prod_data_sau <- standardize_countries(prod_data_sau, "FAO")
 
 prod_data_sau <- prod_data_sau %>% 
   group_by(country_iso3_alpha, SciName, taxa_source, year, 
-           Species01, Genus01, Family01, Other01, habitat, prod_method, gear,
-           eez, sector, end_use) %>% 
+           habitat, prod_method, gear,eez, sector, end_use, Species01, 
+           Genus01, Family01, Other01, Fresh01, Saltwater01, Brack01) %>% 
   summarise(quantity = sum(quantity)) %>%
   ungroup()
 
@@ -196,7 +196,8 @@ write.csv(prod_data_sau, file.path(datadir, 'standardized_sau_prod_more_cols.csv
 
 prod_data_sau <- prod_data_sau %>% 
     group_by(country_iso3_alpha, SciName, taxa_source, year, 
-             Species01, Genus01, Family01, Other01, habitat, prod_method) %>% 
+             habitat, prod_method, Species01, Genus01, Family01, Other01, 
+             Fresh01, Saltwater01, Brack01) %>% 
     summarise(quantity = sum(quantity)) %>%
     ungroup()
 
