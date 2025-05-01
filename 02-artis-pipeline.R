@@ -31,9 +31,6 @@ if (run_env == "aws") {
   source("00-local-machine-setup.R")
 }
 
-
-# Set up Start date for finding no solution countries
-start_date <- Sys.Date()
 #--------------------------------------------------------
 # This section generates the solutions for the mass balance problem for all
 # countries across all years and HS versions
@@ -71,7 +68,8 @@ if (run_env == "aws") {
     num_cores = 3,
     run_env = "aws",
     s3_bucket_name = artis_bucket,
-    s3_region = artis_bucket_region
+    s3_region = artis_bucket_region,
+    dev_mode = FALSE
   )
 } else {
   get_country_solutions(
@@ -82,7 +80,8 @@ if (run_env == "aws") {
     prod_type = prod_data_type,
     solver_type = "quadprog",
     num_cores = 1,
-    run_env = "demo"
+    run_env = "demo",
+    dev_mode = FALSE
   )
 }
 
@@ -109,7 +108,6 @@ if (run_env == "aws") {
     run_env = "demo"
   )
 }
-
 
 # Lists any combination country, year, HS version combination, where no solution
 # to the mass balance problem was solved.
@@ -158,7 +156,8 @@ if (nrow(no_solve_countries) > 0) {
       num_cores = 3,
       run_env = "aws",
       s3_bucket_name = artis_bucket,
-      s3_region = artis_bucket_region
+      s3_region = artis_bucket_region,
+      dev_mode = FALSE
     )
   } else {
     get_country_solutions(
@@ -170,7 +169,8 @@ if (nrow(no_solve_countries) > 0) {
       solver_type = "cvxopt",
       no_solve_countries = no_solve_countries,
       num_cores = 1,
-      run_env = "demo"
+      run_env = "demo",
+      dev_mode = FALSE
     )
   }
   message("Finished `get_country_solutions()` with cvxopt solver")

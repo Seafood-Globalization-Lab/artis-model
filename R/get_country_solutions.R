@@ -170,7 +170,7 @@ get_country_solutions <- function(datadir,
                               solver_to_use, 
                               run_env = "aws", 
                               s3_bucket_name = "", 
-                              dev_mode = dev_mode){
+                              dev_mode_logic = FALSE){
       print(paste("start of ", i, " solution"), sep = "")
       qp_inputs <- transform_to_qp_with_python(country_j = i, V1 = V1, V2 = V2, 
                                                baci_data_clean = baci_data_analysis_year, 
@@ -232,7 +232,7 @@ convert = TRUE)
     if(length(qp_sol) > 0 )  {
       
       # not directly used in model - output if needed with arguement dev_mode = TRUE
-      if(dev_mode == TRUE) {
+      if(dev_mode_logic == TRUE) {
         # Write out raw output from solver for comparison
         cond_num <- as.numeric(py$cond_num)
         write.csv(qp_sol, file.path(hs_analysis_year_dir, paste(i, "_sol.csv", sep="")),
@@ -275,15 +275,19 @@ convert = TRUE)
       gc()
     }
     
+    # explicitly set inside parent environment
+    dev_mode_logic <- dev_mode
+    
     # Parallelize solution to country mass balance problems:
     mclapply(countries_to_analyze,
              solve_country,
              solver_to_use = solver_type,
              run_env = run_env,
              s3_bucket_name = s3_bucket_name,
+             dev_mode_logic = dev_mode_logic,
              mc.cores = num_cores,
-             mc.preschedule = FALSE,
-             dev_mode = dev_mode)
+             mc.preschedule = FALSE
+             )
 
     # This needs to contain ALL files across quadprog and cvxopt solutions
     # Read in individual country solutions and combine into a list
