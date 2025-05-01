@@ -62,7 +62,9 @@ prod_data <- prod_data_raw %>%
   filter(quantity > 0) %>%
   filter(year > 1995)  %>% # Filter to 1996 and on to work with a smaller file
   # Remove columns not needed for any analysis
-  select(!c(any_of(c("alternate", "multiplier", "symbol", "symbol_identifier")), contains(c("_ar", "_cn", "_es", "_fr", "_ru")))) %>%
+  select(!c(any_of(c("alternate", "multiplier", "symbol", "symbol_identifier")), 
+            contains(c("_ar", "_cn", "_es", "_fr", "_ru")),
+            CommonName)) %>%
   # Create new column that combines SciName with souce info (i.e., habitat + production method)
   mutate(fao_habitat = case_when(habitat == "Inland waters" ~ "inland",
                              habitat == "Marine areas" ~ "marine",
@@ -84,14 +86,10 @@ prod_data <- prod_data_raw %>%
                                  TRUE ~ fao_habitat)) %>% # ELSE, use FAO's habitat designation, including for all non species-level data
   # UPDATE taxa source to match structure in get country solutions
   mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_")) %>%
-  group_by(country_iso3_alpha, country_name_en, CommonName, SciName, taxa_source, habitat, prod_method, year, Fresh01, Saltwater01, Brack01, Species01, Genus01, Family01, Other01, isscaap_group) %>%
+  group_by(country_iso3_alpha, country_name_en, SciName, taxa_source, habitat, 
+           prod_method, year, isscaap_group, Fresh01, Saltwater01, Brack01, Species01, Genus01,
+           Family01, Other01) %>%
   summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
-  ungroup()
-
-# AM 2025-04-29 - reduce redundant prod rows - moved from calculate_consumption() line 70 - may affect get_countries_solutions
-prod_data <- prod_data %>% 
-  group_by(country_iso3_alpha, country_name_en, SciName, taxa_source, habitat, prod_method, year) %>%
-  summarise(quantity = sum(quantity)) %>% 
   ungroup()
 
 # Changing class name based on FAO 2022 species list
@@ -187,7 +185,7 @@ prod_data_sau <- prod_data_sau %>%
 prod_data_sau <- standardize_countries(prod_data_sau, "FAO")
 
 prod_data_sau <- prod_data_sau %>% 
-  group_by(country_iso3_alpha, SciName, CommonName, taxa_source, year, 
+  group_by(country_iso3_alpha, SciName, taxa_source, year, 
            Species01, Genus01, Family01, Other01, habitat, prod_method, gear,
            eez, sector, end_use) %>% 
   summarise(quantity = sum(quantity)) %>%
@@ -197,7 +195,7 @@ write.csv(prod_data_sau, file.path(datadir, 'standardized_sau_prod_more_cols.csv
           row.names = FALSE)
 
 prod_data_sau <- prod_data_sau %>% 
-    group_by(country_iso3_alpha, SciName, CommonName, taxa_source, year, 
+    group_by(country_iso3_alpha, SciName, taxa_source, year, 
              Species01, Genus01, Family01, Other01, habitat, prod_method) %>% 
     summarise(quantity = sum(quantity)) %>%
     ungroup()
