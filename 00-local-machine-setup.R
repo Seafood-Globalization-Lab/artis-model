@@ -15,8 +15,8 @@ library(doParallel)
 library(aws.s3)
 library(countrycode)
 
-# Getting the start date to identify files generated in this ARTIS run
-start_date <- as.character(Sys.Date())
+# Set up Start date for finding no solution countries
+start_date <- Sys.Date()
 
 # Input data directory paths --------------------------------------------------
 datadir_raw <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw"
@@ -61,9 +61,9 @@ test_years <- c(1996)
 estimate_data_type <- "midpoint"
 # Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
 prod_data_type <- "SAU"
+dev_mode <- FALSE
 
 # hs_version_run is set in 02-artis-pipeline because of current `artis-hpc` setup
-
 
 # 02-artis-pipeline python environment -----------------------------------
 # Linking python environment set up during installation for use in the pipeline
@@ -72,6 +72,14 @@ prod_data_type <- "SAU"
 
 python_path <- file.path(getwd(), "venv")
 use_virtualenv(python_path, required = TRUE)
+
+
+# 02-artis-pipeline Number of cores ---------------------------------------
+
+# not working yet
+# if (run_env == "local") {
+#   detected_num_cores <- parallel::detectCores() - 1
+# }
 
 # empty AWS values --------------------------------------------------------
 # need explicit empty AWS values when running locally - do not change
