@@ -87,8 +87,7 @@ prod_data <- prod_data_raw %>%
   # UPDATE taxa source to match structure in get country solutions
   mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_")) %>%
   group_by(country_iso3_alpha, country_name_en, SciName, taxa_source, habitat, 
-           prod_method, year, isscaap_group, Fresh01, Saltwater01, Brack01, Species01, Genus01,
-           Family01, Other01) %>%
+           prod_method, year, Fresh01, Saltwater01, Brack01, Species01, Genus01, Family01, Other01) %>%
   summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
   ungroup()
 
@@ -186,7 +185,7 @@ prod_data_sau <- standardize_countries(prod_data_sau, "FAO")
 
 prod_data_sau <- prod_data_sau %>% 
   group_by(country_iso3_alpha, SciName, taxa_source, year, 
-           habitat, prod_method, gear,eez, sector, end_use, Species01, 
+           habitat, prod_method, gear, eez, sector, end_use, Species01, 
            Genus01, Family01, Other01, Fresh01, Saltwater01, Brack01) %>% 
   summarise(quantity = sum(quantity)) %>%
   ungroup()
