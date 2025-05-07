@@ -86,8 +86,7 @@ prod_data <- prod_data_raw %>%
                                  TRUE ~ fao_habitat)) %>% # ELSE, use FAO's habitat designation, including for all non species-level data
   # UPDATE taxa source to match structure in get country solutions
   mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_")) %>%
-  group_by(country_iso3_alpha, country_name_en, SciName, year, taxa_source, habitat, 
-           prod_method) %>%
+  group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en) %>%
   summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
   ungroup()
 
@@ -184,8 +183,8 @@ prod_data_sau <- prod_data_sau %>%
 prod_data_sau <- standardize_countries(prod_data_sau, "FAO")
 
 prod_data_sau <- prod_data_sau %>% 
-  group_by(country_iso3_alpha, SciName, year, taxa_source, 
-           habitat, prod_method, gear, eez, sector, end_use) %>% 
+  group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, 
+           country_name_en, gear, eez, sector, end_use) %>% 
   summarise(quantity = sum(quantity)) %>%
   ungroup()
 
@@ -193,7 +192,8 @@ write.csv(prod_data_sau, file.path(datadir, 'standardized_sau_prod_more_cols.csv
           row.names = FALSE)
 
 prod_data_sau <- prod_data_sau %>% 
-    group_by(country_iso3_alpha, SciName, year, taxa_source, habitat, prod_method) %>% 
+    group_by(SciName,  year, taxa_source, habitat, prod_method, 
+             country_iso3_alpha, country_name_en) %>% 
     summarise(quantity = sum(quantity)) %>%
     ungroup()
 
