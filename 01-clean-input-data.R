@@ -109,7 +109,7 @@ if (test) {
 }
 
 # SAVE PRODUCTION OUTPUT:
-write.csv(prod_data, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
+#write.csv(prod_data, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
 write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)
 
 prod_data <- standardize_countries(df = prod_data, 
@@ -146,10 +146,10 @@ prod_data_sau <- prod_data_sau %>%
 rm(prod_list_sau)
 
 # FIXIT: check if this data gets read back in - may be able to remove if not
-write.csv(prod_data_sau, file.path(datadir, "clean_sau_prod.csv"), 
-          row.names = FALSE)
-write.csv(prod_classification_sau, file.path(datadir, "clean_sau_taxa.csv"), 
-          row.names = FALSE)
+# write.csv(prod_data_sau, file.path(datadir, "clean_sau_prod.csv"), 
+#           row.names = FALSE)
+ write.csv(prod_classification_sau, file.path(datadir, "clean_sau_taxa.csv"), 
+           row.names = FALSE)
 
 # initial country name cleaning and adding iso3c for SAU data
 prod_data_sau <- prod_data_sau %>%
@@ -248,9 +248,6 @@ fmfo_species <- get_fmfo_species(
 
 write.csv(fmfo_species, file.path(datadir_raw, 'fmfo_species_list.csv'), row.names = FALSE)
 
-# List of possible HS versions: HS96, HS02, HS12, HS17
-#HS_year <- c("96", "02", "07", "12", "17")
-HS_year <- c("96")
 
 if (test) {
   HS_year <- HS_year[HS_year %in% test_hs]
