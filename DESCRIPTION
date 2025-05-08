@@ -1,7 +1,46 @@
 Package: artis
-Version: 0.1.0
-RoxygenNote: 7.3.2
+Title: Aquatic Resource Trade in Species (ARTIS) Model
+Version: 1.1.0
+Date: 2024-05-08
+Authors@R: c(
+    person("Jessica", "Gephart", , "gephart@uw.edu", role = c("aut", "cre", "cph", "fnd")),
+    person("Althea", "Marks", , "amarks1@uw.edu", role = "aut"),
+    person("Rahul", "Agrawal Bejarano", role = "aut"),
+    person("Kelvin", "Gorospe", role = "aut")
+  )
+Description: ARTIS (Aquatic Resource Trade in Species) is a global model
+    and database that estimates bilateral seafood trade flows at the
+    species level from 1994 to 2020. It integrates production data,
+    detailed trade statistics, and biological characteristics of seafood
+    products to reconstruct trade networks and infer domestic consumption.
+    The model accounts for re-exports, product transformations (e.g.,
+    fishmeal production), and multiple trade classification systems (HS
+    codes). This package provides tools to clean, standardize, and
+    allocate seafood trade and production data, and to compute consumption
+    and trade-flow metrics.  Designed to support reproducible research and
+    policy-relevant analysis of seafood systems.
+License: Apache License (>= 2.0)
+URL: https://github.com/Seafood-Globalization-Lab/artis-model
+BugReports: 
+    https://github.com/Seafood-Globalization-Lab/artis-model/issues
+Depends: 
+    R (>= 4.1.0)
+Imports: 
+Imports:
+    countrycode,
+    data.table,
+    dplyr,
+    glue,
+    magrittr,
+    Matrix,
+    parallel,
+    readxl,
+    reticulate,
+    slam,
+    stringr,
+    tibble,
+    tidyr
 Encoding: UTF-8
-Author@R: person("Jessica", "Gephart", email = "jgephart@american.edu", role = c("aut", "cre"))
-Description: Creates the Aquatic Resource Trade in Species (ARTIS) database, which estimates trade flows in seafood species between all countries from 1994 to 2016.
-License: CC0
+LazyData: true
+LicenseFile: LICENSE
+RoxygenNote: 7.3.2

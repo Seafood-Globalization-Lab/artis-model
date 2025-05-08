@@ -1,4 +1,21 @@
+#' Identify species associated with fishmeal and fish oil (FMFO) production.
+#'
+#' This function reads SAU production data and identifies species whose production is
+#' allocated to fishmeal and fish oil based on user-defined thresholds. It returns
+#' a list of species marked as "primary_fishmeal" for prioritization in downstream consumption.
+#'
+#' @param sau_fp File path to SAU production data (CSV format).
+#' @param fishmeal_min_threshold_sp Minimum percentage of a species' total production
+#'        (across all countries) that must be allocated to fishmeal for it to be included
+#'        in the FMFO list. Default is 1.
+#' @param fishmeal_min_threshold_global Minimum percentage of the global fishmeal production
+#'        that a species must contribute in order to be included in the FMFO list. Default is 0.5.
+#' @param fishmeal_primary_threshold Percentage of a species’ total production that must
+#'        go to fishmeal for it to be labeled as `primary_fishmeal = 1`. These species are considered
+#'        to have a strong functional association with fishmeal production. Default is 75.
+#'
 #' @export
+
 get_fmfo_species <- function(sau_fp,
                              fishmeal_min_threshold_sp = 1,
                              fishmeal_min_threshold_global = 0.5,
