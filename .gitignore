@@ -17,3 +17,5 @@ grateful-report.html
 .env
 .env.swp
 man/*
+dev/*
+
