@@ -29,17 +29,14 @@ artis_bucket <- "s3://artis-s3-bucket/"
 artis_bucket_region <- "us-east-1"
 
 # ARTIS model parameters ----------------------------------------------
-# HS version to run in this pipeline script. 
-# artis-hpc/create-pipeline-versions.sh script automatically changes this line 
-# based on $HS_VERSIONS values set to submit multiple jobs to AWS Batch - 
-# Do not manually change for AWS.
-hs_version_run <- "07"
 
 # set specific years to run in number vector, leave empty to run all years
 test_years <- c()
 
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
+# Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
+prod_data_type <- "SAU"
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()

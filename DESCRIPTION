@@ -25,7 +25,6 @@ BugReports:
     https://github.com/Seafood-Globalization-Lab/artis-model/issues
 Depends: 
     R (>= 4.1.0)
-Imports: 
 Imports:
     countrycode,
     data.table,
