@@ -247,10 +247,11 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     # To match to clade, even if not reported in production data, set match_to_prod to FALSE
     hs_clade_match <- match_hs_to_clade(
       hs_taxa_match = read.csv(
-        file.path(datadir,
-                  paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = ""))) %>%
+        file.path(datadir, paste0("hs-taxa-match_HS", HS_year_rep, ".csv"))) %>%
         select(-c(sciname_habitat, code_habitat)),
-      prod_taxa_classification = read.csv(file.path(datadir, "clean_fao_taxa.csv")),
+      # dynamically set to either "clean_fao_taxa.csv" or "clean_taxa_combined.csv" 
+      # in initial_variable_setup.R
+      prod_taxa_classification = prod_taxa_classification,
       match_to_prod = FALSE
     ) %>%
       # pad HS codes with zeroes
