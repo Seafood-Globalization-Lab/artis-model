@@ -100,6 +100,8 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     analysis_year <- analysis_years_rep$analysis_year[j]
     # output folder
     hs_analysis_year_dir <- file.path(outdir, hs_dir, analysis_year)
+    
+    message(glue::glue("starting HS{HS_year_rep} {analysis_year} snet"))
 
     #-----------------------------------------------------------------------------
     # Step 4: Load trade (BACI) data and standardize countries between production and trade data
@@ -238,6 +240,7 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     rm(list=ls()[!(ls() %in% c("baci_data_analysis_year", "country_est", "V1",
                                 "V1_long", "V2", "V2_long", "countries_to_analyze",
                                "analysis_year", "coproduct_codes", "fao_pop", "hs_dir",
+                               "prod_taxa_classification",
                                "analysis_setup", analysis_setup,
                                "analysis_info", analysis_info))])
     gc()
@@ -391,6 +394,8 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
       )
     }
 
+    message(glue::glue("starting HS{HS_year_rep} {analysis_year} consumption"))
+    
     consumption <- calculate_consumption(artis = s_net, 
                                          prod = prod_data_analysis_year,
                                          curr_year = analysis_year, 
@@ -419,7 +424,8 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
     gc()
     
     #---------------------------------------------------------------------------
-    rm(list=ls()[!(ls() %in% c("analysis_setup", analysis_setup, "coproduct_codes",
+    rm(list=ls()[!(ls() %in% c("analysis_setup","V2_long", "prod_taxa_classification",
+                               analysis_setup, "coproduct_codes",
                                "V1_long", "analysis_info", analysis_info,
                                "fao_pop", "hs_dir"))])
     

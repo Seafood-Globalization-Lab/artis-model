@@ -14,6 +14,7 @@ library(tidyverse)
 library(doParallel)
 library(aws.s3)
 library(countrycode)
+library(glue)
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()
@@ -52,7 +53,7 @@ need_new_fb_slb <- FALSE
 HS_year <- c("96", "02", "07", "12", "17")
 # AM - I think this is leftover code - can set HS year and year for running tests
 test <- FALSE
-test_year <- c(1996)
+test_year <- c()
 
 # 02-artis-pipeline parameters ------------------------------------
 # set years to run - empty if all years [c()]
