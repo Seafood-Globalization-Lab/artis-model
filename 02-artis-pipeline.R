@@ -7,7 +7,7 @@ rm(list=ls())
 
 #-------------------------------------------------------------------------------
 # environmet model run on - ["aws"] of ["local"]
-run_env <- "aws"
+run_env <- "local"
 
 # HS version to run in this pipeline script. 
 # artis-hpc/create-pipeline-versions.sh script automatically changes this line 
