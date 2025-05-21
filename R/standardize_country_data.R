@@ -7,9 +7,11 @@
 #' Connor Quiroz
 #' Created May 7, 2025
 
-# library(tidyr)
-# library(tidyverse)
-# library(countrycode)
+library(tidyr)
+library(dplyr)
+#library(tidyverse)
+library(countrycode)
+library(stringr)
 
 # FIX IT
 
