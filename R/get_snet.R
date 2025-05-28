@@ -1,5 +1,7 @@
 #' @importFrom tibble rownames_to_column
+#' @importFrom qs2 qd_save
 #' @export
+#' 
 get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
                      hs_version = NA, test_years = c(), prod_type = "FAO",
                      estimate_type = "midpoint",
@@ -366,22 +368,26 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
 
 
     snet_fp <- file.path(hs_analysis_year_dir,
-                             paste(file.date, "_S-net_raw_", estimate_type, "_", analysis_year, "_HS",
-                                   HS_year_rep, ".csv", sep = ""))
+                         paste0(file.date, "_S-net_raw_", estimate_type, "_", 
+                                analysis_year, "_HS", HS_year_rep, ".qs"))
 
-    consumption_fp <- file.path(
-      hs_analysis_year_dir,
-      paste(file.date, "_consumption_", estimate_type, "_", analysis_year,
-            "_HS", HS_year_rep, ".csv", sep = ""))
+    s_net <- create_snet(baci_data_analysis_year, 
+                         export_source_weights,
+                         reweight_W_long, 
+                         reweight_X_long, 
+                         V1_long,
+                         hs_clade_match, 
+                         num_cores, 
+                         hs_analysis_year_dir, 
+                         estimate_type = estimate_type,
+                         run_env = run_env, 
+                         s3_bucket_name = s3_bucket_name, 
+                         s3_region = s3_region) %>%
+      mutate(hs_version = paste0("HS", HS_year_rep), year = analysis_year)
 
-    s_net <- create_snet(baci_data_analysis_year, export_source_weights,
-                                  reweight_W_long, reweight_X_long, V1_long,
-                                  hs_clade_match, num_cores, hs_analysis_year_dir, estimate_type = estimate_type,
-                                  run_env = run_env, s3_bucket_name = s3_bucket_name, s3_region = s3_region) %>%
-      mutate(hs_version = paste("HS", HS_year_rep, sep = ""),
-             year = analysis_year)
-
-    write.csv(s_net, snet_fp, row.names = FALSE)
+    # write s_net object to disk (computer or AWS docker instance)
+    qs2::qd_save(object = s_net,
+                 file = snet_fp)
 
     rm(export_source_weights)
     gc()
@@ -390,11 +396,16 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
       put_object(
         file = snet_fp,
         object = snet_fp,
-        bucket = s3_bucket_name
+        bucket = s3_bucket_name,
+        multipart = TRUE
       )
     }
 
     message(glue::glue("starting HS{HS_year_rep} {analysis_year} consumption"))
+    
+    consumption_fp <- file.path(hs_analysis_year_dir,
+                                paste0(file.date, "_consumption_", estimate_type, "_", 
+                                       analysis_year,"_HS", HS_year_rep, ".qs"))
     
     consumption <- calculate_consumption(artis = s_net, 
                                          prod = prod_data_analysis_year,
@@ -410,16 +421,22 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
                                          consumption_threshold = 1e-9,
                                          dev_mode = FALSE)
     
-    write.csv(consumption, consumption_fp, row.names = FALSE)
+    # write consumption object to disk (computer or AWS docker instance)
+    qs2::qd_save(object = consumption,
+                 file = consumption_fp)
 
     if (run_env == "aws") {
       put_object(
         file = consumption_fp,
         object = consumption_fp,
-        bucket = s3_bucket_name
+        bucket = s3_bucket_name,
+        multipart = TRUE
       )
+      # remove files on "disk" from docker instance after transfering to s3
+      unlink(snet_fp, consumption_fp)
     }
     
+    # remove R objects from memory
     rm(list=c("s_net", "consumption"))
     gc()
     
