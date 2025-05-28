@@ -13,6 +13,7 @@ library(slam)
 library(tidyverse)
 library(doParallel)
 library(aws.s3)
+library(arrow)
 library(countrycode)
 library(glue)
 
@@ -50,7 +51,7 @@ running_sau <- TRUE
 need_new_fb_slb <- FALSE
 # List of possible HS versions: HS96, HS02, HS12, HS17
 #HS_year <- c("96", "02", "07", "12", "17")
-HS_year <- c("96", "02", "07", "12", "17")
+HS_year <- c("96")
 # AM - I think this is leftover code - can set HS year and year for running tests
 test <- FALSE
 test_year <- c()

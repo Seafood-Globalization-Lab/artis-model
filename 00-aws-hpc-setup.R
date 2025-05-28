@@ -13,6 +13,7 @@ library(tidyverse)
 library(doParallel)
 library(aws.s3)
 library(glue)
+library(arrow) # parquet files
 # loading in ARTIS R package
 library(artis)
 
