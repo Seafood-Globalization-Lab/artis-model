@@ -17,7 +17,7 @@ library(stringr)
 
 # FUNCTION 1
 # 44 countries, 24 years of data baci data standardize_baci
-standardize_baci <- tibble(input_regions = c("ASM","GUM","MNP","PRI","VIR",
+standardize_baci <- tibble(input_ios3c = c("ASM","GUM","MNP","PRI","VIR",
                                              "AIA","BMU","IOT","VGB","CYM",
                                              "GIB","PCN","SHN","TCA","FLK",
                                              "IMN","PYF","MYT","NCL","SPM",
@@ -26,7 +26,7 @@ standardize_baci <- tibble(input_regions = c("ASM","GUM","MNP","PRI","VIR",
                                              "MAC","ABW","ANT","BES","SXM",
                                              "CUW","COK","NIU","TKL","NFK",
                                              "CXR","CCK","GRL","FRO"),
-                           output_regions = c("USA","USA","USA","USA","USA",
+                           output_ios3c = c("USA","USA","USA","USA","USA",
                                               "GBR","GBR","GBR","GBR","GBR",
                                               "GBR","GBR","GBR","GBR","GBR",
                                               "GBR","FRA","FRA","FRA","FRA",
@@ -35,7 +35,7 @@ standardize_baci <- tibble(input_regions = c("ASM","GUM","MNP","PRI","VIR",
                                               "CHN","NLD","NLD","NLD","NLD",
                                               "NLD","NZL","NZL","NZL","AUS",
                                               "AUS","AUS","DNK","DNK")) %>%
-  group_by(input_regions, output_regions) %>%
+  group_by(input_ios3c, output_ios3c) %>%
   expand(year = 1996:2019)
 
 # standardize_baci function special cases
@@ -76,7 +76,7 @@ standardize_baci_special_cases <- tibble(
 
 # FUNCTION 2
 # 45 countries - standardize_prod script (FAO and SAU)
-standardize_prod <- tibble(input_regions = c("ASM","GUM","MNP","PRI","VIR",
+standardize_prod <- tibble(input_ios3c = c("ASM","GUM","MNP","PRI","VIR",
                                              "AIA","BMU","IOT","VBG","CYM",
                                              "GIB","PCN","SHN","TCA","FLK",
                                              "IMN","PYF","MYT","NCL","SPM",
@@ -85,7 +85,7 @@ standardize_prod <- tibble(input_regions = c("ASM","GUM","MNP","PRI","VIR",
                                              "MAC","ABW","ANT","BES","SXM",
                                              "CUW","COK","NIU","TKL","NFK",
                                              "CXR","CCK","GRL","FRO","EAZ"),
-                           output_regions = c("USA","USA","USA","USA","USA",
+                           output_ios3c = c("USA","USA","USA","USA","USA",
                                               "GBR","GBR","GBR","GBR","GBR",
                                               "GBR","GBR","GBR","GBR","GBR",
                                               "GBR","FRA","FRA","FRA","FRA",
@@ -94,11 +94,11 @@ standardize_prod <- tibble(input_regions = c("ASM","GUM","MNP","PRI","VIR",
                                               "CHN","NLD","NLD","NLD","NLD",
                                               "NLD","NZL","NZL","NZL","AUS",
                                               "AUS","AUS","DNK","DNK","TZA")) %>%
-  group_by(input_regions, output_regions) %>%
+  group_by(input_ios3c, output_ios3c) %>%
   expand(year = 1996:2019)
 
 iso_name_pairs <- tibble::tibble(
-  input_regions     = c("TLS", "SRB", "MNE", "SSD", "BWA", "LSO", "NAM", "SWZ", "NEI", "SCG", "SDN", "ZAF"),
+  input_ios3c     = c("TLS", "SRB", "MNE", "SSD", "BWA", "LSO", "NAM", "SWZ", "NEI", "SCG", "SDN", "ZAF"),
   col_country_name  = c(
     "Timor Leste",          # TLS
     "Serbia",               # SRB
@@ -118,7 +118,7 @@ iso_name_pairs <- tibble::tibble(
 # 2. Cross-join with years and apply all your historic overrides
 standardize_prod_special_cases <- tidyr::expand_grid(
   tibble(
-    input_regions    = c("TLS","SRB","MNE","SSD","BWA","LSO","NAM","SWZ","NEI","SCG","SDN","ZAF"),
+    input_ios3c    = c("TLS","SRB","MNE","SSD","BWA","LSO","NAM","SWZ","NEI","SCG","SDN","ZAF"),
     col_country_name = c(
       "Timor Leste","Serbia","Montenegro","South Sudan",
       "Botswana","Lesotho","Namibia","Swaziland",
@@ -128,19 +128,19 @@ standardize_prod_special_cases <- tidyr::expand_grid(
   year = 1996:2019
 ) %>%
   mutate(
-    output_regions = case_when(
-      input_regions == "TLS" & year < 2002                             ~ "IDN",
-      input_regions %in% c("SRB","MNE") & year < 2006                   ~ "SCG",
-      (input_regions == "SSD" | str_detect(col_country_name, "Sudan")) & year < 2012 ~ "SDN",
-      input_regions %in% c("BWA","LSO","NAM","SWZ") & year < 2000       ~ "ZAF",
+    output_ios3c = case_when(
+      input_ios3c == "TLS" & year < 2002                             ~ "IDN",
+      input_ios3c %in% c("SRB","MNE") & year < 2006                   ~ "SCG",
+      (input_ios3c == "SSD" | str_detect(col_country_name, "Sudan")) & year < 2012 ~ "SDN",
+      input_ios3c %in% c("BWA","LSO","NAM","SWZ") & year < 2000       ~ "ZAF",
       col_country_name == "Other nei"                                   ~ "NEI",
-      TRUE                                                               ~ input_regions
+      TRUE                                                               ~ input_ios3c
     ),
     output_country_name = case_when(
-      output_regions == "NEI"    ~ "Other nei",                   # never call countrycode()
-      output_regions == "SCG"    ~ col_country_name,              # legacy SCG names
+      output_ios3c == "NEI"    ~ "Other nei",                   # never call countrycode()
+      output_ios3c == "SCG"    ~ col_country_name,              # legacy SCG names
       TRUE                       ~ countrycode(
-        output_regions,
+        output_ios3c,
         origin      = "iso3c",
         destination = "country.name",
         warn        = FALSE     # suppress any other warnings
@@ -148,17 +148,17 @@ standardize_prod_special_cases <- tidyr::expand_grid(
     ),
     # post‐tweaks:
     output_country_name = case_when(
-      output_regions == "SDN" & year < 2012 ~ "Sudan (Former)",
-      output_regions == "ZAF" & year < 2000 ~ "So. African Customs Union",
+      output_ios3c == "SDN" & year < 2012 ~ "Sudan (Former)",
+      output_ios3c == "ZAF" & year < 2000 ~ "So. African Customs Union",
       TRUE                                  ~ output_country_name
     )
   ) %>%
-  filter(!output_regions %in% c("CSK","SUN","YUG")) %>%
-  select(input_regions, year, output_regions, output_country_name)
+  filter(!output_ios3c %in% c("CSK","SUN","YUG")) %>%
+  select(input_ios3c, year, output_ios3c, output_country_name)
 
 # FUNCTION 3
 # dwf (standardize_sau_eez function) normal cases
-standardize_sau_eez <- tibble(input_regions = c("ASM","GUM","MNP","PRI","VIR",
+standardize_sau_eez <- tibble(input_ios3c = c("ASM","GUM","MNP","PRI","VIR",
                                                 "AIA","BMU","IOT","VGB","CYM",
                                                 "GIB","PCN","SHN","TCA","FLK",
                                                 "IMN","SGS","PYF","MYT","NCL",
@@ -168,7 +168,7 @@ standardize_sau_eez <- tibble(input_regions = c("ASM","GUM","MNP","PRI","VIR",
                                                 "SXM","CUW","COK","NIU","TKL",
                                                 "NFK","CXR","CCK","HMD","GRL",
                                                 "FRO","EAZ","SJM","BVT"),
-                              output_regions = c("USA","USA","USA","USA","USA",
+                              output_ios3c = c("USA","USA","USA","USA","USA",
                                                  "GBR","GBR","GBR","GBR","GBR",
                                                  "GBR","GBR","GBR","GBR","GBR",
                                                  "GBR","GBR","FRA","FRA","FRA",
@@ -178,7 +178,7 @@ standardize_sau_eez <- tibble(input_regions = c("ASM","GUM","MNP","PRI","VIR",
                                                  "NLD","NLD","NZL","NZL","NZL",
                                                  "AUS","AUS","AUS","AUS","DNK",
                                                  "DNK","TZA","NOR","NOR")) %>%
-  group_by(input_regions, output_regions) %>%
+  group_by(input_ios3c, output_ios3c) %>%
   expand(year = 1996:2019)
 
 # dwf special cases
@@ -192,7 +192,7 @@ sau_eez_special_cases <- tibble(
     "Channel Islands",        # For GBR grouping
     NA_character_             # For Serbia and Montenegro name fix
   ),
-  input_regions = c(
+  input_ios3c = c(
     NA_character_,  # "Other Asia, nes"
     "LUX",          # maps to BEL
     "SMR",          # maps to NEI
@@ -201,7 +201,7 @@ sau_eez_special_cases <- tibble(
     NA_character_,  # Channel Islands (no ISO3)
     "SCG"           # Serbia and Montenegro
   ),
-  output_regions = c(
+  output_ios3c = c(
     "TWN",          # Taiwan
     "BEL",          # Luxembourg → Belgium
     "NEI",          # San Marino
@@ -238,7 +238,7 @@ standardize_sau_eez <- bind_rows(standardize_sau_eez, sau_eez_special_cases)
 standardize_country_data <- standardize_baci %>%
 bind_rows(standardize_prod) %>%
   bind_rows(standardize_sau_eez) %>%
-  distinct(input_regions, output_regions, year, output_country_name)
+  distinct(input_ios3c, output_ios3c, year, output_country_name)
 
 View(standardize_country_data)
 
