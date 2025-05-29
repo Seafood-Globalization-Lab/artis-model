@@ -1,7 +1,12 @@
 #' @export
-initial_variable_setup <- function(datadir, outdir, hs_version = NA, test_years = c(),
+initial_variable_setup <- function(datadir, 
+                                   outdir, 
+                                   hs_version = NA, 
+                                   test_years = c(),
                                    prod_type = "FAO",
-                                   run_env = "aws", s3_bucket_name = "", s3_region = "") {
+                                   run_env = "aws", 
+                                   s3_bucket_name = "", 
+                                   s3_region = "") {
   
   
   #-----------------------------------------------------------------------------
