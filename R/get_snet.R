@@ -2,13 +2,28 @@
 #' @importFrom qs2 qd_save
 #' @export
 #' 
-get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
-                     hs_version = NA, test_years = c(), prod_type = "FAO",
+get_snet <- function(quadprog_dir, 
+                     cvxopt_dir, 
+                     datadir, 
+                     outdir, 
+                     num_cores = 10,
+                     hs_version = NA, 
+                     test_years = c(), 
+                     prod_type = "FAO",
                      estimate_type = "midpoint",
-                     run_env = "aws", s3_bucket_name = "", s3_region = "") {
+                     run_env = "aws", 
+                     s3_bucket_name = "", 
+                     s3_region = "") {
   
-  setup_values <- initial_variable_setup(datadir, outdir, hs_version, test_years, prod_type, run_env,
-                                         s3_bucket_name = s3_bucket_name, s3_region = s3_region)
+  setup_values <- initial_variable_setup(datadir = datadir, 
+                                         outdir = outdir, 
+                                         hs_version = hs_version, 
+                                         test_years = test_years, 
+                                         prod_type = prod_type, 
+                                         run_env = run_env,
+                                         s3_bucket_name = s3_bucket_name, 
+                                         s3_region = s3_region)
+  
   full_analysis_start <- setup_values[[1]]
   file.date <- setup_values[[2]]
   analysis_info <- setup_values[[3]]
@@ -133,106 +148,51 @@ get_snet <- function(quadprog_dir, cvxopt_dir, datadir, outdir, num_cores = 10,
       select(importer_iso3c, exporter_iso3c, hs6, total_q)
     #-----------------------------------------------------------------------------
     
-    # File paths for quadprog country solutions
-    quadprog_solutions_dir <- file.path(quadprog_dir, hs_dir, analysis_year)
-    cvxopt_solutions_dir <- file.path(cvxopt_dir, hs_dir, analysis_year)
+    # read in all-country-est file in created in get_county_solutions.R for both solver
     
-    if (run_env == "aws") {
-      # Download in all quadprog country solutions from AWS
-      quadprog_solution_files <- get_bucket_df(
-        bucket = s3_bucket_name,
-        region = s3_region,
-        prefix = quadprog_solutions_dir,
-        max = Inf
-      ) %>%
-        filter(str_detect(Key, "_country-est_")) %>%
-        pull(Key) %>%
-        unique()
-      
-      cvxopt_solution_files <- get_bucket_df(
-        bucket = s3_bucket_name,
-        region = s3_region,
-        prefix = cvxopt_solutions_dir,
-        max = Inf
-      ) %>%
-        filter(str_detect(Key, "_country-est_")) %>%
-        pull(Key) %>%
-        unique()
-      
-      country_solution_files <- c(quadprog_solution_files, cvxopt_solution_files)
-      
-      if (length(country_solution_files) > 0) {
-        for (i in 1:length(country_solution_files)) {
-          save_object(
-            object = country_solution_files[i],
-            bucket = s3_bucket_name,
-            file = country_solution_files[i]
-          )
-        }
-      }
+    # 1) build solver‐specific paths
+    quad_hs_yr_dir <- file.path(quadprog_dir, hs_dir, analysis_year)
+    cvx_hs_yr_dir  <- file.path(cvxopt_dir,  hs_dir, analysis_year)
+    
+    # 2) pattern to match the per‐country RDS files
+    rds_pattern <- paste0(
+      ".*_country-est_.*_",        # any prefix + “_country-est_” + country code
+      analysis_year,               # “_<year>_”
+      "_HS", HS_year_rep,          # “_HS<ver>”
+      "\\.RDS$"
+    )
+    
+    # 3) list them in both solver outputs
+    qp_files  <- list.files(quad_hs_yr_dir, pattern = rds_pattern, full.names = TRUE)
+    cvx_files <- list.files(cvx_hs_yr_dir,  pattern = rds_pattern, full.names = TRUE)
+    all_files <- c(qp_files, cvx_files)
+    
+    if (length(all_files) == 0) {
+      stop("No country‐estimate RDS files found for ", analysis_year, " HS", HS_year_rep)
     }
     
-
-    # Read in individual country solutions and combine into a list
-    quadprog_output_files <- list.files(quadprog_solutions_dir)
-    quadprog_output_files <- lapply(quadprog_output_files,
-                                    FUN = function(x) file.path(
-                                      quadprog_dir, hs_dir, analysis_year, x))
-
-    cvxopt_output_files <- list.files(cvxopt_solutions_dir)
-    cvxopt_output_files <- lapply(cvxopt_output_files,
-                                  FUN = function(x) file.path(
-                                    cvxopt_dir, hs_dir, analysis_year, x))
-
-    output_files <- c(quadprog_output_files, cvxopt_output_files)
-    solve_country_files <- output_files[grepl(pattern = "_country-est_", output_files) &
-                                          grepl(pattern = analysis_year, output_files) &
-                                          grepl(pattern = HS_year_rep, output_files)]
-
-    country_est <- vector(mode = "list", length = length(solve_country_files))
+    # 4) read and combine
+    country_est <- lapply(all_files, readRDS)
     
-    for (i in 1:length(solve_country_files)){
-      country_est[[i]] <- readRDS(solve_country_files[[i]])
-    }
-
-    # Add country names to country_est
-    file_countries <- unlist(lapply(solve_country_files,
-                                    FUN = function(x) substr(
-                                      str_extract(x, "country-est_[A-Z]{3}_"), 13, 15)))
-    names(country_est) <- file_countries
+    # 6) write out the combined object
+    combined_fp <- file.path(
+      hs_analysis_year_dir,
+      paste0(file.date, "_all-country-est_", analysis_year, "_HS", HS_year_rep, ".RDS")
+    )
+    saveRDS(country_est, combined_fp)
     
-    # Add row and column names to X and W
-    for(i in 1:length(country_est)){
-      if (is.matrix(country_est[[i]]$X)) {
-        colnames(country_est[[names(country_est)[i]]]$X) <- X_cols
-        rownames(country_est[[names(country_est)[i]]]$X) <- paste(names(country_est)[i],X_rows,sep="_")
-        # For countries with no production (i.e., NA for X), insert matrix of zeroes
-      } else {
-        country_est[[i]]$X <- matrix(0, ncol = length(X_cols), nrow = length(X_rows))
-        colnames(country_est[[names(country_est)[i]]]$X) <- X_cols
-        rownames(country_est[[names(country_est)[i]]]$X) <- paste(names(country_est)[i],X_rows,sep="_")
-      }
-      if (is.matrix(country_est[[i]]$W)){
-        colnames(country_est[[names(country_est)[i]]]$W) <- paste(names(country_est)[i],W_cols,sep="_")
-        rownames(country_est[[names(country_est)[i]]]$W) <- paste(names(country_est)[i],W_rows,sep="_")
-        # For countries with no production (i.e., NA for X), insert matrix of zero
-      } else {
-        country_est[[i]]$W <- matrix(0, ncol = length(W_cols), nrow = length(W_rows))
-        colnames(country_est[[names(country_est)[i]]]$W) <- paste(names(country_est)[i],W_cols,sep="_")
-        rownames(country_est[[names(country_est)[i]]]$W) <- paste(names(country_est)[i],W_rows,sep="_")
-      }
-    }
-    
-    all_country_est_fp <- file.path(hs_analysis_year_dir, paste(file.date, "_all-country-est_", analysis_year, "_HS", HS_year_rep, ".RDS", sep = ""))
-    saveRDS(country_est, all_country_est_fp)
-    
+    # 7) upload to s3
     if (run_env == "aws") {
       put_object(
-        file = all_country_est_fp,
-        object = all_country_est_fp,
-        bucket = s3_bucket_name
+        file      = combined_fp,
+        object    = combined_fp,
+        bucket    = s3_bucket_name,
+        multipart = TRUE
       )
+      # remove docker instance local file - use in memory object for snet
+      unlink(combined_fp)
     }
+    
     
     # We don't believe the final product form provided by solve countries solutions for consumption
 

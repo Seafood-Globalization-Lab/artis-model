@@ -289,7 +289,6 @@ convert = TRUE)
              mc.preschedule = FALSE
              )
 
-    # This needs to contain ALL files across quadprog and cvxopt solutions
     # Read in individual country solutions and combine into a list
     output_files <- list.files(hs_analysis_year_dir)
     solve_country_files <- output_files[grepl(pattern = "_country-est_", output_files) &
