@@ -396,7 +396,7 @@ get_snet <- function(quadprog_dir,
         multipart = TRUE
       )
       # remove files on "disk" from docker instance after transfering to s3
-      unlink(snet_fp, consumption_fp)
+      unlink(c(snet_fp, consumption_fp))
     }
     
     # remove R objects from memory
