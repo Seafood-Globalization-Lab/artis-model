@@ -111,6 +111,9 @@ get_snet <- function(quadprog_dir,
   # Non-human codes
   non_human_codes <- c("230120", "051191", "030110", "030111", "030119")
 
+
+# Start snet loop ---------------------------------------------------------
+
   # Loop through all analysis years for a given HS version
   for (j in 1:nrow(analysis_years_rep)) {
 
@@ -120,8 +123,8 @@ get_snet <- function(quadprog_dir,
     
     message(glue::glue("starting HS{HS_year_rep} {analysis_year} snet"))
 
-    #-----------------------------------------------------------------------------
-    # Step 4: Load trade (BACI) data and standardize countries between production and trade data
+    # BACI trade standardize -------------------------------------------------------
+    # Load trade (BACI) data and standardize countries between production and trade data
     baci_fp <- file.path(datadir,
                          paste("standardized_baci_seafood_hs", 
                                HS_year_rep, "_y", analysis_year, ".csv", sep = ""))
@@ -146,23 +149,23 @@ get_snet <- function(quadprog_dir,
 
     baci_data_analysis_year <- baci_data_analysis_year %>%
       select(importer_iso3c, exporter_iso3c, hs6, total_q)
-    #-----------------------------------------------------------------------------
     
-    # read in all-country-est file in created in get_county_solutions.R for both solver
+    # Get country solutions ---------------------------------------------------------------
+    # read in all-country-est file in created in get_county_solutions.R for both solver output folers
     
-    # 1) build solver‐specific paths
+    # build solver‐specific paths
     quad_hs_yr_dir <- file.path(quadprog_dir, hs_dir, analysis_year)
     cvx_hs_yr_dir  <- file.path(cvxopt_dir,  hs_dir, analysis_year)
     
-    # 2) pattern to match the per‐country RDS files
+    # pattern to match the combined all country RDS files
     rds_pattern <- paste0(
-      ".*_country-est_.*_",        # any prefix + “_country-est_” + country code
+      ".*_all-country-est_.*",        # any prefix + “_all-country-est_”
       analysis_year,               # “_<year>_”
       "_HS", HS_year_rep,          # “_HS<ver>”
       "\\.RDS$"
     )
     
-    # 3) list them in both solver outputs
+    # list file path for both solver outputs
     qp_files  <- list.files(quad_hs_yr_dir, pattern = rds_pattern, full.names = TRUE)
     cvx_files <- list.files(cvx_hs_yr_dir,  pattern = rds_pattern, full.names = TRUE)
     all_files <- c(qp_files, cvx_files)
@@ -171,17 +174,19 @@ get_snet <- function(quadprog_dir,
       stop("No country‐estimate RDS files found for ", analysis_year, " HS", HS_year_rep)
     }
     
-    # 4) read and combine
+    # read both lists into a single list
     country_est <- lapply(all_files, readRDS)
+    # concatenate all elements of the list of lists (into single list with iso3c names)
+    country_est <- do.call(c, country_est)
     
-    # 6) write out the combined object
+    # write out the combined list
     combined_fp <- file.path(
       hs_analysis_year_dir,
       paste0(file.date, "_all-country-est_", analysis_year, "_HS", HS_year_rep, ".RDS")
     )
     saveRDS(country_est, combined_fp)
     
-    # 7) upload to s3
+    # upload to s3
     if (run_env == "aws") {
       put_object(
         file      = combined_fp,
@@ -195,8 +200,6 @@ get_snet <- function(quadprog_dir,
     
     
     # We don't believe the final product form provided by solve countries solutions for consumption
-
-    #---------------------------------------------------------------------------
 
     # Step 6: Make S_net assuming commodity processing only occurs one trade-flow back
     rm(list=ls()[!(ls() %in% c("baci_data_analysis_year", "country_est", "V1",
