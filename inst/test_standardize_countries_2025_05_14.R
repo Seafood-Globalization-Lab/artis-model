@@ -6,13 +6,24 @@ library(countrycode)
 library(dplyr)
 library(data.table)
 
+# Althea's read in files
+
+# # read in sau prod versions
+# prod_sau_clean <- data.table::fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs_sau/clean_sau_prod.csv")
+# prod_sau_std <- data.table::fread(file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_sau/standardized_sau_prod.csv"))
+# 
+# # read in fao prod versions
+# prod_fao_clean <- fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs/clean_fao_prod.csv")
+# prod_fao_std <- fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs/standardized_fao_prod.csv")
+
+# Connor's read in files
 # read in sau prod versions
-prod_sau_clean <- data.table::fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs_sau/clean_sau_prod.csv")
-prod_sau_std <- data.table::fread(file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_sau/standardized_sau_prod.csv"))
+prod_sau_clean <- fread("data_for_testing/country-standardization-connor/clean_sau_prod.csv")
+prod_sau_std <- fread("data_for_testing/country-standardization-connor/standardized_sau_prod.csv")
 
 # read in fao prod versions
-prod_fao_clean <- fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs/clean_fao_prod.csv")
-prod_fao_std <- fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs/standardized_fao_prod.csv")
+prod_fao_clean <- fread("data_for_testing/country-standardization-connor/clean_fao_prod.csv")
+prod_fao_std <- fread("data_for_testing/country-standardization-connor/standardized_fao_prod.csv")
 
 # Setup Testing versions --------------------------------------------------
 
@@ -30,7 +41,7 @@ test_clean_fao_df <- prod_fao_clean %>%
   group_by(country_iso3_alpha, year) %>% 
   summarise(total_quantity = sum(quantity))
 
-test_std_fao_df <- prod_fao_std %>% 
+test_std_fao_df <- prod_fao_std %>%  #<----------- USE THIS TO COMPARE BUD
   group_by(country_iso3_alpha, year) %>% 
   summarise(total_quantity = sum(quantity))
 # eventually need tests for BACI
@@ -41,14 +52,35 @@ corrections <- standardize_country_data()
 result_fao <- prod_fao_clean %>% 
   left_join(corrections,
             by = c("country_iso3_alpha" = "input_iso3c",
-                   "year"))
+                   "year")) %>%
+  mutate(output_iso3c = case_when(
+    is.na(output_iso3c) ~ country_iso3_alpha,
+    TRUE ~ output_iso3c
+  )) 
 
 result_fao_std <- result_fao %>% 
-  mutate(output_iso3c = case_when(country_iso3_alpha ...)) # START HERE 2025-06-04
+  # mutate(output_iso3c = case_when(country_iso3_alpha ...)) # START HERE 2025-06-04
   group_by(output_iso3c, year) %>% 
   summarise(total_quantity = sum(quantity))
 
+# Test our function against control data frame
 test_std_fao_df
+
+View(result_fao_std)
+View(test_std_fao_df)
+
+)
+
+setdiff(c(1,2),c(2,1))
+setdiff(result_fao_std$total_quantity, test_std_fao_df$total_quantity)
+result_fao_std %>%
+  inner_join(test_std_fao_df, by = c("output_iso3c" = "country_iso3_alpha", "year")) %>%
+  mutate(matches = total_quantity.x == total_quantity.y) %>%
+  ungroup() %>%
+  count(matches)
+
+  
+  
 
 # Treatment 2 - Countycode codelist table
 
