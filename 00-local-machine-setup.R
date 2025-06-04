@@ -19,17 +19,18 @@ library(glue)
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()
+artis_version <- "v1.1.0"
 
 # Input data directory paths --------------------------------------------------
 datadir_raw <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw"
 # Directory for inputs to create the ARTIS database
-datadir <- "model_inputs"
+datadir <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_1.1.0"
 baci_version <- "202201"
 tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
 
 # Model output directory paths --------------------------------------------
 # Directory where ARTIS database will be generated
-outdir <- "outputs"
+outdir <- "~/Documents/UW-SAFS/ARTIS/data/outputs_SAU_1.1.0_2025-05-30"
 # Path for sub folder within outputs that will contain all country-level solutions
 # to mass balance equation, solved using the python solver "quadprog"
 outdir_quadprog <- file.path(outdir, "quadprog_snet")
@@ -50,8 +51,8 @@ running_sau <- TRUE
 ## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
 need_new_fb_slb <- FALSE
 # List of possible HS versions: HS96, HS02, HS12, HS17
-#HS_year <- c("96", "02", "07", "12", "17")
-HS_year <- c("96")
+HS_year <- c("96", "02", "07", "12", "17")
+#HS_year <- c("96")
 # AM - I think this is leftover code - can set HS year and year for running tests
 test <- FALSE
 test_year <- c()
