@@ -8,14 +8,14 @@
 #' @param file_type Input file format. Options: "qs" (default), "csv", "parquet".
 #' @param date Date string for output file naming (default: today's date).
 #' @param search_pattern Regex to match the desired files.
-#' @param custom_timeseries Logical. If TRUE, adds "custom_ts" to output filename.
+#' @param custom_timeseries Logical. If TRUE, adds "custom_ts" to output filename. FIXIT: add this functionality.
 #' @param verbose Logical. Print file names as they are added.
 #'
 #' @import duckdb
 #' @import DBI
 #' @import glue
 #' @import qs2
-#' @import datatable
+#' @import data.table
 #' @export
 combine_partitioned_data <- function(
     search_dir,
@@ -23,7 +23,7 @@ combine_partitioned_data <- function(
     data_type = c("artis", "consumption"),
     estimate_data_type = c("midpoint", "max", "min"),
     artis_version = "v1.0.0",
-    file_type = c("qs", "csv", "parquet"),
+    file_type = c("qs2", "qdata", "csv", "parquet"),
     date = format(Sys.Date(), "%Y-%m-%d"),
     search_pattern,
     custom_timeseries = TRUE,
@@ -61,10 +61,12 @@ combine_partitioned_data <- function(
   on.exit(dbDisconnect(con), add = TRUE)
   
   for (f in df_files) {
-    if (verbose) message(glue("Adding {f}"))
+    if (verbose) message(glue("Appending {which(f == df_files)}/{length(df_files)}: {f}"))
+    if (!verbose) message(glue("Appending {which(f == df_files)}/{length(df_files)}"))
     chunk <- switch(
       file_type,
-      qs = qs2::qd_read(f),
+      qs2 = qs2::qs_read(f),
+      qdata = qs2::qd_read(f),
       csv = data.table::fread(f, stringsAsFactors = FALSE),
       parquet = arrow::read_parquet(f)
     )
@@ -78,5 +80,6 @@ combine_partitioned_data <- function(
   
   sql <- glue("COPY combined TO '{out_file}' (FORMAT 'parquet')")
   dbExecute(con, sql)
-  if (verbose) message(glue("Wrote combined data to {out_file}"))
+  if (verbose) message(glue("Finished writing out combined {data_type} file: {out_file}"))
+  if (!verbose) message(glue("Finished writing out combined {data_type}"))
 }
