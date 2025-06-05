@@ -36,17 +36,23 @@ if (!dir.exists("outputs")) { dir.create("outputs") }
 # Ensure the 'artis_outputs' directory exists on the aws "local" machine
 if (!dir.exists(final_outdir)) { dir.create(final_outdir) }
 
+
 # find and combine all partitioned snet / artis files into a single .parquet file
+  ## NOTE specific to ARTIS v1.1.0 - get_snet() accidently wrote out .qs file 
+  ## extensions but the files themselves are qs2::save_qd() "qdata" formatted. 
+  ## Use `file_type = "qdata"` below to use correct read function for the format. 
+  ## File extensions are just labels, do not effect the file format.
 combine_partitioned_data(
   search_dir = outdir_snet,
   outdir = final_outdir,
   data_type = "artis",
   estimate_data_type = "midpoint",
   artis_version = artis_version,
-  file_type = "qs",
+  file_type = "qdata",
   date = start_date,
   search_pattern = "S-net_raw_midpoint",
-  custom_timeseries = FALSE
+  custom_timeseries = FALSE,
+  verbose = TRUE
 )
 
 # find and combine partitioned consumption files into single .parquet file
@@ -56,9 +62,10 @@ combine_partitioned_data(
   data_type = "consumption",
   estimate_data_type = "midpoint",
   artis_version = artis_version,
-  file_type = "qs",
+  file_type = "qdata",
   date = start_date,
   search_pattern = "consumption_midpoint",
-  custom_timeseries = FALSE
+  custom_timeseries = FALSE,
+  verbose = FALSE
 )
 
