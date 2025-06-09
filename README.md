@@ -1,6 +1,8 @@
 # ARTIS Model (Aquatic Resource Trade In Species)
 
-This repository contains the ARTIS model codebase and instructions to run the model. ARTIS reconstructs global seafood supply chains by tracing trade flows and production data through a multi-stage allocation process. It enables detailed analysis of seafood consumption by country, species, and product form.
+This repository contains the ARTIS model codebase. This is where the Seafood Globalization team develops and maintains the ARTIS model, end-users will typically not need to follow the instalation instructions below.
+
+ARTIS reconstructs global seafood supply chains by tracing trade flows and production data through a multi-stage allocation process. It enables detailed analysis of seafood consumption by country, species, and product form.
 
 ## What’s New in v1.1.0
 
@@ -56,10 +58,12 @@ For full conceptual diagrams and methods, see the [ARTIS Manual](https://seafood
 
 ## Run Modes
 
-- **local**: Full model run on your local machine. Computes all HS versions/years as specified.  
+- **local**: Run ARTIS on your local machine. Used for specific HS versions/years runs. 
   _Requires significant compute resources and is developed/tested on macOS with ARM64 (Apple Silicon) architecture._
 - **demo**: Fast, small test dataset for local runs and troubleshooting. (has not been maintained or checked recently) 
 - **aws**: Large-scale cloud runs on AWS Batch. See [`artis-hpc`](https://github.com/Seafood-Globalization-Lab/artis-hpc) for details.
+
+---
 
 ## Installation
 
@@ -78,10 +82,18 @@ pip install -r requirements.txt
 pip list  # confirm: qpsolvers, quadprog, cvxopt
 ```
 
-### R Package Installation
+### `artis` R Package Installation
 
-- Open the project in RStudio.
-- Use the Build tab to "Clean and Install" the package (see image in `/images/artis_r_build_config_options.png`).
+- Get a local copy of the latest ARTIS release from Github
+```sh
+$gh repo clone Seafood-Globalization-Lab/artis-model
+```
+- install the R package from the project root directory
+```R
+devtools::install()
+```
+
+FIXIT: Need instructions to run model locally
 
 ---
 
