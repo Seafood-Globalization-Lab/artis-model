@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Consolidated all consumption sources (domestic & foreign) into `complete_consumption`, grouping by `(year, hs_version, source_country_iso3c, exporter_iso3c, consumer_iso3c, consumption_source, sciname, habitat, method, end_use)`.  
   - Added per-capita capping logic: computed `consumption_percap_live_kg`, capped by `max_percap_consumption`, and returned `complete_consumption_capped` when `dev_mode = TRUE`.  
 
-- **S-net & consumption outputs** now write in `.qs` format to reduce file size (fixes #80) (2025-05-28)  
+- **S-net & consumption outputs** now write in `.qs2` format to reduce file size (fixes #80) (2025-05-28)  
 - **Removed redundant “all-country-est” compilation**: `get_snet.R` now reads combined country-solve outputs from both solvers directly (2025-05-29)  
 - **Production-file refactoring**:  
   - Moved `group_by()/summarise()` logic into `01-clean-input-data.R` and removed unused `code_max_resolved` dependencies (2025-04-29)  
@@ -41,3 +41,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Documentation updates**:  
   - Updated roxygen comments in `calculate_consumption.R` and related scripts (2025-02-28 to 2025-03-07)  
   - Added environmental files and `man/` roxygen2 build documentation to `.
+- **Post-processing updates**:
+  - Updated `03-combine-tables.R` script to use new function `combine_partitioned_data.R` and remove `build_artis_data.R` and `collect_data.R`. Appends .qs2 with duckdb and writes out parquet file (2025-06-05) resloves #82 and #25
