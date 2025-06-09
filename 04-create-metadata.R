@@ -14,31 +14,22 @@ if(run_env == "local") {
 # create attribute directory if doesn't exist
 if (!dir.exists(outdir_attribute)) { dir.create(outdir_attribute) }
 
-# Load packages
-# library(artis)
-# library(tidyverse)
-# library(janitor)
 
-# Set directories
-# datadir_raw <- "model_inputs_raw"
-# inputsdir <- "model_inputs"
-# outdir <- "outputs/clean_metadata"
+# Load data ---------------------------------------------------------------
+
+# ARTIS version v1.1.0 - SAU - model_inputs_1.1.0
 
 # Load production data
-prod <- read.csv(file.path(datadir, "clean_fao_prod.csv"))
+prod <- fread(file.path(datadir, "clean_fao_prod.csv"))
 prod <- prod %>%
   rename(sciname = SciName, common_name = CommonName,
          method = prod_method)
 
 # Load cleaned taxa details
-taxa <- read.csv(file.path(datadir, "clean_fao_taxa.csv")) %>%
+taxa <- fread(file.path(datadir, "clean_fao_taxa.csv")) %>%
   rename(sciname = SciName, common_name = CommonName) %>%
   distinct()
 
-# Load nutrient data
-# Note that values are all expressed per 100 g
-# Nutrient data for FAO 2020 version
-#nutrient <- read.csv(file.path(datadir_raw, "ARTIS_spp_nutrients.csv")) #FIX IT: update nutrient file and add it
 
 # Load NCEAS group files
 #nceas_marine_capture <- read.csv(file.path(datadir_raw, "nceas_marine_capture_groups.csv"))
@@ -47,9 +38,13 @@ nceas_marine_aquaculture <- read.csv(file.path(datadir_raw, "nceas_marine_aquacu
 # Load SAU functional group data
 sau_functional_groups <- read.csv(file.path(datadir_raw, "sau_species.csv"))
 
-#___________________________________________________________________________________________________________________#
-# Nutrient data
-#___________________________________________________________________________________________________________________#
+# Nutrient data -----------------------------------------
+
+# Load nutrient data
+# Note that values are all expressed per 100 g
+# Nutrient data for FAO 2020 version
+#nutrient <- read.csv(file.path(datadir_raw, "ARTIS_spp_nutrients.csv")) #FIX IT: update nutrient file and add it
+
 # Nutrient merge notes
 # - Standardizing names to join them across the data sets
 # - Deciding how best to aggregate up to broader taxonomic groups
@@ -81,10 +76,10 @@ sau_functional_groups <- read.csv(file.path(datadir_raw, "sau_species.csv"))
 # 
 # write.csv(nutrient, file.path(outdir, "nutrient_metadata.csv"), row.names = FALSE)
 
-#___________________________________________________________________________________________________________________#
-# Clean scientific name information
-#___________________________________________________________________________________________________________________#
-# Create 1-to-1 matching for ISSCAAP
+
+
+# ISSCAAP ---------------------------------------------------------------
+#Create 1-to-1 matching for 
 isscaap_metadata <- prod %>%
   select(sciname, isscaap_group) %>%
   distinct()
@@ -120,6 +115,11 @@ unknown_isscaap <- data.frame(sciname = c("arthropoda", "chondrichthyes",
 
 isscaap_metadata <- isscaap_metadata %>%
   bind_rows(unknown_isscaap)
+# Need isscaap write out
+
+write.csv(isscaap_metadata, file.path(outdir_attribute, "isscaap_metadata.csv"), row.names = FALSE)
+
+# sciname_metadata --------------------------------------------------------
 
 # Create file for phylogenetic metadata
 # Create 1-to-1 matching for common names and taxa info
@@ -207,8 +207,8 @@ taxa_metadata <- taxa %>%
 taxa_metadata <- taxa_metadata %>%
   left_join(isscaap_metadata, by = "sciname")
 
-# Add missing scinames from SAU
-sau_taxa <- read.csv("model_inputs_sau/clean_sau_taxa.csv") %>%
+# Add missing scinames from SAU with sau_taxa 
+sau_taxa <- fread(file.path(datadir, "clean_sau_taxa.csv")) %>%
   rename(sciname = SciName, common_name = CommonName) %>%
   distinct() %>%
   filter(!(sciname %in% taxa_metadata$sciname))
@@ -225,9 +225,8 @@ taxa_metadata <- taxa_metadata %>%
 write.csv(taxa_metadata, file.path(outdir_attribute, "sciname_metadata.csv"), row.names = FALSE)
 
 
-#___________________________________________________________________________________________________________________#
-# Create sciname_prod_enviro_metadata
-#___________________________________________________________________________________________________________________#
+# sciname_prod_enviro_metadata --------------------------------------------
+
 # Create marine capture groups
 marine_capture_sciname <- prod %>%
   select(sciname, common_name, method, habitat, isscaap_group) %>%
@@ -396,9 +395,10 @@ nceas_groups <- marine_capture_sciname %>%
 
 write.csv(nceas_groups, file.path(outdir_attribute, "sciname_habitat_method_metadata.csv"), row.names = FALSE)
 
-#___________________________________________________________________________________________________________________#
-# Create commodity metadata
-#___________________________________________________________________________________________________________________#
+
+# code_max_resolved_taxa  ------------------------------------------------------
+# create commodity metadata
+
 hs_taxa_match <- data.frame(Code = integer(),
                             SciName = character(),
                             Match_category = character(),
@@ -415,7 +415,7 @@ for(i in c("96", "02", "07", "12", "17")){
   HS_year_rep <- i
   
   hs_taxa_match_i <- read.csv(file.path(datadir, paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = "")))
-    
+    # could read in file already written out in outputs/snet/HS/year/
   hs_clade_match_i <- match_hs_to_clade(hs_taxa_match = hs_taxa_match_i ,
                                       prod_taxa_classification = taxa %>%
                                         rename(CommonName = common_name, SciName = sciname),
@@ -427,29 +427,29 @@ for(i in c("96", "02", "07", "12", "17")){
                                   false = Code))) %>%
     mutate(hs_version = HS_year_rep)
   
-  # Add SAU matches
-  hs_taxa_match_sau_i <- read.csv(file.path("model_inputs_sau", paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = "")))
-  
-  hs_clade_match_sau_i <- match_hs_to_clade(hs_taxa_match = hs_taxa_match_sau_i ,
-                                        prod_taxa_classification = taxa %>%
-                                          rename(CommonName = common_name, SciName = sciname),
-                                        match_to_prod = FALSE) %>% 
-    # pad HS codes with zeroes
-    mutate(Code = as.character(Code)) %>%
-    mutate(Code = if_else(str_detect(Code, "^30"), true = str_replace(Code, pattern = "^30", replacement = "030"),
-                          if_else(str_detect(Code, "^511"), true = str_replace(Code, pattern = "^511", replacement = "0511"),
-                                  false = Code))) %>%
-    mutate(hs_version = HS_year_rep) %>%
-    filter(!is.na(hs_clade))
-  
-  hs_clade_match <- hs_clade_match %>% 
+  # Add SAU matches - running with just SAU ARTIS v1.1.0 - not two separate model_inputs/
+  # hs_taxa_match_sau_i <- read.csv(file.path("model_inputs_sau", paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = "")))
+  # 
+  # hs_clade_match_sau_i <- match_hs_to_clade(hs_taxa_match = hs_taxa_match_sau_i ,
+  #                                       prod_taxa_classification = taxa %>%
+  #                                         rename(CommonName = common_name, SciName = sciname),
+  #                                       match_to_prod = FALSE) %>% 
+  #   # pad HS codes with zeroes
+  #   mutate(Code = as.character(Code)) %>%
+  #   mutate(Code = if_else(str_detect(Code, "^30"), true = str_replace(Code, pattern = "^30", replacement = "030"),
+  #                         if_else(str_detect(Code, "^511"), true = str_replace(Code, pattern = "^511", replacement = "0511"),
+  #                                 false = Code))) %>%
+  #   mutate(hs_version = HS_year_rep) %>%
+  #   filter(!is.na(hs_clade))
+  # 
+  hs_clade_match <- hs_clade_match %>%
     bind_rows(hs_clade_match_i) %>%
-    bind_rows(hs_clade_match_sau_i) %>%
+   # bind_rows(hs_clade_match_sau_i) %>%
     distinct()
-  
+
   hs_taxa_match <- hs_taxa_match %>%
     bind_rows(hs_taxa_match_i) %>%
-    bind_rows(hs_taxa_match_sau_i) %>%
+   # bind_rows(hs_taxa_match_sau_i) %>%
     distinct()
 }
 
@@ -513,6 +513,7 @@ code_max_resolved_taxa <- hs_taxa_match %>%
     prod_taxa_level == "Kingdom" ~ 9
   )) %>%
   mutate(hs_clade = as.character(hs_clade)) %>%
+  # Find the most resolved name from production or trade hs codes? -AM
   mutate(sciname_hs_modified = case_when(
     prod_taxa_level_numeric < code_taxa_level_numeric ~ sciname, 
     code_taxa_level_numeric < prod_taxa_level_numeric ~ hs_clade,
@@ -524,7 +525,10 @@ code_max_resolved_taxa <- hs_taxa_match %>%
     sciname_hs_modified == "chordata" ~ sciname_hs_modified,
     sciname_hs_modified != "chordata" ~ sciname_hs_modified
   )) %>%
-  select("hs_version" = "HS_version", hs6, sciname, sciname_hs_modified) %>%
+  select("hs_version" = "HS_version", hs6, sciname, sciname_hs_modified, 
+         "match_category" = "Match_category", "description" = "Description",
+         "modification" ="Modification", hs_clade, code_taxa_level, prod_taxa_level,
+         code_taxa_level_numeric, prod_taxa_level_numeric) %>%
   mutate(hs6 = as.character(hs6)) %>%
   distinct()
 
