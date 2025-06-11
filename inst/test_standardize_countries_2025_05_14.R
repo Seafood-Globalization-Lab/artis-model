@@ -5,6 +5,7 @@
 library(countrycode)
 library(dplyr)
 library(data.table)
+library(tidyr)
 
 # Althea's read in files
 
@@ -49,14 +50,34 @@ test_std_fao_df <- prod_fao_std %>%  #<----------- USE THIS TO COMPARE BUD
 # Treatment 1 - Connor's script - 'artis-model/develop-getcountrysolutions-clean` branch
 corrections <- standardize_country_data()
 
-result_fao <- prod_fao_clean %>% 
-  left_join(corrections,
+corrections_iso3c_input <- corrections %>%
+  filter(is.na(input_country_name))
+
+corrections_name_input <- corrections %>%
+  filter(!is.na(input_country_name))
+
+# Join on corrections by input iso3c
+result_fao_iso3_output <- prod_fao_clean %>% 
+  left_join(corrections_iso3c_input,
             by = c("country_iso3_alpha" = "input_iso3c",
                    "year")) %>%
   mutate(output_iso3c = case_when(
     is.na(output_iso3c) ~ country_iso3_alpha,
     TRUE ~ output_iso3c
   )) 
+
+# Join on corrections by input country name (currently only Channel islands and other nei)
+result_fao_name_output <- prod_fao_clean %>%
+  left_join(corrections_name_input,
+            by = c("country_name_en" = "input_country_name",
+                   "year")) %>% 
+  filter(!is.na(output_iso3c))
+
+# Join on corrections by input iso3c
+result_fao <- bind_rows(result_fao_iso3_output, result_fao_name_output)
+
+# prod_fao_clean %>%
+#   left_join(corrections)
 
 result_fao_std <- result_fao %>% 
   # mutate(output_iso3c = case_when(country_iso3_alpha ...)) # START HERE 2025-06-04
@@ -66,21 +87,29 @@ result_fao_std <- result_fao %>%
 # Test our function against control data frame
 test_std_fao_df
 
-View(result_fao_std)
-View(test_std_fao_df)
+setdiff(result_fao_std, test_std_fao_df)
 
-)
+# Rename test data for setdiff
+result_fao_std_setdiff <- result_fao_std %>%
+  rename(country_iso3_alpha = "output_iso3c")
 
-setdiff(c(1,2),c(2,1))
-setdiff(result_fao_std$total_quantity, test_std_fao_df$total_quantity)
+# Run setdiff on test and control datasets
+# These are rows that appear in our revised code and not the previously standardized dataset
+setdiff(result_fao_std_setdiff, test_std_fao_df) %>% View()
+
 result_fao_std %>%
   inner_join(test_std_fao_df, by = c("output_iso3c" = "country_iso3_alpha", "year")) %>%
-  mutate(matches = total_quantity.x == total_quantity.y) %>%
-  ungroup() %>%
-  count(matches)
+  mutate(diff = abs(total_quantity.x - total_quantity.y),
+         matches = diff <= 1e-3) %>% View()
+  # ungfroup() %>%
+  # count(matches)
 
-  
-  
+result_fao_std %>% 
+  anti_join(test_std_fao_df,
+            by = c("output_iso3c" = "country_iso3_alpha", 
+                   "year")) %>%
+  View()
+
 
 # Treatment 2 - Countycode codelist table
 
