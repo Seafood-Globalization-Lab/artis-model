@@ -91,7 +91,7 @@ standardize_prod <- tibble(input_iso3c = c("ASM","GUM","MNP","PRI","VIR",
                                               "CHN","NLD","NLD","NLD","NLD",
                                               "NLD","NZL","NZL","NZL","AUS",
                                               "AUS","AUS","DNK","DNK","TZA")) %>%
-  group_by(across()) %>%
+  group_by(input_iso3c, output_iso3c) %>%
   expand(year = 1996:2020)
 
 iso_name_pairs <- tibble::tibble(
@@ -177,10 +177,6 @@ standardize_sau_eez <- tibble(input_iso3c = c("ASM","GUM","MNP","PRI","VIR",
                                                  "DNK","TZA","NOR","NOR")) %>%
   group_by(across()) %>%
   expand(year = 1996:2020)
-
-data.frame(x = 1, name = NA_character_, year = 3) %>%
-  group_by(across()) %>%
-  expand(year = 2010:2012)
 
 # dwf special cases
 sau_eez_special_cases <- tibble(
