@@ -5,6 +5,7 @@
 #' @param data_type Data type: "artis" (trade), "consumption", etc.
 #' @param estimate_data_type Which estimate: e.g., "midpoint", "max", "min".
 #' @param artis_version Model version string, e.g. "v1.2.0".
+#' @param prod_data_type Production model configuration used for file naming only.
 #' @param file_type Input file format. Options: "qs" (default), "csv", "parquet".
 #' @param date Date string for output file naming (default: today's date).
 #' @param search_pattern Regex to match the desired files.
@@ -23,6 +24,7 @@ combine_partitioned_data <- function(
     data_type = c("artis", "consumption"),
     estimate_data_type = c("midpoint", "max", "min"),
     artis_version = "v1.0.0",
+    prod_data_type = prod_data_type,
     file_type = c("qs2", "qdata", "csv", "parquet"),
     date = format(Sys.Date(), "%Y-%m-%d"),
     search_pattern,
@@ -48,16 +50,17 @@ combine_partitioned_data <- function(
   if (custom_timeseries) {
     out_file <- file.path(
       outdir,
-      glue("{data_type}_{estimate_short}_custom_ts_{artis_version}_{date}.parquet")
+      glue("{data_type}_{estimate_short}_custom_ts_{artis_version}_{prod_data_type}_{date}.parquet")
     )
   } else {
     out_file <- file.path(
       outdir,
-      glue("{data_type}_{estimate_short}_all_HS_yrs_{artis_version}_{date}.parquet")
+      glue("{data_type}_{estimate_short}_all_HS_yrs_{artis_version}_{prod_data_type}_{date}.parquet")
     )
   }
   
   con <- dbConnect(duckdb())
+  dbExecute(con, "PRAGMA max_temp_directory_size='500GiB'")  # increase spill-to-disk limit
   on.exit(dbDisconnect(con), add = TRUE)
   
   for (f in df_files) {
