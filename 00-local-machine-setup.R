@@ -24,13 +24,13 @@ artis_version <- "v1.1.0"
 # Input data directory paths --------------------------------------------------
 datadir_raw <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw"
 # Directory for inputs to create the ARTIS database
-datadir <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_1.1.0"
+datadir <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_1.1.0_FAO"
 baci_version <- "202201"
 tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
 
 # Model output directory paths --------------------------------------------
 # Directory where ARTIS database will be generated
-outdir <- "~/Documents/UW-SAFS/ARTIS/data/outputs_SAU_1.1.0_2025-05-30"
+outdir <- "~/Documents/UW-SAFS/ARTIS/data/outputs_1.1.0_FAO_2025-06-10"
 # Path for sub folder within outputs that will contain all country-level solutions
 # to mass balance equation, solved using the python solver "quadprog"
 outdir_quadprog <- file.path(outdir, "quadprog_snet")
@@ -63,7 +63,7 @@ test_years <- c()
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
 # Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
-prod_data_type <- "SAU"
+prod_data_type <- "FAO"
 dev_mode <- FALSE
 
 # hs_version_run is set in 02-artis-pipeline because of current `artis-hpc` setup
