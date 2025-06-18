@@ -111,12 +111,13 @@ full_join(test_std_fao_df %>%
 result_fao_std %>%
   inner_join(test_std_fao_df, by = c("output_iso3c" = "country_iso3_alpha", "year")) %>%
   mutate(diff = abs(total_quantity.x - total_quantity.y),
-         matches = diff <= 1e-3) %>% View()
+         matches = diff <= 1e-3) %>% 
+  filter(matches == FALSE)
+
 result_fao_std %>% 
   anti_join(test_std_fao_df,
             by = c("output_iso3c" = "country_iso3_alpha", 
-                   "year")) %>%
-  View()
+                   "year")) 
 
 
 # Treatment 2 - Countycode codelist table
