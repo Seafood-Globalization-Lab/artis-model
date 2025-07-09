@@ -6,13 +6,18 @@ library(countrycode)
 library(dplyr)
 library(data.table)
 library(tidyr)
+library(stringr)
+library(data.table)
+
+# standardize_country_data.R is not formally part of artis package yet
+source("./R/standardize_country_data.R")
 
 # Althea's read in files
 
 # # read in sau prod versions
 # prod_sau_clean <- data.table::fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs_sau/clean_sau_prod.csv")
 # prod_sau_std <- data.table::fread(file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_sau/standardized_sau_prod.csv"))
-# 
+
 # # read in fao prod versions
 # prod_fao_clean <- fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs/clean_fao_prod.csv")
 # prod_fao_std <- fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs/standardized_fao_prod.csv")
@@ -108,7 +113,7 @@ full_join(test_std_fao_df %>%
 
 
 # Quality control check to ensure the only differences are very nominal (i.e., floating point differences)
-result_fao_std %>%
+method_compare <- result_fao_std %>%
   inner_join(test_std_fao_df, by = c("output_iso3c" = "country_iso3_alpha", "year")) %>%
   mutate(diff = abs(total_quantity.x - total_quantity.y),
          matches = diff <= 1e-3) %>% 
@@ -125,8 +130,9 @@ result_fao_std %>%
 # sadflkja ----------------------------------------------------------------
 
 
-prod_data_sau <- clean_sau_prod %>%
+sau_prod_chr_clean <- prod_sau_clean %>%
   # remove a trailing parenthetical phrase from a string
+  # Removes entire parenthetical phrase from chr value
   mutate(country_name_en = str_remove(country_name_en, ' \\(.+\\)$')) %>%
   mutate(country_iso3_alpha = countrycode(country_name_en, 
                                           origin = 'country.name', 
