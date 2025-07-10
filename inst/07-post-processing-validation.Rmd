@@ -1,0 +1,231 @@
+---
+title: "07-post-processing-validation"
+author: "Jessica Gephart"
+date: "2025-06-26"
+output: html_document
+---
+
+To do:
+
+* Issue filtering consumption data
+* Bring in cleaned prod and baci data
+* Add titles to figures
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, 
+                      fig.width = 6, fig.height = 4)
+```
+
+```{r load packages}
+library(arrow)
+library(data.table)
+library(tidyverse)
+library(exploreARTIS)
+```
+
+```{r load data}
+# Set database folder location
+db_folder <- "/Users/gephart/Library/CloudStorage/Dropbox/Research/ARTIS/ARTIS_1.1.0_FAO_2025-06-10/"
+
+# load ARTIS data set
+# point to the dataset folder
+artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "artis_parquet_dataset"))
+
+# custom timeseries filter - result "artis_ts_result" is NOT in-memory
+# this is a "Predicate Pushdown" or "On-disk filtering" method. 
+# Only able to filter or subset data - no manipulation until data is in-memory
+
+artis_ts_result <- artis_ds %>%
+  filter(
+    (hs_version == "HS96" & year <= 2003) |
+      (hs_version == "HS02" & year >= 2004 & year <= 2009) |
+      (hs_version == "HS07" & year >= 2010 & year <= 2012) |
+      (hs_version == "HS12" & year >= 2013 & year <= 2020)
+  ) # %>% Can add more data filtering
+
+# Bring the results into R memory by adding "collect()" at the end of the pipe
+artis_ts_df <- artis_ts_result %>% 
+  collect()
+
+# load consumption data set
+# point to the dataset folder
+artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "consumption_parquet_dataset"))
+
+# FIXIT: this line not currently working
+artis_ts_result <- artis_ds #%>%
+  # filter(
+  #   (hs_version == "HS96" & year <= 2003) |
+  #     (hs_version == "HS02" & year >= 2004 & year <= 2009) |
+  #     (hs_version == "HS07" & year >= 2010 & year <= 2012) |
+  #     (hs_version == "HS12" & year >= 2013 & year <= 2020)
+  # ) # %>% Can add more data filtering
+
+# Bring the results into R memory by adding "collect()" at the end of the pipe
+consumption_ts_df <- artis_ts_result %>% 
+  collect()
+
+# Load attribute tables
+sciname <- fread(file.path(db_folder, "attribute-tables", "sciname_metadata.csv"))
+code_max_resolved_taxa <- fread(file.path(db_folder, "attribute-tables", "code_max_resolved_taxa.csv"))
+
+```
+
+```{r generate parameters}
+max_year <- max(artis_ts_df$year)
+```
+
+# Results
+## Global trade summary stats
+
+```{r global stats}
+total_1996 <- artis_ts_df %>%
+  filter(year == 1996) %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_max_year <- artis_ts_df %>%
+  filter(year == max_year) %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_capture_1996 <- artis_ts_df %>%
+  filter(year == 1996, method == "capture") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_capture_max_year <- artis_ts_df %>%
+  filter(year == max_year, method == "capture") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_aquaculture_1996 <- artis_ts_df %>%
+  filter(year == 1996, method == "aquaculture") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_aquaculture_max_year <- artis_ts_df %>%
+  filter(year == max_year, method == "aquaculture") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_dom_1996 <- artis_ts_df %>%
+  filter(year == 1996, dom_source == "domestic") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_dom_max_year <- artis_ts_df %>%
+  filter(year == max_year, dom_source == "domestic") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_error_1996 <- artis_ts_df %>%
+  filter(year == 1996, dom_source == "error") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_error_max_year <- artis_ts_df %>%
+  filter(year == max_year, dom_source == "error") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+```
+
+
+* Global trade increased from `r round(total_1996/1000000)` mil t (live weight) in 1996 to `r round(total_max_year/1000000)` mil t in `r paste(max_year)`, a `r round(100*(total_max_year-total_1996)/total_1996)`% increase. 
+* Capture production represented `r round(100*total_capture_max_year/total_max_year)`% in `r paste(max_year)`, compared to `r round(100*total_capture_1996/total_1996)`% in 1996. Conversely, the share of exports from aquaculture increased from `r round(100*total_aquaculture_1996/total_1996)`% in 1996 to `r round(100*total_aquaculture_max_year/total_max_year)`% in `r paste(max_year)`. 
+* In `r paste(max_year)`, the share of exports from domestic production was `r round(100*total_dom_max_year/total_max_year)`%, compared to `r round(100*total_dom_1996/total_1996)`% in 1996.
+* Globally, `r round(100*total_error_max_year/total_max_year)`% of exports could not be explained by production and imports in `r paste(max_year)`.
+
+## Method and habitat sourcing
+```{r}
+artis_ts_df %>%
+  mutate(habitat_method = paste(habitat, method)) %>%
+  plot_ts(artis_var = "habitat_method", plot.type = "stacked", 
+          prop_flow_cutoff = 0)
+```
+
+## Production sourcing of exports
+```{r}
+artis_ts_df %>%
+  plot_ts(artis_var = "dom_source", plot.type = "stacked", 
+          prop_flow_cutoff = 0)
+```
+
+## Global trade by species
+```{r top species}
+artis_ts_df %>%
+  plot_ts(artis_var = "sciname", prop_flow_cutoff = 0.02, plot.type = "stacked")
+
+# FIXIT: plot.title not appearing?
+artis_ts_df %>%
+  filter(year == max_year) %>%
+  plot_bar(bar_group = "sciname", 
+           plot.title = paste("Top 15 traded species,", max_year), 
+           top_n = 15)
+```
+
+## Top exporters 
+```{r top exporters}
+artis_ts_df %>%
+  plot_ts(artis_var = "exporter_iso3c", plot.type = "stacked", 
+          prop_flow_cutoff = 0.03)
+
+artis_ts_df %>%
+  filter(year == max_year) %>%
+  plot_bar(bar_group = "exporter_iso3c", 
+           plot.title = paste("Top 15 exporters,", max_year), 
+           top_n = 15)
+```
+
+## Top importers
+```{r top importers}
+artis_ts_df %>%
+  plot_ts(artis_var = "importer_iso3c", plot.type = "stacked", 
+          prop_flow_cutoff = 0.03)
+
+artis_ts_df %>%
+  filter(year == max_year) %>%
+  plot_bar(bar_group = "importer_iso3c", 
+           plot.title = paste("Top 15 importers,", max_year), 
+           top_n = 15)
+```
+
+## Top consumers
+```{r top consumers}
+
+```
+
+## Consumption sourcing
+```{r}
+
+```
+
+
+# QA testing
+
+## Compare ARTIS trade with BACI
+When grouped by year, exporter, importer and HS code, ARTIS trade data should sum to BACI in terms of product weight. Volumes are generally slightly lower than BACI due to small values dropped within the ARTIS model. Note that consumption should also add to BACI but since HS codes are not retained, this check cannot be performed. 
+
+```{r compare with baci}
+
+```
+
+
+## Compare ARTIS with production
+Domestic exports in ARTIS should not exceed production in the trade or consumption files. Additionally, when grouped by source country, consumption should add back up to production (i.e., all production should be consumed by someone). 
+
+```{r compare with production}
+
+```
+
+## Attribute table checks
+```{r attribute checks}
+# For each attribute table, check for NA's in file and then join to ARTIS files 
+# to confirm there are no NA's generated
+```
+
+## Confirm joins with attribute tables
+Check for any NA's in joins with attribute tables. 
+```{r attribute joins}
+
+```
+
