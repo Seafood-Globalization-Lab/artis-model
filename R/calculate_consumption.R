@@ -400,12 +400,13 @@ calculate_consumption <- function(artis = s_net,
 
 # Max per capita ----------------------------------------------------------
 # add max per capita (default 100 kg) REMINDER THIS IS IN KG
-# keep both raw consumption and max percapita scaled consumption
+# keep both raw consumption and max per capita scaled consumption
 
   if (!is.na(max_percap_consumption)) {
     
-    # calculating consumption per capita
+    # calculating consumption per capita for products destined for human consumption
     consumption_per_capita <- complete_consumption %>%
+      # Filter to direct human consumption as we do not apply a cap to fishmeal or other uses
       filter(end_use == "direct human consumption") %>% 
       group_by(consumer_iso3c, end_use) %>%
       summarize(consumption_live_t = sum(consumption_live_t, na.rm = TRUE)) %>%
@@ -418,29 +419,43 @@ calculate_consumption <- function(artis = s_net,
       mutate(consumption_percap_t = consumption_live_t / pop) %>%
       mutate(consumption_percap_kg = 1000 * consumption_percap_t)
     
+    # Identify outlier consumption (i.e., per capita consumption > max_percap_consumption)
     percap_outliers <- consumption_per_capita %>%
       filter(consumption_percap_kg > max_percap_consumption) %>%
+      # Calculate total consumption volume at max_percap_consumption level
+      # This volume is then proportionately distributed below
       mutate(corrected_consumption_live_t = (pop * max_percap_consumption) / 1000)
     
-    consumption_outliers <- complete_consumption %>%
-      filter(consumer_iso3c %in% unique(percap_outliers$consumer_iso3c)) %>%
+    # Calculate down-weighted consumption for outlier countries
+    consumption_outliers_direct_human <- complete_consumption %>%
+      # Filter to outier countries and only direct human consumption 
+      filter(consumer_iso3c %in% unique(percap_outliers$consumer_iso3c),
+             end_use == "direct human consumption") %>%
       group_by(consumer_iso3c) %>%
       mutate(total = sum(consumption_live_t, na.rm = TRUE)) %>%
       ungroup() %>%
+      # Calculate sourcing proportions
       mutate(prop = consumption_live_t / total) %>%
+      # Join capped consumption volumes to distribute
       left_join(
         percap_outliers %>%
           select(consumer_iso3c, corrected_consumption_live_t),
         by = c("consumer_iso3c")
       ) %>%
+      # Calculate distributed consumption sourcing based on the capped total volume
       mutate(consumption_live_t_capped = prop * corrected_consumption_live_t) %>%
       select(-c(total, corrected_consumption_live_t, prop))
     
+    # Bind together complete consumption 
     complete_consumption_capped <- complete_consumption %>%
+      # Filter to non-outlier countries and their direct human consumption
+      # This is bound with outlier values and per capita consumption is 
+      # calculate for all countries' direct human consumption
+      filter(!(consumer_iso3c %in% unique(percap_outliers$consumer_iso3c)), 
+                 end_use == "direct human consumption") %>%
       mutate(consumption_live_t_capped = consumption_live_t) %>% 
-      filter(!(consumer_iso3c %in% unique(percap_outliers$consumer_iso3c) & 
-                 end_use == "direct human consumption")) %>%
-      bind_rows(consumption_outliers) %>% 
+      bind_rows(consumption_outliers_direct_human) %>% 
+      # Join population data for per capita calculations
       left_join(pop %>% 
                   filter(year == curr_year), # introduced filter by year to remove many-to-many join
                 by = c("consumer_iso3c"="iso3c",
@@ -451,7 +466,10 @@ calculate_consumption <- function(artis = s_net,
              consumption_percap_live_kg_capped = case_when(end_use == "direct human consumption" ~
                                                         1000 * consumption_live_t_capped / pop,
                                                       TRUE ~ NA)) %>% 
-      select(-pop)
+      select(-pop) %>% 
+      # Bind rows of consumption for fishmeal and "other" end use categories
+      bind_rows(complete_consumption %>% 
+                  filter(end_use != "direct human consumption"))
     
     return(complete_consumption_capped) 
     

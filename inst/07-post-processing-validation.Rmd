@@ -338,18 +338,22 @@ compare_trade_prod <- artis_ts_df %>%
 
 # Confirm all production is consumed
 compare_consumption_prod <- consumption_ts_df %>% 
-  group_by(year, source_country_iso3c, sciname) %>% 
+  group_by(year, source_country_iso3c, sciname, habitat, method) %>% 
   summarise(consumption_live_t = sum(consumption_live_t)) 
 
 compare_consumption_prod_nrow <- nrow(compare_consumption_prod)
 
 compare_consumption_prod <- compare_consumption_prod %>%
   full_join(prod %>%
-              group_by(year, iso3c, sciname) %>%
+              group_by(year, iso3c, sciname, habitat, method) %>%
               summarise(live_weight_t = sum(live_weight_t)),
-            by = c("year", "source_country_iso3c" = "iso3c", "sciname")) %>%
+            by = c("year", "source_country_iso3c" = "iso3c", "sciname", 
+                   "habitat", "method")) %>%
   mutate(diff = abs(consumption_live_t - live_weight_t), 
          percent_diff = 100*(consumption_live_t - live_weight_t)/live_weight_t)
+
+large_diff <- compare_consumption_prod %>% 
+  filter(diff > 10)
 
 ```
 
