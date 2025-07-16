@@ -47,6 +47,7 @@ get_snet <- function(quadprog_dir,
   HS_year_rep <- setup_values[[21]]
   analysis_years_rep <- setup_values[[22]]
   hs_dir <- setup_values[[23]]
+  code_max_resolved <- setup_values[[24]]
   
   rm(setup_values)
   
@@ -380,6 +381,7 @@ get_snet <- function(quadprog_dir,
                                          V1_long = V1_long, 
                                          V2_long = V2_long,
                                          pop = pop, 
+                                         code_max_resolved = code_max_resolved,
                                          max_percap_consumption = 100,
                                          consumption_threshold = 1e-9,
                                          dev_mode = FALSE)
