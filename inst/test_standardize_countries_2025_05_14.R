@@ -25,6 +25,9 @@ source("./R/standardize_country_data.R")
 # Connor's read in files
 # read in sau prod versions
 prod_sau_clean <- fread("data_for_testing/country-standardization-connor/clean_sau_prod.csv")
+  # mutate(country_iso3_alpha = countrycode(country_name_en,
+  #                                          origin = "country.name",
+  #                                          destination = "iso3c"))
 prod_sau_std <- fread("data_for_testing/country-standardization-connor/standardized_sau_prod.csv")
 
 # read in fao prod versions
@@ -38,6 +41,7 @@ test_clean_sau_df <- prod_sau_clean %>%
   group_by(country_name_en, year) %>% 
   summarise(total_quantity = sum(quantity))
 
+# Standardized to compare to
 test_std_sau_df <- prod_sau_std %>% 
   group_by(country_iso3_alpha, year) %>% 
   summarise(total_quantity = sum(quantity))
@@ -47,7 +51,8 @@ test_clean_fao_df <- prod_fao_clean %>%
   group_by(country_iso3_alpha, year) %>% 
   summarise(total_quantity = sum(quantity))
 
-test_std_fao_df <- prod_fao_std %>%  #<----------- USE THIS TO COMPARE BUD
+# Standardized to compare to
+test_std_fao_df <- prod_fao_std %>%  
   group_by(country_iso3_alpha, year) %>% 
   summarise(total_quantity = sum(quantity))
 # eventually need tests for BACI
@@ -63,6 +68,9 @@ corrections_iso3c_input <- corrections %>%
 corrections_name_input <- corrections %>%
   filter(!is.na(input_country_name))
 
+# FAO ---------------------------------------------------------------------
+
+
 # Join on corrections by input iso3c
 result_fao_iso3_output <- prod_fao_clean %>% 
   left_join(corrections_iso3c_input,
@@ -72,7 +80,7 @@ result_fao_iso3_output <- prod_fao_clean %>%
     is.na(output_iso3c) ~ country_iso3_alpha,
     TRUE ~ output_iso3c
   )) %>%
-  filter(!is.na(country_iso3_alpha)) # BIG CODE CHANGE <----
+  filter(!is.na(country_iso3_alpha))
 
 # Join on corrections by input country name (currently only Channel islands and other nei)
 result_fao_name_output <- prod_fao_clean %>%
@@ -127,7 +135,7 @@ result_fao_std %>%
 
 # Treatment 2 - Countycode codelist table
 
-# sadflkja ----------------------------------------------------------------
+# SAU ----------------------------------------------------------------
 
 
 sau_prod_chr_clean <- prod_sau_clean %>%
@@ -160,3 +168,49 @@ sau_prod_chr_clean <- prod_sau_clean %>%
   mutate(country_iso3_numeric = countrycode(country_iso3_alpha, 
                                             origin = 'iso3c', 
                                             destination = 'iso3n'))
+
+# Join on corrections by input iso3c
+result_sau_iso3_output <- sau_prod_chr_clean %>% 
+  left_join(corrections_iso3c_input,
+            by = c("country_iso3_alpha" = "input_iso3c",
+                   "year")) %>%
+  mutate(output_iso3c = case_when(
+    is.na(output_iso3c) ~ country_iso3_alpha,
+    TRUE ~ output_iso3c
+  )) %>%
+  filter(!is.na(country_iso3_alpha))
+
+# Join on corrections by input country name (currently only Channel islands and other nei)
+result_sau_name_output <- sau_prod_chr_clean %>%
+  left_join(corrections_name_input,
+            by = c("country_name_en" = "input_country_name",
+                   "year")) %>% 
+  filter(!is.na(output_iso3c))
+
+# Join on corrections by input iso3c
+result_sau <- bind_rows(result_sau_iso3_output, result_sau_name_output)
+
+# Group by iso3c / year, take the sum of the quantities
+result_sau_std <- result_sau %>%
+  group_by(output_iso3c, year) %>% 
+  summarise(total_quantity = sum(quantity))
+
+# Rename test data for setdiff
+result_sau_std_setdiff <- result_sau_std %>%
+  rename(country_iso3_alpha = "output_iso3c")
+
+# Test our function against control data frame
+# Run setdiff on test and control datasets
+# These are rows that appear in our revised code and not the previously standardized dataset
+setdiff(result_sau_std_setdiff, test_std_sau_df) %>% View()
+
+full_join(result_sau_std_setdiff, test_std_sau_df, by = c("country_iso3_alpha", "year")) %>%
+  mutate(diff = abs(total_quantity.x - total_quantity.y),
+         matches = diff <= 1e-3) %>% 
+  filter(matches == FALSE)
+
+## TODOS:
+
+# 1. clean up standardize_country_data so that its more readable
+# 2. Draft function: add a conditional for SAU / FAO
+# 3. Reconsider how BACI is added into standardize_country_data
