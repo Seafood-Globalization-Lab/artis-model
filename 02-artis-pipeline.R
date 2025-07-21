@@ -13,7 +13,7 @@ run_env <- "local"
 # artis-hpc/create-pipeline-versions.sh script automatically changes this line 
 # based on $HS_VERSIONS values set to submit multiple jobs to AWS Batch - 
 # Do not manually change for AWS. Change for local testing and limited runs 
-hs_version_run <- "96"
+hs_version_run <- "12"
 
 if (run_env == "aws") {
   # High Performance Computing on AWS Setup

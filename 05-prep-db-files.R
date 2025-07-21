@@ -157,7 +157,7 @@ for (i in 1:length(baci_files)) {
 write.csv(baci, file.path(outdir_sql, "baci.csv"), row.names = FALSE)
 
 #-------------------------------------------------------------------------------
-# Cleaning Production data
+# Cleaning FAO Production data
 
 # clean fao file found in Outputs/model_inputs on K Drive
 prod <- read.csv(file.path(datadir, "standardized_fao_prod.csv"))
@@ -175,6 +175,18 @@ prod <- prod %>%
 # Writing out results
 write.csv(prod, file.path(outdir_sql, "prod.csv"), row.names=FALSE)
 
+# clean SAU prod
+prod_sau <- fread(file.path(datadir, "standardized_combined_prod.csv"))
+
+prod_sau <- prod_sau %>%
+  select(c(country_iso3_alpha, SciName, prod_method, habitat, quantity, year)) %>%
+  rename(
+    iso3c = country_iso3_alpha,
+    sciname = SciName,
+    method = prod_method,
+    live_weight_t = quantity
+  )
+fwrite(prod, file.path(outdir_sql, "prod_sau.csv"), row.names=FALSE)
 #-------------------------------------------------------------------------------
 # Creating Country metadata table
 

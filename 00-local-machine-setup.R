@@ -51,15 +51,15 @@ running_sau <- TRUE
 ## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
 need_new_fb_slb <- FALSE
 # List of possible HS versions: HS96, HS02, HS12, HS17
-HS_year <- c("96", "02", "07", "12", "17")
-#HS_year <- c("96")
+#HS_year <- c("96", "02", "07", "12", "17")
+HS_year <- c("12")
 # AM - I think this is leftover code - can set HS year and year for running tests
 test <- FALSE
 test_year <- c()
 
 # 02-artis-pipeline parameters ------------------------------------
 # set years to run - empty if all years [c()]
-test_years <- c() 
+test_years <- c("2017") 
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
 # Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
