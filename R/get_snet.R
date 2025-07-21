@@ -1,5 +1,7 @@
 #' @importFrom tibble rownames_to_column
 #' @importFrom qs2 qd_save
+#' @importFrom qs2 qs_save
+#' @importFrom qs2 qs_readm
 #' @export
 #' 
 get_snet <- function(quadprog_dir, 
@@ -330,11 +332,22 @@ get_snet <- function(quadprog_dir,
       coproduct_codes, dom_source_weight = estimate_type
     )
 
-
     snet_fp <- file.path(hs_analysis_year_dir,
-                         paste0(file.date, "_S-net_raw_", estimate_type, "_", 
-                                analysis_year, "_HS", HS_year_rep, ".qs"))
+                         paste0(file.date, "_S-net_raw_", estimate_type, "_HS", HS_year_rep,
+                          "_", analysis_year, ".qs2"))
+    
+    # write out R environmental objects for validation and troubleshooting
+    if(analysis_year %in% c("1996", "2020")){
 
+      workspace_fp <- file.path(hs_analysis_year_dir, 
+        paste0(file.date, "_workspace_create_snet_", estimate_type, "_HS", HS_year_rep, 
+        "_", analysis_year, ".qs2"))
+
+      # create and save list of environmental objects (similar to what .Rdata does but more efficient
+      qs_save(as.list(environment()), file = workspace_fp)
+      # qs_readm("workspace.qs2") # to read in workspace file
+    }
+    
     s_net <- create_snet(baci_data_analysis_year, 
                          export_source_weights,
                          reweight_W_long, 
@@ -369,7 +382,19 @@ get_snet <- function(quadprog_dir,
     
     consumption_fp <- file.path(hs_analysis_year_dir,
                                 paste0(file.date, "_consumption_", estimate_type, "_", 
-                                       analysis_year,"_HS", HS_year_rep, ".qs"))
+                                       analysis_year,"_HS", HS_year_rep, ".qs2"))
+    
+        # write out R environmental objects for validation and troubleshooting
+    if(analysis_year %in% c("1996", "2020")){
+
+      workspace_fp <- file.path(hs_analysis_year_dir, 
+        paste0(file.date, "_workspace_consumption_", estimate_type, "_HS", HS_year_rep, 
+        "_", analysis_year, ".qs2"))
+
+      # create list of environmental objects (similar to what .Rdata does but more efficient)
+      qs_save(as.list(environment()), file = workspace_fp)
+      # qs_readm("workspace.qs2") # to read in workspace file
+    }
     
     consumption <- calculate_consumption(artis = s_net, 
                                          prod = prod_data_analysis_year,
