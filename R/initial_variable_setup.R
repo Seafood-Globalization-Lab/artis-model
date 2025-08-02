@@ -209,7 +209,19 @@ initial_variable_setup <- function(datadir,
 # code_max_resolved ------------------------------------------------------
   # currently needs to be copy and pasted from attribute table generation from 04-create-metadata.R script
   # into the model_inputs directory
-  code_max_resolved <- fread(file.path(datadir, "code_max_resolved_taxa.csv"))
+  code_max_resolved_fp <- file.path(datadir, "code_max_resolved_taxa.csv")
+
+  if (run_env == "aws") {
+    # bring into local file system from s3 bucket
+    save_object(
+      object = code_max_resolved_fp,
+      bucket = s3_bucket_name,
+      region = s3_region,
+      file = code_max_resolved_fp
+    )
+  }
+    
+  code_max_resolved <- fread(code_max_resolved_fp)
 
   # only need specific columns to resolve complete_consumption to the finest taxa resolution possible
   code_max_resolved <- code_max_resolved %>% 
