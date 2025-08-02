@@ -2,7 +2,7 @@
 #'
 #' @param search_dir Directory where partitioned files are stored.
 #' @param outdir Output directory for the combined parquet file.
-#' @param data_type Data type: "artis" (trade), "consumption", etc.
+#' @param data_type Data type: "trade" (snet), "consumption", etc.
 #' @param estimate_data_type Which estimate: e.g., "midpoint", "max", "min".
 #' @param artis_version Model version string, e.g. "v1.2.0".
 #' @param prod_data_type Production model configuration used for file naming only.
@@ -12,8 +12,8 @@
 #' @param custom_timeseries Logical. If TRUE, adds "custom_ts" to output filename. FIXIT: add this functionality.
 #' @param verbose Logical. Print file names as they are added.
 #'
-#' @import duckdb
-#' @import DBI
+#' @importFrom duckdb duckdb
+#' @importFrom DBI dbConnect dbExecute dbDisconnect dbExistsTable dbWriteTable
 #' @import glue
 #' @import qs2
 #' @import data.table
@@ -21,7 +21,7 @@
 combine_partitioned_data <- function(
     search_dir,
     outdir,
-    data_type = c("artis", "consumption"),
+    data_type = c("trade", "consumption"),
     estimate_data_type = c("midpoint", "max", "min"),
     artis_version = "v1.0.0",
     prod_data_type = prod_data_type,
@@ -50,12 +50,12 @@ combine_partitioned_data <- function(
   if (custom_timeseries) {
     out_file <- file.path(
       outdir,
-      glue("{data_type}_{estimate_short}_custom_ts_{artis_version}_{prod_data_type}_{date}.parquet")
+      glue("ARTIS_{artis_version}_{data_type}_{prod_data_type}_{estimate_short}_custom_ts_{date}.parquet")
     )
   } else {
     out_file <- file.path(
       outdir,
-      glue("{data_type}_{estimate_short}_all_HS_yrs_{artis_version}_{prod_data_type}_{date}.parquet")
+      glue("ARTIS_{artis_version}_{data_type}_{prod_data_type}_{estimate_short}_all_HS_yrs_{date}.parquet")
     )
   }
   

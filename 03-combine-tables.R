@@ -22,9 +22,6 @@ if (run_env == "aws") {
   source("00-local-machine-setup.R")
 }
 
-# FIXIT fully integrate as dependency - right now only used in post-processing
-library(duckdb)
-
 # Gather ARTIS outputs -------------------------------------------------------
 # This section gathers all ARTIS output data separated across multiple HS version
 # and years into one file by output type (trade/consumption) and estimate type (max/midpoint/min)
@@ -45,7 +42,7 @@ if (!dir.exists(final_outdir)) { dir.create(final_outdir) }
 combine_partitioned_data(
   search_dir = outdir_snet,
   outdir = final_outdir,
-  data_type = "artis",
+  data_type = "trade",
   estimate_data_type = "midpoint",
   artis_version = artis_version,
   prod_data_type = prod_data_type,
@@ -68,6 +65,6 @@ combine_partitioned_data(
   date = start_date,
   search_pattern = "consumption_midpoint",
   custom_timeseries = FALSE,
-  verbose = FALSE
+  verbose = TRUE
 )
 
