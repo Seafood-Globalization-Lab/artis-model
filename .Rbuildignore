@@ -5,3 +5,9 @@
 ^\.Rproj\.user$
 ^dev$
 ^LICENSE\.md$
+^demo$
+^model_inputs$
+^images$
+^AM_local$
+^inst$
+^qa$
