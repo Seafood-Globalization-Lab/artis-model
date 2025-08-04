@@ -4,6 +4,7 @@
 library(artis)
 library(tidyverse)
 library(janitor)
+library(data.table)
 
 # Set directories
 datadir <- "model_inputs_raw"
@@ -515,3 +516,52 @@ code_max_resolved_taxa <- hs_taxa_match %>%
   distinct()
 
 write.csv(code_max_resolved_taxa, file.path(outdir, "code_max_resolved_taxa.csv"), row.names = FALSE)
+
+
+#___________________________________________________________________________________________________________________#
+# Clean fishbase/sealife base
+#___________________________________________________________________________________________________________________#
+# Added files to model_inputs_raw folder, but these are actually from Connor (8/1/25)
+# Need to update workflow to ensure the data pull and processing of these files are
+# included within this pipeline
+
+fb_data <- fread("model_inputs_raw/fb_presences_country.csv") %>%
+  clean_names() %>%
+  # Not clear what this column is and it is all NA
+  select(-ts) %>%
+  mutate(database = "fishbase")
+
+slb_data <- fread("model_inputs_raw/slb_presences_country.csv") %>%
+  clean_names() %>%
+  # Not clear what these columns are. Removing for now
+  select(-count_list, -map, -occur, -region, 
+         -e_append, -e_date_append) %>%
+  mutate(database = "sealife base")
+
+lb_data <- fb_data %>%
+  bind_rows(slb_data) 
+
+lb_data <- lb_data %>%
+  mutate(country = gsub("\\.", "\\ ", country),
+         country = gsub(" Rp", " Rep", country)) %>%
+  mutate(iso3c_original = 
+           countrycode(country, origin = "country.name", destination = "iso3c")) %>%
+  mutate(iso3c_original = case_when(
+    country %in% c("Alaska", "Hawaii") ~ "USA",
+    country %in% c("UK Engld Wal", "UK Scotland", "UK No Ireld") ~ "GBR",
+    country %in% c("Micronesia") ~ "FSM",
+    country %in% c("Central Afr  Rep") ~ "CAF",
+    country %in% c() ~ "",
+    country %in% c() ~ "",
+    TRUE ~ iso3c_original
+  ))
+
+# Write out for Bailey Snodgrass
+lb_data <- lb_data %>%
+  filter(!is.na(iso3c_original)) %>%
+  select(database, scientific_name, "iso3c" = "iso3c_original", 
+         status) %>%
+  distinct()
+
+write.csv(lb_data, "outputs/sciname_native_introduced.csv", 
+          row.names = FALSE)
