@@ -1,0 +1,448 @@
+---
+title: "07-post-processing-validation"
+author: "Jessica Gephart"
+date: "2025-06-26"
+output: html_document
+---
+
+# Overview
+
+The Aquatic Resource Trade in Species (ARTIS) model generates two primary outputs: the taxa disaggregated trade record file and the taxa disaggregated consumption file. The trade file represents a disaggregation of reported trade records, which reflect individual trade transactions such that a product flowing from country A to country B and then to country C would be represented as two trade records/observations (A exporting to B and B exporting to C). Meanwhile, the apparent consumption file represents a linear flow of products wherein the the ARTIS trade file is used with aligned production data to calculate apparent consumption based on a "disappearance" model of products. Aquatic resources imported for consumption are disaggregated into taxa, production methods, and exporter/source country.
+
+In addition to the trade and consumption files, we output several additional files that users may find useful:
+
+-   prod.csv - this file represents the production data used within the ARTIS model, ensuring that the principle of mass-balance is maintained. All taxa names and country boundaries have been standardized to align with ARTIS. This can join ARTIS trade or consumption by year, source_country_iso3c and sciname.
+-   baci.csv - this file represents the trade data in terms of hs product codes used within the ARTIS model. This file is primarily useful within this validation script to confirm that all trade in ARTIS adds back up to the input trade values. This can join ARTIS trade by hs_version, year, importer, exporter, hs6 after ARTIS trade has been summarized by those columns.
+-   sciname_metadata.csv - this file includes taxonomic information, common names, and standard taxa groups that are often useful for exploring and presenting the data. This can join ARTIS trade or consumption by sciname or sciname_max_resolved.
+-   code_max_resolved_taxa.csv - this file can be joined to ARTIS to add more specific taxa names when the taxonomic resolution of a code is finer than the information from the production data (e.g., actinopterygii within a code where all species belong to thunnus). This can join ARTIS trade by hs_version, hs6, and sciname. Note that sciname_max_resolved will not add back up to the production data when grouped by source country.
+-   products.csv - this file includes the hs code descriptions and it can be joined to ARTIS trade data by hs_version and hs6
+
+For more on the data tables and their columns see the [ARTIS wiki](https://github.com/Seafood-Globalization-Lab/artis-model/wiki/ARTIS-Database-Tables) and for more on the ARTIS model, see the [ARTIS manual](https://seafood-globalization-lab.github.io/artis-manual/)
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, 
+                      fig.width = 6, fig.height = 4)
+```
+
+```{r load packages}
+library(arrow)
+library(data.table)
+library(tidyverse)
+library(exploreARTIS)
+```
+
+```{r load data}
+# Set database folder location
+db_folder <- "/Users/gephart/Library/CloudStorage/Dropbox/Research/ARTIS/ARITS_1.1.0_FAO_2025_08_02/"
+
+# load ARTIS data set
+# point to the dataset folder
+artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_trade_v1.1.0_FAO_mid_2025-08-02.parquet"))
+
+# custom timeseries filter - result "artis_ts_result" is NOT in-memory
+# this is a "Predicate Pushdown" or "On-disk filtering" method. 
+# Only able to filter or subset data - no manipulation until data is in-memory
+
+artis_ts_result <- artis_ds %>%
+  filter(
+    (hs_version == "HS96" & year <= 2003) |
+      (hs_version == "HS02" & year >= 2004 & year <= 2009) |
+      (hs_version == "HS07" & year >= 2010 & year <= 2012) |
+      (hs_version == "HS12" & year >= 2013 & year <= 2020)
+  ) # %>% Can add more data filtering
+
+# Bring the results into R memory by adding "collect()" at the end of the pipe
+artis_ts_df <- artis_ts_result %>% 
+  collect()
+
+# create table to compare with baci
+artis_hs_summary <- artis_ds %>%
+  group_by(hs_version, year, exporter_iso3c, importer_iso3c, hs6) %>%
+  summarise(product_weight_t = sum(product_weight_t, na.rm = TRUE))
+
+artis_hs_summary <- artis_hs_summary %>%
+  collect() 
+
+# load consumption data set
+# # point to the dataset folder
+artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_consumption_v1.1.0_FAO_mid_2025-08-02.parquet"))
+
+# Summarize consumption file by source country
+artis_ts_result <- artis_ds %>%
+  filter(
+    (hs_version == "HS96" & year <= 2003) |
+      (hs_version == "HS02" & year >= 2004 & year <= 2009) |
+      (hs_version == "HS07" & year >= 2010 & year <= 2012) |
+      (hs_version == "HS12" & year >= 2013 & year <= 2020)
+  ) %>%
+  group_by(year, source_country_iso3c, sciname, habitat, method) %>%
+  summarise(consumption_live_t = sum(consumption_live_t, na.rm = TRUE))
+
+consumption_by_producer <- artis_ts_result %>%
+  collect()
+
+# Summarize consumption file by consumer
+artis_ts_result <- artis_ds %>%
+  filter(
+    end_use == "direct human consumption",
+    (hs_version == "HS96" & year <= 2003) |
+      (hs_version == "HS02" & year >= 2004 & year <= 2009) |
+      (hs_version == "HS07" & year >= 2010 & year <= 2012) |
+      (hs_version == "HS12" & year >= 2013 & year <= 2020)
+  ) %>%
+  group_by(year, consumer_iso3c, sciname, habitat, method, 
+           consumption_source) %>%
+  summarise(consumption_live_t = sum(consumption_live_t, na.rm = TRUE),
+            consumption_percap_live_kg_capped = sum(consumption_percap_live_kg_capped, na.rm = TRUE))
+
+# Bring the results into R memory by adding "collect()" at the end of the pipe
+consumption_by_consumer <- artis_ts_result %>%
+  collect()
+
+# Summarize foreign consumption file by source and sciname
+artis_ts_result <- artis_ds %>%
+  filter(
+    consumption_source != "domestic",
+    (hs_version == "HS96" & year <= 2003) |
+      (hs_version == "HS02" & year >= 2004 & year <= 2009) |
+      (hs_version == "HS07" & year >= 2010 & year <= 2012) |
+      (hs_version == "HS12" & year >= 2013 & year <= 2020)
+  ) %>%
+  group_by(year, source_country_iso3c, sciname) %>%
+  summarise(consumption_live_t = sum(consumption_live_t)) %>%
+  ungroup()
+
+foreign_consumption_totals <- artis_ts_result %>%
+  collect()
+
+# Load attribute tables
+prod <- fread(file.path(db_folder, "attribute-tables", "prod.csv"))
+baci <- fread(file.path(db_folder, "attribute-tables", "baci.csv")) 
+sciname <- fread(file.path(db_folder, "attribute-tables", "sciname_metadata.csv"))
+code_max_resolved_taxa <- fread(file.path(db_folder, "attribute-tables", "code_max_resolved_taxa.csv"))
+
+# Set parameters
+max_year <- max(artis_ts_df$year)
+```
+
+# QA testing
+
+## Compare ARTIS trade with BACI
+
+When grouped by year, exporter, importer and HS code, ARTIS trade data should generally sum to BACI in terms of product weight. Volumes are expected to be slightly lower in ARTIS trade data than BACI due to small values dropped within the ARTIS model.
+
+```{r compare with baci}
+# Filter BACI down to the hs codes appearing in ARTIS for a given HS version
+baci <- artis_hs_summary %>%
+  ungroup() %>%
+  select(hs_version, hs6) %>%
+  distinct() %>%
+  mutate(hs6 = as.numeric(hs6)) %>%
+  left_join(baci, by = c("hs_version", "hs6"))
+
+# Join BACI and ARTIS trade to calculate product volume total differences
+# by hs version, year, exporter, importer and hs6 code
+baci_check <- artis_hs_summary %>%
+  rename("artis_product_weight_t" = "product_weight_t") %>%
+  mutate(hs6 = as.numeric(hs6)) %>%
+  full_join(baci %>%
+              rename("baci_product_weight_t" = "product_weight_t"), 
+            by = c("hs_version", "year", 
+                         "exporter_iso3c", "importer_iso3c", "hs6")) %>% 
+  mutate(diff = baci_product_weight_t - artis_product_weight_t) %>% 
+  arrange(desc(diff))
+
+baci_check_na <- baci_check %>%
+  filter(is.na(diff)) 
+
+baci_check_na_small <- baci_check_na %>% 
+  filter(baci_product_weight_t <= 1) %>% 
+  nrow()
+
+baci_check_na_max <- max(baci_check_na$baci_product_weight_t)
+  
+baci_check_na <- baci_check %>%
+  filter(is.na(diff)) %>%
+  nrow()
+```
+
+We observe that the maximum difference between BACI and ARTIS is `r max(baci_check$diff, na.rm=TRUE)` (where BACI exceeds ARTIS) and there are `r baci_check %>% filter(diff < -0.0001) %>% nrow()` observations where ARTIS product totals are greater than BACI (no product mass should be gained). The join between ARTIS summarized at the product level and the input BACI data produces `r baci_check_na` NAs (`r round(100*baci_check_na/nrow(baci), 1)`% of rows in BACI), which represent flows without a match in ARTIS, and have a maximum volume of `r baci_check_na_max`t (`r round(100*(baci_check_na_small)/baci_check_na, 1)`% are 1t or less). Note that small volumes are dropped throughout the ARTIS model to improve computational efficiency which can add up to lost volume.
+
+```{r, results='hide'}
+rm(list = c("baci", "artis_hs_summary"))
+gc()
+```
+
+```{r baci_comparison_plot, fig.cap="BACI aquatic product totals by HS version compared to ARTIS trade totals. Solid black line represents the custom time series product totals and dashed black lines represent the years HS versions are changed in the custom time series."}
+
+# Calculate totals for all hs version-year combinations
+baci_ts_plot <- baci_check %>%
+  group_by(hs_version, year) %>%
+  summarise(artis_product_weight_t = sum(artis_product_weight_t, na.rm = TRUE),
+            baci_product_weight_t = sum(baci_product_weight_t, na.rm = TRUE)) 
+
+# Calculate totals for custom artis time series
+custom_artis_ts_plot <- artis_ts_df %>%
+  group_by(hs_version, year) %>%
+  summarise(product_weight_t = sum(product_weight_t))
+
+hsversion_change_points <- custom_artis_ts_plot %>%
+  group_by(hs_version) %>%
+  summarise(change_year = min(year))
+
+ggplot() +
+  geom_vline(data = hsversion_change_points, 
+             aes(xintercept = change_year), linetype = "dashed") +
+  geom_line(data = baci_ts_plot, aes(x = year, y = baci_product_weight_t, 
+                                     color = hs_version), 
+            linewidth = 1) +
+  geom_line(data = baci_ts_plot, aes(x = year, y = artis_product_weight_t, 
+                                     color = hs_version),
+            linetype = "dashed", linewidth = 1) + 
+  geom_line(data = custom_artis_ts_plot, aes(x = year, y = product_weight_t),
+            color = "black", linewidth = 0.5) +
+  labs(x = "", y = "Global trade (product weight, t)", color = "HS version") +
+  theme_bw()
+
+rm(list = c("baci_check"))
+```
+
+## Compare ARTIS trade and consumption
+
+```{r compare trade and consumption}
+domestic_export_totals <- artis_ts_df %>%
+  filter(dom_source == "domestic") %>%
+  group_by(year, source_country_iso3c, sciname) %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  ungroup()
+
+trade_consumption_check <- foreign_consumption_totals %>%
+  full_join(domestic_export_totals, 
+            by = c("year", "source_country_iso3c", "sciname")) %>%
+  mutate(diff = consumption_live_t-live_weight_t)
+```
+
+Foreign consumption totals should sum to domestic exports in ARTIS trade (i.e., everything exported by a producer should be consumed by another country). There are `r trade_consumption_check %>% filter(diff < -10) %>% nrow()` cases (out of `r nrow(trade_consumption_check)`, or `r round(100*(trade_consumption_check %>% filter(diff < -10) %>% nrow())/nrow(trade_consumption_check), 2)`% of cases) where foreign consumption is at least 10t less than the total domestic exports of a species from a given country. Conversely, there are `r trade_consumption_check %>% filter(diff > 10) %>% nrow()` cases (out of `r nrow(trade_consumption_check)`, or `r round(100*(trade_consumption_check %>% filter(diff > 10) %>% nrow())/nrow(trade_consumption_check), 2)`% of cases) where estimated consumption is at least 10t greater than domestic exports of a species from a given country.
+
+```{r, results='hide'}
+rm(list = c("trade_consumption_check", 
+            "foreign_consumption_totals",
+            "domestic_export_totals"))
+gc()
+```
+
+## Compare ARTIS with production
+
+```{r compare ARTIS with production}
+# Confirm that domestic exports of a given species do not exceed production
+compare_trade_prod <- artis_ts_df %>%
+  filter(dom_source == "domestic") %>%
+  group_by(year, source_country_iso3c, sciname, habitat, method) %>%
+  summarise(trade_live_weight_t = sum(live_weight_t)) %>%
+  left_join(prod %>%
+              group_by(year, iso3c, sciname, habitat, method) %>%
+              summarise(live_weight_t = sum(live_weight_t)), 
+            by = c("year", "source_country_iso3c" = "iso3c", 
+                   "sciname", "habitat", "method")) %>%
+  mutate(diff = live_weight_t - trade_live_weight_t) %>%
+  filter(diff < -0.0001)
+
+# Confirm all production is consumed
+compare_consumption_prod <- consumption_by_producer %>%
+  full_join(prod %>%
+              group_by(year, iso3c, sciname, habitat, method) %>%
+              summarise(live_weight_t = sum(live_weight_t)),
+            by = c("year", "source_country_iso3c" = "iso3c", "sciname", 
+                   "habitat", "method")) %>%
+  mutate(diff = abs(consumption_live_t - live_weight_t), 
+         percent_diff = 100*(consumption_live_t - live_weight_t)/live_weight_t)
+
+large_diff <- compare_consumption_prod %>% 
+  filter(abs(diff) > 10)
+```
+
+Domestic exports in ARTIS should not exceed production in the trade. There are `r nrow(compare_trade_prod)` instances where domestic exports of a species by a country exceed production in that country for that year.
+
+Additionally, when grouped by source country, consumption should add back up to production (i.e., all production should be consumed by someone). There are `r compare_consumption_prod %>% filter(diff < -0.0001) %>% nrow()` cases where foreign consumption is less than the corresponding production of a species from a given country and `r compare_consumption_prod %>% filter(diff > 10) %>% nrow()` cases (out of `r nrow(compare_consumption_prod)`, or `r round(100*(compare_consumption_prod %>% filter(diff > 10) %>% nrow())/nrow(compare_consumption_prod), 2)`%) where estimated consumption is at least 10t greater than the corresponding production of a species from a given country.
+
+```{r, results='hide'}
+rm(list = c("compare_trade_prod", 
+            "compare_consumption_prod",
+            "large_diff", 
+            "prod"))
+gc()
+```
+
+# Results
+
+## Global trade summary stats
+
+```{r global stats}
+total_1996 <- artis_ts_df %>%
+  filter(year == 1996) %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_max_year <- artis_ts_df %>%
+  filter(year == max_year) %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_capture_1996 <- artis_ts_df %>%
+  filter(year == 1996, method == "capture") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_capture_max_year <- artis_ts_df %>%
+  filter(year == max_year, method == "capture") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_aquaculture_1996 <- artis_ts_df %>%
+  filter(year == 1996, method == "aquaculture") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_aquaculture_max_year <- artis_ts_df %>%
+  filter(year == max_year, method == "aquaculture") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_dom_1996 <- artis_ts_df %>%
+  filter(year == 1996, dom_source == "domestic") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_dom_max_year <- artis_ts_df %>%
+  filter(year == max_year, dom_source == "domestic") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_error_1996 <- artis_ts_df %>%
+  filter(year == 1996, dom_source == "error") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+
+total_error_max_year <- artis_ts_df %>%
+  filter(year == max_year, dom_source == "error") %>%
+  summarise(live_weight_t = sum(live_weight_t)) %>%
+  pull(live_weight_t)
+```
+
+-   Global trade increased from `r round(total_1996/1000000)` mil t (live weight) in 1996 to `r round(total_max_year/1000000)` mil t in `r paste(max_year)`, a `r round(100*(total_max_year-total_1996)/total_1996)`% increase.
+-   Capture production represented `r round(100*total_capture_max_year/total_max_year)`% in `r paste(max_year)`, compared to `r round(100*total_capture_1996/total_1996)`% in 1996. Conversely, the share of exports from aquaculture increased from `r round(100*total_aquaculture_1996/total_1996)`% in 1996 to `r round(100*total_aquaculture_max_year/total_max_year)`% in `r paste(max_year)`.
+-   In `r paste(max_year)`, the share of exports from domestic production was `r round(100*total_dom_max_year/total_max_year)`%, compared to `r round(100*total_dom_1996/total_1996)`% in 1996.
+-   Globally, `r round(100*total_error_max_year/total_max_year)`% of exports could not be explained by production and imports in `r paste(max_year)`.
+
+## Method and habitat sourcing
+
+```{r method-habitat figs, fig.cap="Global aquatic resource trade totals by habitat and production method."}
+artis_ts_df %>%
+  mutate(habitat_method = paste(habitat, method)) %>%
+  plot_ts(artis_var = "habitat_method", plot.type = "stacked", 
+          prop_flow_cutoff = 0,
+          plot.title = "Global trade by production source")
+```
+
+## Production sourcing of exports
+
+```{r export source figs, fig.cap="Global aquatic resource trade totals by export source."}
+artis_ts_df %>%
+  plot_ts(artis_var = "dom_source", plot.type = "stacked", 
+          prop_flow_cutoff = 0, 
+          plot.title = "Global trade by export source")
+```
+
+## Global trade by species
+
+```{r top species ts, fig.cap="Global aquatic resource trade totals by taxa."}
+artis_ts_df %>%
+  plot_ts(artis_var = "sciname", prop_flow_cutoff = 0.02, plot.type = "stacked",
+          plot.title = "Global trade by taxa")
+```
+
+```{r top species bar, fig.cap="Top traded aquatic taxa in the most recent ARTIS data year."}
+artis_ts_df %>%
+  filter(year == max_year) %>%
+  plot_bar(bar_group = "sciname", 
+           plot.title = paste("Top 15 traded species,", max_year), 
+           top_n = 15)
+```
+
+## Top exporters
+
+```{r top exporters ts, fig.cap="Global aquatic resource trade totals by exporter."}
+artis_ts_df %>%
+  plot_ts(artis_var = "exporter_iso3c", plot.type = "stacked", 
+          prop_flow_cutoff = 0.03, 
+          plot.title = "Global trade by exporter")
+```
+
+```{r top exporters bar, fig.cap="Top aquatic resource exporters in the most recent ARTIS data year."}
+artis_ts_df %>%
+  filter(year == max_year) %>%
+  plot_bar(bar_group = "exporter_iso3c", 
+           plot.title = paste("Top 15 exporters,", max_year), 
+           top_n = 15)
+```
+
+## Top importers
+
+```{r top importers ts, fig.cap="Global aquatic resource trade totals by importer."}
+artis_ts_df %>%
+  plot_ts(artis_var = "importer_iso3c", plot.type = "stacked", 
+          prop_flow_cutoff = 0.03,
+          plot.title = "Global trade by importer")
+```
+
+```{r top importers bar, fig.cap="Top aquatic resource importers in the most recent ARTIS data year."}
+artis_ts_df %>%
+  filter(year == max_year) %>%
+  plot_bar(bar_group = "importer_iso3c", 
+           plot.title = paste("Top 15 importers,", max_year), 
+           top_n = 15)
+```
+
+```{r, results='hide'}
+# This is the last section with the trade file, so remove it
+rm(list = c("artis_ts_df"))
+gc()
+```
+
+## Top consumers
+
+```{r top consumers ts, fig.cap="Total aquatic resource consumption by country for top consuming countries."}
+consumption_by_consumer %>% 
+  plot_ts(artis_var = "consumer_iso3c", value = "consumption_live_t", 
+          plot.type = "stacked", plot.title = "Global consumption", 
+          y.lab = "Consumption, t (live weight)",
+          prop_flow_cutoff = 0.02)
+```
+
+```{r top consumers bar, fig.cap="Top aquatic resource consumers (national total) in the most recent ARTIS data year."}
+consumption_by_consumer %>%
+  filter(year == max_year) %>%
+  plot_bar(bar_group = "consumer_iso3c", top_n = 15, fill_type = "method",
+           value = "consumption_live_t", 
+           plot.title = paste("Top 15 consumers, t live weight,", max_year),
+           x.lab = "Consumption, t (live weight)")
+```
+
+```{r top consumers bar per cap, fig.cap="Top aquatic resource consumers (per capita) in the most recent ARTIS data year."}
+consumption_by_consumer %>%
+  filter(year == max_year) %>%
+  plot_bar(bar_group = "consumer_iso3c", top_n = 30, fill_type = "method",
+           value = "consumption_percap_live_kg_capped", 
+           plot.title = paste("Top 30 consumers, kg (live weight) per capita,", max_year),
+           x.lab = "Consumption per capita, kg (live weight)")
+```
+
+## Consumption sourcing
+
+```{r consumption sourcing figs, fig.cap="Total aquatic resource consumption by aquatic resource source."}
+consumption_by_consumer %>%
+  plot_ts(artis_var = "consumption_source", value = "consumption_live_t",
+          y.lab = "Consumption, t (live weight)",
+          plot.type = "stacked", 
+          plot.title = "Global consumption sourcing")
+```
