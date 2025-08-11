@@ -13,6 +13,7 @@
 #' @param X_long dataframe. mapping production species to HS6 codes based on available trade data.
 #' @param V1_long dataframe. mapping species to HS6 codes using an alternative approach.
 #' @param pop dataframe. containing country population data for per capita consumption calculations.
+#' @param code_max_resolved dataframe. ARTIS attribute table required to resolve taxa to finest resolution possible.
 #' @param max_percap_consumption Numeric. maximum allowable per capita consumption in kg (default 100).
 #' @param consumption_threshold Numeric. minimum threshold for recorded consumption to avoid rounding errors (default 1e-9).
 #' @param dev_mode Logical. if TRUE, enables debugging output and writes out discrepancies in consumption estimates.
@@ -33,13 +34,10 @@ calculate_consumption <- function(artis = s_net,
                                   V1_long = V1_long, 
                                   V2_long = V2_long,
                                   pop = pop, 
+                                  code_max_resolved = code_max_resolved,
                                   max_percap_consumption = 100,
                                   consumption_threshold = 1e-9,
                                   dev_mode = FALSE){
-  # FIXIT: add all needed arguments to function (so objects are explicitly called)
-  # set of arguments then need updated in main script
-  
-  
   
   # Format data to match for joins----------------------------------------------
   artis <- artis %>%
@@ -342,62 +340,17 @@ calculate_consumption <- function(artis = s_net,
       hs6 == 230120 ~ "fishmeal",
       hs6 %in% c(30110, 30111, 30119) ~ "other",
       TRUE ~ "direct human consumption")) %>%
+    left_join(code_max_resolved, by = c("hs_version", "hs6", "sciname")) %>%
+    mutate(sciname_hs_modified = case_when(
+      is.na(sciname_hs_modified) ~ sciname, 
+      .default = sciname_hs_modified)) %>%
     group_by(year, hs_version, 
              source_country_iso3c, exporter_iso3c, consumer_iso3c,  
-             consumption_source, sciname, habitat, method,
+             consumption_source, sciname, sciname_hs_modified, habitat, method,
              end_use) %>%
     summarise(consumption_live_t = sum(consumption_live_t)) %>%
     ungroup()
   
-  # FIXIT: need to decide how to formalize this test (or what information to 
-  # write out related to it)
-  # test total consumption compared to production by source country
-  test <- complete_consumption %>%
-    group_by(source_country_iso3c, sciname, habitat, method) %>% 
-    summarise(consumption_live_t_sum = sum(consumption_live_t, na.rm = TRUE)) %>% 
-    left_join(prod %>% 
-                group_by(country_iso3_alpha, sciname, habitat, method) %>% 
-                summarise(live_weight_t = sum(live_weight_t)), 
-              by = c("source_country_iso3c" = "country_iso3_alpha", "sciname", "habitat", "method")) %>% 
-    mutate(diff = consumption_live_t_sum - live_weight_t)
-  
-  # if dev_mode enabled - filter and write out large consumption negatives to csv
-  if (dev_mode){
-    
-    diff_large <- complete_consumption %>%
-      group_by(source_country_iso3c, sciname, habitat, method) %>% 
-      summarise(consumption_live_t_sum = sum(consumption_live_t, na.rm = TRUE)) %>% 
-      left_join(prod %>% 
-                  group_by(country_iso3_alpha, sciname, habitat, method) %>% 
-                  summarise(live_weight_t = sum(live_weight_t)), 
-                by = c("source_country_iso3c" = "country_iso3_alpha", 
-                       "sciname", 
-                       "habitat", 
-                       "method")) %>% 
-      mutate(diff = consumption_live_t_sum - live_weight_t) %>% 
-      filter(abs(diff) > 10)
-    
-    fwrite(diff_large, 
-           file.path("./outputs", 
-                     paste0("consumption_large_diffs_",Sys.Date(),".csv")))
-           }
-
-  # DATA CHECK
-  # make sure there are no NA values in consumption
-  na_consumption <- complete_consumption %>%
-    filter(is.na(consumption_live_t))
-  if (nrow(na_consumption) != 0) {
-    warning(paste0(
-            "NAs in complete consumption for", curr_year, " and ", curr_hs_version,
-            ". Number of NAs is ", nrow(na_consumption)))
-  }
-  
-  if (min(complete_consumption$consumption_live_t) < 0) {
-    warning(paste0("Negative consumption values for ", curr_year,
-      " and ", curr_hs_version))
-  }
-  
-
 # Max per capita ----------------------------------------------------------
 # add max per capita (default 100 kg) REMINDER THIS IS IN KG
 # keep both raw consumption and max per capita scaled consumption
@@ -471,10 +424,51 @@ calculate_consumption <- function(artis = s_net,
       bind_rows(complete_consumption %>% 
                   filter(end_use != "direct human consumption"))
     
-    return(complete_consumption_capped) 
+    complete_consumption <- complete_consumption_capped
     
-  } else(
-    return(complete_consumption)
-  )
+  } 
+
+  # test total consumption compared to production by source country
+  test <- complete_consumption %>%
+    group_by(source_country_iso3c, sciname, habitat, method) %>% 
+    summarise(consumption_live_t_sum = sum(consumption_live_t, na.rm = TRUE)) %>% 
+    left_join(prod %>% 
+                group_by(country_iso3_alpha, sciname, habitat, method) %>% 
+                summarise(live_weight_t = sum(live_weight_t)), 
+              by = c("source_country_iso3c" = "country_iso3_alpha", "sciname", "habitat", "method")) %>% 
+    mutate(diff = consumption_live_t_sum - live_weight_t)
+
+  # if dev_mode enabled - filter and write out large consumption negatives to csv
+  if (dev_mode){
+    
+    diff_large <- test %>% 
+      filter(abs(diff) > 10)
+    
+    fwrite(diff_large, 
+            file.path("./outputs", 
+                      paste0("consumption_large_diffs_", curr_hs_version, curr_year, Sys.Date(),".csv")))
+            }
+
+  # DATA CHECK
+  # make sure there are no NA values in consumption
+  na_consumption <- complete_consumption %>%
+    filter(is.na(consumption_live_t))
+
+  if (nrow(na_consumption) != 0) {
+    warning(paste0(
+            "NAs in complete consumption for", curr_year, " and ", curr_hs_version,
+            ". Number of NAs is ", nrow(na_consumption)))
+  }
+
+
+
+  if (min(complete_consumption$consumption_live_t) < 0) {
+    warning(paste0("Negative consumption values for ", curr_year,
+      " and ", curr_hs_version))
+  }
+
+
+return(complete_consumption)
+
   
 }
