@@ -2,9 +2,9 @@
 # Setup based on the kind of analysis and machine you are working with
 
 # Start with a clean working environment
-# rm(list=ls())
+rm(list=ls())
 #-------------------------------------------------------------------------------
-run_env <- "aws"
+run_env <- "local"
 
 if (run_env == "aws") {
   # High Performance Computing on AWS Setup
@@ -22,35 +22,49 @@ if (run_env == "aws") {
   source("00-local-machine-setup.R")
 }
 
-# Set up Start date for finding no solution countries
-start_date <- Sys.Date()
-
-# Path for sub folder within outputs that will contain all country-level solutions
-# to mass balance equation, solved using the python solver "quadprog"
-outdir_quadprog <- file.path(outdir, "quadprog_snet")
-
-# Path for sub folder within outputs that will contain all country-level solutions
-# to mass balance equation, solved using the python solver "cvxopt"
-outdir_cvxopt <- file.path(outdir, "cvxopt_snet")
-
-#-------------------------------------------------------------------------------
+# Gather ARTIS outputs -------------------------------------------------------
 # This section gathers all ARTIS output data separated across multiple HS version
 # and years into one file by output type (trade/consumption) and estimate type (max/midpoint/min)
 
-final_outdir <- file.path(outdir, "artis_outputs")
+final_outdir <- file.path(outdir, "outputs_combined")
 
 # Ensure the 'outputs' directory exists on the aws "local" machine
 if (!dir.exists("outputs")) { dir.create("outputs") }
 # Ensure the 'artis_outputs' directory exists on the aws "local" machine
 if (!dir.exists(final_outdir)) { dir.create(final_outdir) }
 
-build_artis_data(outdir_snet, final_outdir,
-                 run_env = run_env,
-                 s3_bucket_name = artis_bucket,
-                 s3_region = artis_bucket_region)
 
-if (run_env == "aws") {
-  # clean up worker before exiting
-  unlink(datadir, recursive = TRUE)
-  unlink(outdir, recursive = TRUE)
-}
+# find and combine all partitioned snet / artis files into a single .parquet file
+  ## NOTE specific to ARTIS v1.1.0 - get_snet() accidently wrote out .qs file 
+  ## extensions but the files themselves are qs2::save_qd() "qdata" formatted. 
+  ## Use `file_type = "qdata"` below to use correct read function for the format. 
+  ## File extensions are just labels, do not effect the file format.
+combine_partitioned_data(
+  search_dir = outdir_snet,
+  outdir = final_outdir,
+  data_type = "trade",
+  estimate_data_type = "midpoint",
+  artis_version = artis_version,
+  prod_data_type = prod_data_type,
+  file_type = "qdata",
+  date = start_date,
+  search_pattern = "S-net_raw_midpoint",
+  custom_timeseries = FALSE,
+  verbose = TRUE
+)
+
+# find and combine partitioned consumption files into single .parquet file
+combine_partitioned_data(
+  search_dir = outdir_snet,
+  outdir = final_outdir,
+  data_type = "consumption",
+  estimate_data_type = "midpoint",
+  artis_version = artis_version,
+  prod_data_type =prod_data_type,
+  file_type = "qdata",
+  date = start_date,
+  search_pattern = "consumption_midpoint",
+  custom_timeseries = FALSE,
+  verbose = TRUE
+)
+

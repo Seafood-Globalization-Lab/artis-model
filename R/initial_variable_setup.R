@@ -1,7 +1,12 @@
 #' @export
-initial_variable_setup <- function(datadir, outdir, hs_version = NA, test_years = c(),
+initial_variable_setup <- function(datadir, 
+                                   outdir, 
+                                   hs_version = NA, 
+                                   test_years = c(),
                                    prod_type = "FAO",
-                                   run_env = "aws", s3_bucket_name = "", s3_region = "") {
+                                   run_env = "aws", 
+                                   s3_bucket_name = "", 
+                                   s3_region = "") {
   
   
   #-----------------------------------------------------------------------------
@@ -201,8 +206,28 @@ initial_variable_setup <- function(datadir, outdir, hs_version = NA, test_years 
       )
     )
   
-  #-----------------------------------------------------------------------------  
-  # Step 3: Make V1 and V2
+# code_max_resolved ------------------------------------------------------
+  # currently needs to be copy and pasted from attribute table generation from 04-create-metadata.R script
+  # into the model_inputs directory
+  code_max_resolved_fp <- file.path(datadir, "code_max_resolved_taxa.csv")
+
+  if (run_env == "aws") {
+    # bring into local file system from s3 bucket
+    save_object(
+      object = code_max_resolved_fp,
+      bucket = s3_bucket_name,
+      region = s3_region,
+      file = code_max_resolved_fp
+    )
+  }
+    
+  code_max_resolved <- fread(code_max_resolved_fp)
+
+  # only need specific columns to resolve complete_consumption to the finest taxa resolution possible
+  code_max_resolved <- code_max_resolved %>% 
+    select(hs_version, hs6, sciname, sciname_hs_modified)
+
+# Make V1 and V2 -----------------------------------------------------------------------------  
   
   # V1: sparse matrix (products x species) of conversion factors corresponding 
   # to the entries of X, coproduct_codes are products with CF == 0
@@ -300,6 +325,7 @@ initial_variable_setup <- function(datadir, outdir, hs_version = NA, test_years 
     cc_m,
     HS_year_rep,
     analysis_years_rep,
-    hs_dir
+    hs_dir,
+    code_max_resolved
   ))
 }

@@ -1,11 +1,21 @@
 #' @export
-get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = c(),
-                                  prod_type = "FAO", solver_type = "quadprog",
-                                  no_solve_countries = data.frame(), num_cores = 10,
-                                  run_env = "aws", s3_bucket_name = "", s3_region = "") {
+get_country_solutions <- function(datadir, 
+                                  outdir, 
+                                  hs_version = NA, 
+                                  test_year = c(),
+                                  prod_type = "FAO", 
+                                  solver_type = "quadprog",
+                                  no_solve_countries = data.frame(), 
+                                  num_cores = 10,
+                                  run_env = "aws", 
+                                  s3_bucket_name = "", 
+                                  s3_region = "",
+                                  dev_mode = FALSE) {
   
-  setup_values <- initial_variable_setup(datadir, outdir, hs_version, test_year, prod_type, run_env,
-                                         s3_bucket_name = s3_bucket_name, s3_region = s3_region)
+  setup_values <- initial_variable_setup(datadir, outdir, hs_version, test_year, 
+                                         prod_type, run_env,
+                                         s3_bucket_name = s3_bucket_name, 
+                                         s3_region = s3_region)
   full_analysis_start <- setup_values[[1]]
   file.date <- setup_values[[2]]
   analysis_info <- setup_values[[3]]
@@ -93,22 +103,19 @@ get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = 
     # Step 5: Estimate X, W, c, and error for each country
     # (solve mass balance problem using solve_qp in python)
     
-    # SAVE FULL WORKSPACE
-    workspace_image_fp <- file.path(
-      hs_analysis_year_dir,
-      paste(file.date,
-            "_all-data-prior-to-solve-country_",
-            analysis_year, "_HS", HS_year_rep, ".RData", sep = ""))
+    # not directly used in the model - activate output with arguement dev_mode
+    if(dev_mode == TRUE) {
     
-    save.image(workspace_image_fp)
-    
-    if (run_env == "aws") {
-      put_object(
-        file = workspace_image_fp,
-        object = workspace_image_fp,
-        bucket = s3_bucket_name
-      )
-    }
+      # SAVE FULL WORKSPACE
+      workspace_image_fp <- file.path(
+        hs_analysis_year_dir,
+        paste(file.date,
+              "_all-data-prior-to-solve-country_",
+              analysis_year, "_HS", HS_year_rep, ".RData", sep = ""))
+      
+      save.image(workspace_image_fp)
+    } # end of dev_mode if statement
+
     
     # Clear workspace other than what"s needed for solve_qp
     rm(list=ls()[!(ls() %in% c("prod_data_analysis_year", "baci_data_analysis_year",
@@ -159,7 +166,11 @@ get_country_solutions <- function(datadir, outdir, hs_version = NA, test_year = 
     
     # Create function to mass balance an individual country,
     # then use mclapply to parallelize the function
-    solve_country <- function(i, solver_to_use, run_env = "aws", s3_bucket_name = ""){
+    solve_country <- function(i, 
+                              solver_to_use, 
+                              run_env = "aws", 
+                              s3_bucket_name = "", 
+                              dev_mode_logic = FALSE){
       print(paste("start of ", i, " solution"), sep = "")
       qp_inputs <- transform_to_qp_with_python(country_j = i, V1 = V1, V2 = V2, 
                                                baci_data_clean = baci_data_analysis_year, 
@@ -192,7 +203,7 @@ ub = array(r.u,dtype=float).reshape((P.shape[0],))
 
 cond_num = linalg.cond(A)
 
-x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"quadprog\", verbose = True)',
+x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"quadprog\")',
                       convert = TRUE)
       } else {
         py_run_string(
@@ -211,21 +222,26 @@ ub = array(r.u,dtype=float).reshape((P.shape[0],))
 
 cond_num = linalg.cond(A)
 
-x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\", verbose = True)',
+x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
 convert = TRUE)
       }
       
       # Convert to r object with as.numeric()
       qp_sol <- as.numeric(py$x)
+
+    if(length(qp_sol) > 0 )  {
       
-      # Write out raw output from solver for comparison
-      cond_num <- as.numeric(py$cond_num)
-      write.csv(qp_sol, file.path(hs_analysis_year_dir, paste(i, "_sol.csv", sep="")),
-                row.names = FALSE)
-      sink(file = file.path(hs_analysis_year_dir, "condition_number.csv"),
-           append = TRUE)
-      cat(paste(i, ",", cond_num, "\n", sep=""))
-      sink()
+      # not directly used in model - output if needed with arguement dev_mode = TRUE
+      if(dev_mode_logic == TRUE) {
+        # Write out raw output from solver for comparison
+        cond_num <- as.numeric(py$cond_num)
+        write.csv(qp_sol, file.path(hs_analysis_year_dir, paste(i, "_sol.csv", sep="")),
+                  row.names = FALSE)
+        sink(file = file.path(hs_analysis_year_dir, "condition_number.csv"),
+             append = TRUE)
+        cat(paste(i, ",", cond_num, "\n", sep=""))
+        sink()
+      }
       
       # Unstack solution
       country_est_i <- unstack_qp_sol(qp_sol, qp_inputs)
@@ -243,8 +259,9 @@ convert = TRUE)
           bucket = s3_bucket_name
         )
       }
-      
+    } # end of qp_sol  
       print(paste("end of ", i, " solution"))
+
       
       # Since all the outputs were assigned to the global environment,
       # clear workspace before starting next country
@@ -258,16 +275,20 @@ convert = TRUE)
       gc()
     }
     
+    # explicitly set inside parent environment
+    dev_mode_logic <- dev_mode
+    
     # Parallelize solution to country mass balance problems:
     mclapply(countries_to_analyze,
              solve_country,
              solver_to_use = solver_type,
              run_env = run_env,
              s3_bucket_name = s3_bucket_name,
+             dev_mode_logic = dev_mode_logic,
              mc.cores = num_cores,
-             mc.preschedule = FALSE)
+             mc.preschedule = FALSE
+             )
 
-    # This needs to contain ALL files across quadprog and cvxopt solutions
     # Read in individual country solutions and combine into a list
     output_files <- list.files(hs_analysis_year_dir)
     solve_country_files <- output_files[grepl(pattern = "_country-est_", output_files) &

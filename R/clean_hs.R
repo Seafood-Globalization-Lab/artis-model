@@ -26,6 +26,9 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
   hs_data$Description <- gsub(hs_data$Description, pattern = "aequi opercularis", replacement = "aequipecten opercularis")
   hs_data$Description <- gsub(hs_data$Description, pattern = " ephrops norvegicus", replacement = " nephrops norvegicus") # Note: need space before "ephrops" so it doesn't match with "nephrops"
   
+  # We are defining octopus species as all members of the family Octopodidae rather than only species of the genus octopus
+  hs_data$Description <- gsub(hs_data$Description, pattern="octopus spp.", replacement = "octopodidae")
+  
   # Assumption in downstream code is that all genera are indicated as "<genera> spp"
   # Rewrite descriptions that are exceptions to this: "of the genus XXX" and "of the genera XXX"
   # Rewrite (Aguilla) and (Channa) as (Aguilla spp.) annd (Channa spp.)

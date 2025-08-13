@@ -6,9 +6,9 @@ categorize_hs_to_taxa <- function(hs_taxa_match, coproduct_codes){
   # Columns are species, Rows are products
   Xq <- hs_taxa_match %>%
     filter(Code %in% coproduct_codes == FALSE) %>%
-    mutate(Match_factor = case_when(Match_category %in% c("aquarium_trade_match", "explicit_taxa_match", "fmfo_match") ~ 1, # aquarium and fmfo matches are also explicit, based on taxa lists
+    mutate(Match_factor = case_when(Match_category %in% c("aquarium_trade_match", "explicit_taxa_match") ~ 1, # aquarium and fmfo matches are also explicit, based on taxa lists
                                     Match_category %in% c("NEC_by_taxa_match", "NEC_match") ~ 2,
-                                    Match_category %in% c("broad_commodity_match", "broad_taxa_match") ~ 3)) %>%
+                                    Match_category %in% c("broad_commodity_match", "broad_taxa_match", "fmfo_match") ~ 3)) %>%
     select(Code, SciName, Match_factor) %>%
     arrange(SciName, Code) %>%
     distinct() %>%

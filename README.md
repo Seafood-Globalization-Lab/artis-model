@@ -1,106 +1,186 @@
-# ARTIS Model
+# ARTIS Model (Aquatic Resource Trade In Species)
 
-The ARTIS model codebase. This repository contains the demo version and the full model.
+This repository contains the ARTIS model codebase. This is where the Seafood Globalization team develops and maintains the ARTIS model, end-users will typically not need to follow the instalation instructions below.
 
-## Installation Guide
+ARTIS reconstructs global seafood supply chains by tracing trade flows and production data through a multi-stage allocation process. It enables detailed analysis of seafood consumption by country, species, and product form.
 
-This project uses Python 3.10.9 which can be downloaded [here](https://www.python.org/downloads/release/python-3109/) and RStudio which can be downloaded [here](https://posit.co/download/rstudio-desktop/).
+## What’s New in v1.1.0
 
-It should take approximately 10 minutes to run this full installation.
+- Major overhaul of the consumption calculation workflow (see below for high-level summary)
+- For all changes see [CHANGELOG](./CHANGELOG.md) for details
 
-## Creating python virtual environment
+### High‐Level Changes in `calculate_consumption.R`
 
-*NOTE*: This protocol may not be successful for every individual local machine. The interaction in package versions and computer architecture (*i.e.* arm64 M1, M2 chips) may complicate this virtual environment set up. We are working on setting up a portable docker image to increase the reproducibility of this code.
+- **Domestic Consumption (Stage 1)**  
+   - **Domestic Production → Domestic Exports → Domestic Consumption**  
+     1. Aggregate total production of each HS‐6 code (disaggregated from species using `X_long`).  
+     2. Subtract “domestic exports” (i.e., what leaves each country under `dom_source == "domestic"`).  
+     3. Warn if any country’s exports exceed production.  
+   - Result: a per‐country, per‐HS‐6 volume of product that remains for domestic consumption.  
 
-1. Open the artis-model repository in RStudio.
-2. Click on the terminal tab.
-3. Type `pwd` in the terminal.
-4. Copy the result of the "pwd" terminal command.
-5. Type `python3 -m venv [RESULT FROM pwd]/venv` (ie. `python3 -m venv /home/artis-model/venv`)
-6. Type `source venv/bin/activate` in terminal.
-7. Type `pip3 install qpsolvers` in terminal.
-6. Type `pip3 install quadprog` in terminal.
-7. Type `pip3 install cvxopt` in terminal.
-8. Confirm you have successfully installed the packages qpsolvers, quadprog, cvxopt by running `pip list`.
-9. Type `deactivate` in terminal.
-10. Click on the Console tab.
+- **Foreign Consumption (Stage 2)**  
+   - **Unprocessed Imports → Processed Exports → Two‐Stage Allocation**  
+     1. **Reverse “processing”**: Using `reweight_W_long`, the code “unprocesses” the final‐product HS‐6 back to its original raw‐fish equivalents, creating a pool of what could be consumed or re‐exported.  
+     2. **Stage 1 (Import Retention)**: For each importer, estimate how much of the processed product they consume immediately (i.e., “fishmeal,” “other,” or “direct human consumption”). Any remainder becomes a re‐export candidate.  
+     3. **Stage 2 (Redistribution to Final Consumer)**: Take those re‐exports and allocate them to the next‐tier consumers based on trade proportions (`artis` → “foreign” flows).  
+     4. Throughout, apply the same Data‐Check logic: ensure that “foreign consumption + domestic consumption ≈ total production + error exports”.
 
-*Note*: You only need to install the solvers the first time you run this code. Warnings about the latest version of pip may also appear during the installation - these are okay, but errors are not.
+- **Per‐Capita Capping & Debug Mode**  
+   - After fully assembling **domestic + foreign consumption**, the function now:  
+     1. Joins in population data (`pop`) to calculate per‐capita seafood consumption for “direct human consumption.”  
+     2. Identifies outliers (e.g., any country > 100 kg/person) and proportionally “caps” their total consumption back down to the threshold.  
+     3. If `dev_mode = TRUE`, writes out a CSV of the largest consumption‐vs.‐production discrepancies so users can inspect and debug (as described under the manual’s “Data Quality & Diagnostics” section).
 
-## R installation instructions
-1. Click "Build" on the build tab on the top right hand side corner of RStudio.
-2. Click on the dropdown arrow in the "Install" subtab within the "Build" window.
-3. Click the option "Configure Build Tools..."
-4. Make sure options mirror the image below and click OK.
-<p align="center">
-  <img src="./images/artis_r_build_config_options.png" alt="drawing" width="75%"/>
-</p>
-5. Click on the dropdown arrow in the "Install" subtab and select the option "Clean and Install"
+- **Smaller, Faster I/O with `.qs` Files**  
+   - All intermediate tables (e.g., disaggregated species‐to‐HS volumes, processed/unprocessed flows, final consumption tables) are now serialized as `.qs` rather than RDS/CSV, dramatically reducing file size and read/write time.
 
-## Running the model demo
+- **Improved Error‐Handling & Data Checks**  
+   - **Domestic Check**: Warn if any “domestic export” volume exceeds production (i.e., negative domestic consumption).  
+   - **Foreign Check**: Compare ARTIS’s reported “domestic export” volumes against the function’s computed values—warn if they diverge by more than 1 ton.  
+   - **NA/Negative Consumption**: Emit a clear warning if any final consumption records are NA or negative, matching the manual’s emphasis on internal consistency checks at each stage.
 
-Running the demo for the ARTIS model should take approximately 10 minutes. To run the demo for ARTIS run the `02-artis-pipeline.R` script and then run the `04-build-artis-timeseries.R` script.
+## Model Overview
 
-## Outputs
+ARTIS reconstructs seafood supply chains by:
 
-The outputs of the demo will appear in the `demo/outputs` directory. Within this folder `demo/outputs/custom_ts` will contain all the final files that if run on the full model inputs would be used to create the results of the ARTIS research paper.
+- Integrating production data, international trade flows, and processing factors.
+- Disaggregating national production to detailed product codes using trade proportions.
+- Tracing each product through exports, imports, processing, and consumption pathways.
+- Providing per-country, per-species, and per-product estimates of seafood availability and use.
 
-Please find below descriptions of main files:
-- `demo/outputs/custom_ts/mid_custom_ts.csv`: This is the demo version of the main ARTIS trade records table.
-- `demo/outputs/custom_ts/summary_consumption_midpoint.csv`: This is the demo version of the main ARTIS seafood consumption records table.
+For full conceptual diagrams and methods, see the [ARTIS Manual](https://seafood-globalization-lab.github.io/artis-manual/).
 
-## Methods and Workflow
+## Run Modes
 
-### High level overview
-The following diagrams describes how ARTIS trade records are obtained.
+- **local**: Run ARTIS on your local machine. Used for specific HS versions/years runs. 
+  _Requires significant compute resources and is developed/tested on macOS with ARM64 (Apple Silicon) architecture._
+- **demo**: Fast, small test dataset for local runs and troubleshooting. (has not been maintained or checked recently) 
+- **aws**: Large-scale cloud runs on AWS Batch. See [`artis-hpc`](https://github.com/Seafood-Globalization-Lab/artis-hpc) for details.
 
-![Disaggregating Trade Records](./images/disaggregating_trade_records.png)
-![Aggregating Trade Records back up](./images/building_trade_records_back_up.png)
-![Consumption Workflow](./images/consumption_workflow.png)
+## Installation
 
-### Code workflows
-The following diagrams describe the how the codebase follows the workflow illustrated above.
+### Prerequisites
 
-![Cleaning data diagram](./images/model_inputs_creation.png)
-![Mass balance solutions](./images/country_mass_balance_solution_creation.png)
-![Creating ARTIS codeflow](./images/create_artis_codeflow.png)
+- Python 3.11.x ([Download](https://www.python.org/downloads/release/python-3110/))
+- R (tested with R 4.2.2) ([Download](https://www.r-project.org/))
+- RStudio ([Download](https://posit.co/download/rstudio-desktop/))
+
+### Python Environment
+
+```
+python3 -m venv /path/to/your/venv --without-scm-ignore-files
+source venv/bin/activate
+pip install -r requirements.txt
+pip list  # confirm: qpsolvers, quadprog, cvxopt
+```
+
+### `artis` R Package Installation
+
+- Get a local copy of the latest ARTIS release from Github
+```sh
+$gh repo clone Seafood-Globalization-Lab/artis-model
+```
+- install the R package from the project root directory
+```R
+devtools::install()
+```
+
+FIXIT: Need instructions to run model locally
+
+## Development Workflow
+
+### Branch Structure
+
+- `main`: Stable releases
+- `develop`: Ongoing development
+- Task branches: `develop-*` (short-lived, merged back to `develop`)
+- Hotfixes: branch from `main` for urgent fixes, merged back to `main`
+
+### Branch Workflow Diagram
+
+```mermaid
+gitGraph
+   commit id: "v1.0"
+   branch develop
+   commit
+   branch develop-ingest-new-data-v2
+   commit id: "clean FAO"
+   commit id: "resolve sciname"
+   checkout develop
+   merge develop-ingest-new-data-v2 id: "merge cleaning script"
+   checkout develop
+   commit id: "update README"
+   branch develop-fix-bug
+   commit
+   checkout develop
+   merge develop-fix-bug id: "merge fix-bug"
+   commit id: "add documentation"
+   checkout main
+   merge develop id: "v2.0 Release"
+   branch hot-fix
+   checkout hot-fix
+   commit id: "forgot this tiny thing"
+   checkout main
+   merge hot-fix id: "v2.0.1 Release"
+```
 
 ## System Requirements
-- Platform: x86_64-apple-darwin17.0 (64-bit)
-- Running under: macOS Ventura 13.3.1
-- R version 4.2.2
-- R packages:
-  - readxl 1.4.1
-  - janitor 2.1.0
-  - countrycode 1.4.0
-  - doParallel 1.0.17
-  - iterators 1.0.14
-  - foreach 1.5.2
-  - slam 0.1-50
-  - Matrix 1.5-1
-  - magrittr 2.0.3
-  - data.table 1.14.6
-  - forcats 0.5.2
-  - stringr 1.5.0
-  - dplyr 1.0.10
-  - purrr 1.0.1
-  - readr 2.1.3
-  - tidyr 1.2.1
-  - tibble 3.1.8
-  - ggplot2 3.4.0
-  - tidyverse 1.3.2
-  - reticulate 1.26
-- Python version 3.10.9
-- Python packages:
-  - cvxopt     1.3.0
-  - daqp       0.5.1
-  - ecos       2.0.12
-  - numpy      1.24.3
-  - osqp       0.6.2.post9
-  - pip        22.3.1
-  - qdldl      0.1.7
-  - qpsolvers  3.4.0
-  - quadprog   0.1.11
-  - scipy      1.10.1
-  - scs        3.2.3
-  - setuptools 65.6.3
+
+> **Note:** See `requirements.txt` for Python package versions. R package versions still require additional documentation.
+
+- **Platform:** macOS Ventura 13.3.1 (ARM64/M1/M2 strongly recommended)
+- **R version:** 4.2.2
+- **Python version:** 3.11.x
+- **Key R packages:** data.table, dplyr, stringr, tidyverse, reticulate, etc. See `.renv_lock` file for package version details
+- **Key Python packages:** qpsolvers, quadprog, cvxopt
+
+## Citation
+
+> A formal dataset DOI will be posted here after the v1.1.0 release.  
+> For now, cite the software as:
+
+```
+Jessica Gephart, Rahul Agrawal Bejarano, Althea Marks, & Kelvin Gorospe. (2024).
+ARTIS input data and model. Knowledge Network for Biocomplexity. doi:10.5063/F1862DXT.
+```
+
+```bibtex
+@software{artis-v1.1.0,
+  title        = {ARTIS Model (Aquatic Resource Trade In Species), v1.1.0},
+  author       = {Gephart, Jessica and Agrawal Bejarano, Rahul and Marks, Althea and Gorospe, Kelvin},
+  year         = {2025},
+  version      = {1.1.0},
+  url          = {https://github.com/Seafood-Globalization-Lab/artis-model},
+  note         = {Accessed: yyyy-mm-XX},
+  institution  = {University of Washington},
+  organization = {Seafood Globalization Lab},
+  howpublished = {GitHub repository}
+}
+```
+
+## More Information
+
+- [ARTIS Manual](https://seafood-globalization-lab.github.io/artis-manual/): Conceptual background, methods, output structure, data access.
+- [CHANGELOG](./CHANGELOG.md): Complete change history.
+
+## Model Visual Schematic
+
+The following diagrams illustrate the core logic and processing steps of the ARTIS model:
+
+- **Disaggregating Trade Records**:  
+  ![Disaggregating Trade Records](./images/disaggregating_trade_records.png)  
+  _Shows how national-level production is mapped onto detailed product (HS) codes using trade information._
+
+- **Aggregating Trade Records Back Up**:  
+  ![Aggregating Trade Records Back Up](./images/building_trade_records_back_up.png)  
+  _Demonstrates how disaggregated product flows are traced and summed back up to reconstruct consumption and trade balances._
+
+- **Consumption Workflow**:  
+  ![Consumption Workflow](./images/consumption_workflow.png)  
+  _Depicts the multi-stage allocation process: from production and trade through to final consumption estimates._
+
+- **Codebase Structure Diagrams**:  
+  ![Cleaning data diagram](./images/model_inputs_creation.png)  
+  ![Mass balance solutions](./images/country_mass_balance_solution_creation.png)  
+  ![Creating ARTIS codeflow](./images/create_artis_codeflow.png)  
+  _Visuals of the ARTIS codebase organization and major workflow steps._

@@ -1,0 +1,9 @@
+bibentry(
+  "Manual",
+  title = "ARTIS: Aquatic Resource Trade in Species (ARTIS) Model",
+  author = "Jessica Gephart, Rahul Agrawal Bejarano, Althea Marks, Kelvin Gorospe",
+  year = 2025,
+  organization = "Seafood Globalization Lab",
+  note = "R package version 1.1.0",
+  url = "https://github.com/Seafood-Globalization-Lab/artis-model"
+)
