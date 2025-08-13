@@ -36,7 +36,7 @@ current_fb_slb_dir <- fb_slb_info$directory
 # Clean scientific names and add classification info to production data: choose FAO or SAU
 # NOTE: warning message about data_frame() being deprecated is fixed in the development version of rfishbase: run remotes::install_github("ropensci/rfishbase") to implement the fixed version
 prod_list <- classify_prod_dat(datadir = datadir_raw,
-                               filename = "GlobalProduction_2022.1.1.zip", 
+                               filename = "GlobalProduction_2025.1.0.zip", 
                                # "GlobalProduction_2023.1.1.zip"
                                prod_data_source = "FAO",
                                fb_slb_dir = current_fb_slb_dir)

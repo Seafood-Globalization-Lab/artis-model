@@ -1,0 +1,445 @@
+---
+title: "ARTIS Data Ingest"
+subtitle: "Changelog of raw data verions"
+author: "Althea Marks"
+format:
+  pdf:
+    papersize: letter
+execute:
+  echo: FALSE
+  include: FALSE
+  message: FALSE
+  warning: FALSE
+---
+
+```{r setup}
+
+#### Library #####
+library(data.table)
+library(dplyr)
+library(readr)
+library(stringr)
+library(purrr)
+library(tidyr)
+library(knitr)
+library(kableExtra)
+library(readxl)
+
+
+#### Directory setup #####
+
+# Newest data
+datadir_new <- file.path("~", "Documents", "UW-SAFS", "ARTIS", "data",
+                         "model_inputs_raw_v2_0")
+# last data ingest
+datadir_old <- file.path("~", "Documents", "UW-SAFS", "ARTIS", "data",
+                         "model_inputs_raw")
+modelfundir <- file.path("~", "Documents", "git-projects", "artis-model", "R")
+
+
+# values for report
+raw_data_type <- "FAO Global Production"
+artis_prev <- "v1.0"
+artis_next <- "v2.0"
+data_v_old <- "2022.1.1"
+data_v_new <- "2025.1.0"
+
+## FIXIT / NOTE: manually unzip downloaded files for this script to run properly
+```
+
+```{r get-files}
+
+# List all subdirectories in datadir_new
+subdirs_new <- list.dirs(datadir_new, recursive = TRUE, full.names = TRUE)
+subdirs_old <- list.dirs(datadir_old, recursive = TRUE, full.names = TRUE)
+
+# FAO Global production regex pattern
+pattern_fao <- regex("(global[\\s_-]*production)", ignore_case = TRUE)
+
+# FAO Global production directory
+fao_dir_new <- subdirs_new[str_detect(subdirs_new, pattern_fao)]
+fao_dir_old <- subdirs_old[str_detect(subdirs_old, pattern_fao)]
+
+sp_new_fp <- file.path(
+  fao_dir_new, 
+  list.files(proddir_new, recursive = FALSE, full.names = FALSE) %>%
+    grep("SPECIES_GROUPS.+", ., ignore.case = TRUE, value = TRUE))
+
+sp_old_fp <- file.path(
+  fao_dir_old, 
+  list.files(proddir_old, recursive = FALSE, full.names = FALSE) %>%
+    grep("SPECIES_GROUPS.+", ., ignore.case = TRUE, value = TRUE))
+
+gp_new_fp <- file.path(fao_dir_new, "Global_production_quantity.csv")
+gp_old_fp <- file.path(fao_dir_old, "Global_production_quantity.csv")
+
+# BACI regex pattern
+# pattern_baci <- regex("(baci)", ignore_case = TRUE)
+# 
+# # BACI directory
+# baci_dir_new <- subdirs_new[str_detect(subdirs_new, pattern_baci)]
+#baci_dir_old <- subdirs_old[str_detect(subdirs_old, pattern_baci)]
+
+```
+
+```{r assess-file-changes}
+
+# 1. **Scan directories**
+scan_dir <- function(dir, rg = "") {
+  if (length(dir) == 0) return(character(0)) # Handle empty directories
+  list.files(dir, pattern = rg, recursive = TRUE, full.names = TRUE)
+}
+
+# 2. **Read files from directories**
+files_new <- scan_dir(fao_dir_new)
+files_old <- scan_dir(fao_dir_old)
+
+# 3. **Standardize file names**
+all_files <- tibble(
+  full_path = c(files_new, files_old),
+  files = c(basename(files_new), basename(files_old)),
+  directory = c(rep("new", length(files_new)), rep("old", length(files_old)))
+) %>%
+  mutate(
+    files_std = files %>% 
+      str_remove("^filtered_") %>%  # Remove "filtered_" prefix
+      str_remove("_V\\d{6,7}[a-z]*") %>% # Remove version suffix (like _V202201)
+      str_replace_all("\\.[a-zA-Z0-9]+$", "") %>%  # Remove extensions like .csv
+      str_replace_all("[^a-zA-Z0-9]", "_") %>%   # Replace non-alphanumeric characters with underscores
+      str_to_lower()  # Convert to lowercase
+  )
+
+# 4. **Pivot to match new and old files**
+file_level_log <- all_files %>%
+  pivot_wider(
+    id_cols = files_std,             # Only use files_std to identify matching files
+    names_from = directory, 
+    values_from = full_path, 
+    names_prefix = ""
+  ) %>%
+  mutate(
+    exists_in_old = !is.na(old),
+    exists_in_new = !is.na(new),
+    size_old_mb = ifelse(!is.na(old), 
+                         file.info(old)$size / 1e6, 
+                         NA_real_),
+    size_new_mb = ifelse(!is.na(new), 
+                         file.info(new)$size / 1e6, 
+                         NA_real_),
+    size_change_mb = size_new_mb - size_old_mb
+  )
+
+# 5. **Data-Level Change Log**
+comparison_pairs <- file_level_log %>%
+  filter(exists_in_old & exists_in_new) %>%
+  # compare matching .csv files 
+  filter((str_detect(new, "\\.csv$") & str_detect(old, "\\.csv$")) |
+           # OR matching .xlsx files
+           (str_detect(new, "\\.xlsx$") & str_detect(old, "\\.xlsx$"))) %>%
+  select(files_std, new, old)
+
+library(readxl)
+
+compare_files <- function(file_new, file_old) {
+  if(basename(file_new) %>% str_detect("\\.csv$")) {
+    data_new <- fread(file_new)
+  } 
+  if(basename(file_new) %>% str_detect("\\.xlsx$")) {
+    data_new <- readxl::read_xlsx(file_new, skip=1)
+  }
+  if(basename(file_old) %>% str_detect("\\.csv$")) {
+    data_old <- fread(file_old)
+  }
+  if(basename(file_old) %>% str_detect("\\.xlsx$")) {
+    data_old <- readxl::read_xlsx(file_old, skip=1)
+  }
+
+  
+  list(
+    file_name_new = basename(file_new),
+    file_name_old = basename(file_old),
+    new_rows = nrow(data_new),
+    old_rows = nrow(data_old),
+    row_diff = nrow(data_new) - nrow(data_old),
+    new_cols = colnames(data_new),
+    old_cols = colnames(data_old),
+    # single col value will create a vector column - >1 cols will create list-col
+    added_cols = if (length(setdiff(colnames(data_new),
+                                    colnames(data_old))) > 0) {
+      setdiff(colnames(data_new), colnames(data_old)) 
+    } else { NA_character_},
+    removed_cols = if (length(setdiff(colnames(data_old),
+                                      colnames(data_new))) > 0) {
+      setdiff(colnames(data_old), colnames(data_new)) 
+    } else {NA_character_},
+                   
+    data_type_changes = tibble(
+      column = union(colnames(data_new), colnames(data_old)),
+      # if col is in data_old get its class - else it is NA_character_
+      old_type = map_chr(union(colnames(data_new), colnames(data_old)), 
+                         ~ ifelse(.x %in% colnames(data_old), 
+                                  class(data_old[[.x]])[1], 
+                                  NA_character_)),
+      # if col is in data_new get its class - else it is NA_character_
+      new_type = map_chr(union(colnames(data_new), 
+                               colnames(data_old)), 
+                         ~ ifelse(.x %in% colnames(data_new), 
+                                  class(data_new[[.x]])[1], 
+                                  NA_character_))
+    ) %>% 
+      mutate(type_changed = old_type != new_type)
+  )
+}
+
+data_level_log <- comparison_pairs %>%
+  mutate(comparison = map2(new, old, ~ compare_files(.x, .y)))
+
+# Extract data-level comparison details
+data_change_log <- data_level_log %>%
+  unnest_wider(comparison) %>%
+  select(file_name_new, file_name_old, new_rows, old_rows, row_diff, 
+         added_cols, removed_cols, data_type_changes)
+
+
+```
+
+# Summary
+
+The purpose of this report is to examine and document changes 
+between raw input data versions ingested into the ARTIS (Aquatic Resource Trade 
+in Species) Model. These raw data will then be processed and standardized to the 
+model inputs (data build) fed directly into the ARTIS model. 
+
+### ARTIS model versions
+
+- ARTIS ``r artis_prev`` was the previous model run
+- ARTIS ``r artis_next`` is upcoming model run
+
+# FAO Global Production
+
+### Raw input data versions
+
+- `r raw_data_type` ``r data_v_old`` is the previous data version
+- `r raw_data_type` ``r data_v_new`` is the data version to be ingested in the upcoming ARTIS ``r artis_next`` model run
+
+### File changes
+
+```{r logic-files-missing}
+#| results: 'asis'
+#| include: TRUE
+
+if (any(file_level_log$exists_in_old == FALSE)) {
+  cat(paste0("The new ", data_v_new, " data version contains files that are not present in the old ", data_v_old, " version: ", basename(file_level_log[[which(file_level_log$exists_in_old == FALSE), "new"]])
+                 )
+          )
+}
+```
+
+```{r logic-files-added}
+#| results: 'asis'
+#| include: TRUE
+
+if (any(file_level_log$exists_in_new == FALSE)) {
+  cat(paste0("The old ", data_v_old, " data version contains files that are not present in the new ", data_v_new, " version: ", basename(file_level_log[[which(file_level_log$exists_in_new == FALSE), "old"]])
+                 )
+          )
+}
+```
+
+### Column changes
+
+Only matching .csv and .xlsx files were compared.
+
+```{r}
+#| label: tab:added_removed_columns
+#| include: TRUE
+#| results: 'asis'
+
+# Filter the data_change_log to only include files with added or removed columns
+added_cols_log <- data_change_log %>% 
+  filter(!is.na(added_cols) | !is.na(removed_cols)) %>% 
+  select(file_name_new, added_cols, removed_cols)
+
+if (nrow(added_cols_log) > 0 ) {
+  # Create a kableExtra table with automatic scaling
+  added_cols_log %>%
+    kbl(
+      col.names = c("File Name", "Added Columns", "Removed Columns"),
+      caption = "Files where columns were added/removed in the new version.",
+      align = c('l', 'c', 'c')
+    ) %>%
+    kable_styling(
+      full_width = TRUE, 
+      latex_options = c("scale_down", "hold_position")
+    )
+}
+
+```
+
+### Country and species
+
+```{r}
+
+##### Changes in species using prod
+
+# Need to use production to assess species, SPECIES_GROUPS has many more species not reported in prod
+sp_old <- fread(sp_old_fp)
+gp_old <- fread(gp_old_fp)
+
+gp_sp_old <- gp_old |> 
+  select(SPECIES.ALPHA_3_CODE) |> 
+  left_join(
+    sp_old |> 
+      rename(SPECIES.ALPHA_3_CODE = `3A_Code`) |> 
+      select(SPECIES.ALPHA_3_CODE, Scientific_Name),
+    by = "SPECIES.ALPHA_3_CODE") |> 
+      distinct()
+
+sp_new <- fread(sp_new_fp)
+gp_new <- fread(gp_new_fp)
+
+gp_sp_new <- gp_new |> 
+  select(SPECIES.ALPHA_3_CODE) |> 
+  left_join(
+    sp_new |> 
+      rename(SPECIES.ALPHA_3_CODE = `3A_Code`) |> 
+      select(SPECIES.ALPHA_3_CODE, Scientific_Name),
+    by = "SPECIES.ALPHA_3_CODE") |> 
+      distinct()
+
+sp_comp <- gp_sp_new |> 
+  mutate(present_new = 1) |> 
+  full_join(
+    gp_sp_old |> 
+      mutate(present_old = 1),
+      by = c("SPECIES.ALPHA_3_CODE", "Scientific_Name")) |>
+  filter(is.na(present_new) | is.na(present_old)) 
+
+sp_comp  |> group_by(SPECIES.ALPHA_3_CODE)  |> tally()  |> filter(n == 1)  |> nrow()
+
+###### Change in countries 
+country_n_old <- length(unique(prod_old$country_iso3_alpha))
+country_n_new <- length(unique(prod_new$country_iso3_alpha))
+
+country_unique_old <- setdiff(unique(prod_old$country_iso3_alpha),
+                              unique(prod_new$country_iso3_alpha))
+country_unique_new <- setdiff(unique(prod_new$country_iso3_alpha),
+                              unique(prod_old$country_iso3_alpha))
+
+# countries_identical <- any(sort(unique(prod_old$country_iso3_alpha)) == 
+#                              sort(unique(prod_new$country_iso3_alpha)))
+```
+
+```{r country-species-changes}
+# source function to build usable 2022 FAO production data
+source(file.path(modelfundir, "rebuild_fao_2022_dat.R"))
+# source function to build usable 2024 FAO production data
+source(file.path(modelfundir, "rebuild_fao_2024_dat.R"))
+
+# combine and organize prod files
+prod_old <- rebuild_fao_2022_dat(datadir = datadir_old, 
+                                 filename = "GlobalProduction_2022.1.1.zip")
+prod_new <- rebuild_fao_2024_dat(datadir = datadir_new, 
+                                 filename = "GlobalProduction_2024.1.0.zip")
+
+# define cleaning function
+# code is copied and changed from `classify_prod_dat.R` function in artis-model repo
+clean_prod <- function(a_prod_file, old_or_new = "old") {
+  
+  cols_keep <- c("country", "prod_method", "species_name_en", 
+                 "species_scientific_name", "country_iso3_code", 
+                 "species_major_group", "yearbook_group_en")
+  # code is copied and changed from `classify_prod_dat.R` function in artis-model repo
+      prod_ts <- a_prod_file %>%
+        # select columns we are interested in for the purposes of comparing version changes
+        select(any_of(cols_keep)) %>% 
+      # Standardize column names between FAO and SAU datasets 
+      dplyr::rename(
+        CommonName = species_name_en, 
+        SciName = species_scientific_name,
+        country_iso3_alpha = country_iso3_code, # alpha iso code
+        country_iso3_numeric = country) %>% # numeric iso code 
+      mutate(CommonName=tolower(as.character(CommonName)),
+             SciName=tolower(as.character(SciName))) %>%
+      # Trim any leading/trailing whitespace
+      mutate_all(str_trim) %>%
+      { if(old_or_new == "old") {   
+      # Filter out groups not considered in this analysis  
+      filter(., !species_major_group %in% c("PLANTAE AQUATICAE",
+                                         "MAMMALIA",
+                                         "Crocodiles and alligators",
+                                         "AMPHIBIA, REPTILIA",
+                                         "Turtles",
+                                         "Frogs and other amphibians",
+                                         "Corals",
+                                         "Sponges", 
+                                         "Pearls, mother-of-pearl, shells")) 
+        } else if (old_or_new == "new") {
+              # Filter out groups not considered in this analysis  
+      filter(., !species_major_group %in% c("PLANTAE AQUATICAE",
+                                        "AMPHIBIA, REPTILIA",
+                                        "MAMMALIA"),
+             # includes corals, sponges, pearl oysters, shells 
+             !yearbook_group_en == "Other aq. animals & products")
+          }
+      } %>%
+      mutate(
+        SciName = gsub(SciName, 
+                       pattern=" \\(\\=.*", 
+                       replacement=""))
+      
+      return(prod_ts)
+  
+}
+
+# clean prod versions 
+prod_old <- clean_prod(prod_old, old_or_new = "old")
+prod_new <- clean_prod(prod_new, old_or_new = "new")
+
+###### Change in countries 
+country_n_old <- length(unique(prod_old$country_iso3_alpha))
+country_n_new <- length(unique(prod_new$country_iso3_alpha))
+
+country_unique_old <- setdiff(unique(prod_old$country_iso3_alpha),
+                              unique(prod_new$country_iso3_alpha))
+country_unique_new <- setdiff(unique(prod_new$country_iso3_alpha),
+                              unique(prod_old$country_iso3_alpha))
+
+# countries_identical <- any(sort(unique(prod_old$country_iso3_alpha)) == 
+#                              sort(unique(prod_new$country_iso3_alpha)))
+
+####### Change in species 
+# before taxa cleaning, matching, and fishbase merging (classify_prod_dat.R)
+sp_n_old <- length(unique(prod_old$SciName))
+sp_n_new <- length(unique(prod_new$SciName))
+
+sp_unique_old <- setdiff(unique(prod_old$SciName),
+                         unique(prod_new$SciName))
+sp_unique_new <- setdiff(unique(prod_new$SciName),
+                         unique(prod_old$SciName))
+
+```
+
+- Countries in the FAO Global Production data that are different:
+  - unique to the old version: `r country_unique_old`
+  - unique to the new version: `r country_unique_new`
+
+- Species in the FAO Global Production data that are different:  
+  - unique to the old version: 
+
+```{r}
+#| include: true
+#| output: true
+
+sort(sp_unique_old)
+```
+
+  - unique to the new version: 
+
+```{r}
+#| include: true
+#| output: true
+
+sort(sp_unique_new)
+```
+

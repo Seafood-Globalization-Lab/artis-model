@@ -22,15 +22,15 @@ start_date <- Sys.Date()
 artis_version <- "v1.1.0"
 
 # Input data directory paths --------------------------------------------------
-datadir_raw <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw"
+datadir_raw <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data/model_inputs_raw_2.0"
 # Directory for inputs to create the ARTIS database
-datadir <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_1.1.0_FAO"
-baci_version <- "202201"
+datadir <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_2.0_FAO"
+baci_version <- "202501"
 tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
 
 # Model output directory paths --------------------------------------------
 # Directory where ARTIS database will be generated
-outdir <- "~/Documents/UW-SAFS/ARTIS/data/outputs_1.1.0_FAO_2025-08-02"
+outdir <- "~/Documents/UW-SAFS/ARTIS/data/outputs_2.0_FAO"
 # Path for sub folder within outputs that will contain all country-level solutions
 # to mass balance equation, solved using the python solver "quadprog"
 outdir_quadprog <- file.path(outdir, "quadprog_snet")
