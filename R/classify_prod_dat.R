@@ -8,7 +8,7 @@ classify_prod_dat <- function(datadir,
                               filename, 
                               prod_data_source="FAO",
                               SAU_sci_2_common = NA,
-                              fb_slb_dir = "model_inputs_raw/fishbase_sealifebase") {
+                              fb_slb_dir) {
   
   # NOTE: final prod_data output does not aggregate to taxa level - i.e., does not do: group_by(country_iso3, SciName) %>% summarise(quantity = sum(quantity))
   # instead retains distinctions within SciName for different inlandmarine_group, source_name_en, and ISSCAAP group
@@ -21,9 +21,11 @@ classify_prod_dat <- function(datadir,
     # FAO files were not consistent between 2020 and 2021, so there are now two versions of the rebuild_fao_dat function
     # time_series_join <- rebuild_fao_2020_dat(datadir=datadir, filename=filename)
     # time_series_join <- rebuild_fao_2021_dat(datadir=datadir, filename=filename)
-    time_series_join <- rebuild_fao_2022_dat(datadir = datadir, filename = filename)
+    time_series_join <- rebuild_fao_2023_dat(datadir = datadir, filename = filename)
     
     prod_ts <- time_series_join %>%
+      filter(year >= 1996, 
+            quantity > 0) %>%
       dplyr::rename(CommonName=species_name_en, # Standardize column names between FAO and SAU datasets 
                     SciName=species_scientific_name,
                     country_iso3_alpha = country_iso3_code, # alpha iso code
@@ -138,7 +140,7 @@ classify_prod_dat <- function(datadir,
                                  SciName == "thunnini" ~ "thunnus spp",
                                  
                                  # Keep all other SciNames as is:
-                                 TRUE ~ SciName))
+                                 TRUE ~ SciName)) # end of pipe
     
     # Identify taxonomic ranks
     # prod_ts will eventually be joined with fishbase classification info, use column name Genus01 to differentiate from column Genus
@@ -160,10 +162,7 @@ classify_prod_dat <- function(datadir,
     # Finally data formatting
     prod_ts <- prod_ts %>%
       mutate(quantity = as.numeric(quantity),
-             year = as.integer(year)) %>%
-      filter(year > 1995) %>%
-      filter(quantity > 0)
-    
+             year = as.integer(year))
   }
   
   
@@ -172,6 +171,9 @@ classify_prod_dat <- function(datadir,
                         stringsAsFactors = FALSE, 
                         header = TRUE, 
                         sep=",") %>%
+      filter( 
+        year > 1995,
+        quantity > 0) %>%
       mutate(scientific_name = tolower(scientific_name)) %>%
       rename(quantity = sum,
              CommonName = common_name,
@@ -291,12 +293,7 @@ classify_prod_dat <- function(datadir,
           SciName == 'neogastropoda' ~ 1,
           TRUE ~ Other01
         )
-      )
-    
-    prod_ts <- prod_ts %>%
-      filter(year > 1995) %>%
-      filter(quantity > 0)
-    
+      )  
   }
   
   #############################################################################################
@@ -311,7 +308,7 @@ classify_prod_dat <- function(datadir,
   
   # Load Fishbase and Sealifebase Databases 
   # Fishbase and Sealifebase Taxa Datasets
-  fishbase <- read.csv(file.path(fb_slb_dir, "fb_taxa_info.csv"))
+  fishbase <- fread(file.path(fb_slb_dir, "fb_taxa_info.csv"))
   sealifebase <- read.csv(file.path(fb_slb_dir, "slb_taxa_info.csv"))
   
   # reads and cleans Fishbase and Sealifebase synonym datasets
@@ -677,7 +674,8 @@ classify_prod_dat <- function(datadir,
   
   missing_scinames <- unique(prod_ts$SciName)[!(unique(prod_ts$SciName) %in% unique(prod_taxa_classification_clean$SciName))]
   if (length(missing_scinames) > 0) {
-    warning("Not all scinames in prod_data are in prod_taxa_classification")
+    warning(glue("Not all scinames in prod_data are in prod_taxa_classification", 
+    quantity > 0, "are missing and not matching to fishbase or sealifebase"))
     warning(paste(missing_scinames))
   }
   
