@@ -2,6 +2,8 @@
 #' @importFrom magrittr %>%
 #' @importFrom readxl read_excel
 #' @import stringr
+#' @import cli
+#' @import data.table
 #' @export
 
 classify_prod_dat <- function(datadir, 
@@ -167,7 +169,7 @@ classify_prod_dat <- function(datadir,
   
   
   if (prod_data_source=="SAU"){
-    prod_ts <- read.csv(file.path(datadir, filename), 
+    prod_ts <- fread(file.path(datadir, filename), 
                         stringsAsFactors = FALSE, 
                         header = TRUE, 
                         sep=",") %>%
@@ -183,7 +185,7 @@ classify_prod_dat <- function(datadir,
       mutate(SciName = tolower(SciName), 
              CommonName = tolower(CommonName))
     
-    sci_2_common <- read.csv(file.path(datadir, SAU_sci_2_common), 
+    sci_2_common <- fread(file.path(datadir, SAU_sci_2_common), 
                              stringsAsFactors = FALSE) %>%
       mutate(scientific_name = tolower(scientific_name))
     
@@ -309,11 +311,11 @@ classify_prod_dat <- function(datadir,
   # Load Fishbase and Sealifebase Databases 
   # Fishbase and Sealifebase Taxa Datasets
   fishbase <- fread(file.path(fb_slb_dir, "fb_taxa_info.csv"))
-  sealifebase <- read.csv(file.path(fb_slb_dir, "slb_taxa_info.csv"))
+  sealifebase <- fread(file.path(fb_slb_dir, "slb_taxa_info.csv"))
   
   # reads and cleans Fishbase and Sealifebase synonym datasets
-  fb_df <- read.csv(file.path(fb_slb_dir, "fb_synonyms_clean.csv"))
-  slb_df <- read.csv(file.path(fb_slb_dir, "slb_synonyms_clean.csv"))
+  fb_df <- fread(file.path(fb_slb_dir, "fb_synonyms_clean.csv"))
+  slb_df <- fread(file.path(fb_slb_dir, "slb_synonyms_clean.csv"))
   
   # Standardize fishbase and sealifebase:
   fishbase <- fishbase %>% 
@@ -549,7 +551,7 @@ classify_prod_dat <- function(datadir,
   
   # Get aquarium trade and habitat (Fresh, Brackish, Saltwater) info from fishbase: use this to classify ornamental trade species
   #fb_aquarium_info <- rfishbase::species(str_to_sentence(prod_fb_full$SciName))
-  fb_aquarium_info <- read.csv(file.path(fb_slb_dir, "fb_aquarium.csv"))
+  fb_aquarium_info <- fread(file.path(fb_slb_dir, "fb_aquarium.csv"))
   fb_aquarium_relevant <- fb_aquarium_info %>%
     filter(SciName %in% prod_fb_full$SciName)
   
@@ -557,7 +559,7 @@ classify_prod_dat <- function(datadir,
     left_join(fb_aquarium_relevant, by = "SciName") %>%
     rename(Fresh01 = Fresh, Brack01 = Brack, Saltwater01 = Saltwater) # to make it the same as previous version's code
   
-  slb_aquarium_info <- read.csv(file.path(fb_slb_dir, "slb_aquarium.csv"))
+  slb_aquarium_info <- fread(file.path(fb_slb_dir, "slb_aquarium.csv"))
   slb_aquarium_relevant <- slb_aquarium_info %>%
     filter(SciName %in% unique(prod_slb_full$SciName))
   

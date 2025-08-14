@@ -33,11 +33,22 @@ if(need_new_fb_slb == TRUE) {
 fb_slb_info <- get_most_recent_dir(datadir_raw, "fishbase_sealifebase")
 current_fb_slb_dir <- fb_slb_info$directory
 
+### Development Mode enviroment write out: 
+# set arguements for classify_prod_dat
+# datadir = datadir_raw
+# filename = "GlobalProduction_2025.1.0.zip" 
+# prod_data_source = "FAO"
+# fb_slb_dir = current_fb_slb_dir
+
+# workspace_1_fp <- glue("{devdir}env-images/workspace_01-clean_classify_prod_dat_{Sys.Date()}.qs2")
+# qs2::qs_save(as.list(environment()), file = workspace_1_fp)
+# # Read in workspace file
+# qs2::qs_readm(workspace_1_fp) 
+
 # Clean scientific names and add classification info to production data: choose FAO or SAU
 # NOTE: warning message about data_frame() being deprecated is fixed in the development version of rfishbase: run remotes::install_github("ropensci/rfishbase") to implement the fixed version
 prod_list <- classify_prod_dat(datadir = datadir_raw,
                                filename = "GlobalProduction_2025.1.0.zip", 
-                               # "GlobalProduction_2023.1.1.zip"
                                prod_data_source = "FAO",
                                fb_slb_dir = current_fb_slb_dir)
 
