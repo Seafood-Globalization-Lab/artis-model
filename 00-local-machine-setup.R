@@ -16,6 +16,7 @@ library(aws.s3)
 library(arrow)
 library(countrycode)
 library(glue)
+library(qs2)
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()
@@ -40,6 +41,9 @@ outdir_cvxopt <- file.path(outdir, "cvxopt_snet")
 # Path for collecting ARTIS database files
 outdir_snet <- file.path(outdir, "snet")
 
+
+# Development drafts and temporary files ---------------------------------
+devdir <- "./AM_local/"
 
 # Postprocessing output directory paths -----------------------------------
 outdir_attribute <- file.path(outdir, "attribute_tables")
