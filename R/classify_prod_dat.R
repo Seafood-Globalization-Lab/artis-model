@@ -37,17 +37,23 @@ classify_prod_dat <- function(datadir,
       # Trim any leading/trailing whitespace
       mutate_all(str_trim) %>%
       #Filter out groups not considered in this analysis  
-      filter(species_major_group != "PLANTAE AQUATICAE") %>% 
-      filter(species_major_group != "MAMMALIA") %>% 
-      filter(isscaap_group != "Crocodiles and alligators") %>% 
-      filter(isscaap_group != "Turtles") %>% 
-      filter(isscaap_group != "Frogs and other amphibians") %>% 
-      filter(isscaap_group != "Corals") %>% 
-      filter(isscaap_group != "Sponges") %>% 
-      filter(isscaap_group != "Pearls, mother-of-pearl, shells") %>%
+      filter(!species_major_group %in% c(
+        "PLANTAE AQUATICAE",
+        "AMPHIBIA, REPTILIA",
+        "MAMMALIA"),
+      # exclude corals, sponges, pearl oysters, shells 
+      # yearbook_group_en value "Other aquatic animals & products" notation 
+      # is subject to change between FAO prod releases - use flexible matching pattern
+      !str_detect(yearbook_group_en,
+        regex("^other\\s+aq(?:\\.|uatic)\\s+animals?\\s*(?:&|and)?\\s*products?$", 
+        ignore_case = TRUE))) %>% 
+
+      # Dev_mode: check prod_ts at this point unique(prod_ts$isscaap_group)
+      # to further filter prod species by isscaap_group
       droplevels() %>%
-      
-      #Remove unnecessary labels
+      # Remove unnecessary labels - anything with "(=" and everything after it
+      # example "salmoniformes (=salmonoidei)" or "clupeiformes (=clupeoidei)" "haemulidae (=pomadasyidae)"
+      # FIXIT: Is this a problem?
       mutate(SciName = gsub(SciName, pattern=" \\(\\=.*", replacement="")) %>%
       
       
@@ -55,94 +61,96 @@ classify_prod_dat <- function(datadir,
       # First do some cleaning of SciNames
       # List of fixes comes from finding SciNames that do not match to either the fishbase classification database or fishbase synonyms function in downstream code
       ## Change names that list multiple taxa (hybrid crosses - e.g., "morone chrysops x m. saxatilis" or "auxis thazard, a. rochei") to their common genus, or other lowest-level common classification
-      mutate(SciName = case_when(SciName == "astacidae, cambaridae" ~ "cambaridae", # choose cambaridae, larger family
-                                 SciName == "auxis thazard, a. rochei" ~ "auxis spp",
-                                 SciName == "clarias gariepinus x c. macrocephalus" ~ "clarias spp",
-                                 SciName == "c. macropomum x p. brachypomus" ~ "serrasalmidae", # Colossoma macropomum x Piaractus brachypomus
-                                 SciName == "loliginidae, ommastrephidae" ~ "teuthida",
-                                 SciName == "merluccius capensis, m.paradoxus" ~ "merluccius",
-                                 SciName == "morone chrysops x m. saxatilis" ~ "morone spp",
-                                 SciName == "oreochromis aureus x o. niloticus" ~ "oreochromis",
-                                 SciName == "osmerus spp, hypomesus spp" ~ "osmeridae",
-                                 SciName == "p. mesopotamicus x c. macropomum" ~ "serrasalmidae", # Piaractus mesopotamicus x Colossoma macropomum
-                                 SciName == "selachimorpha (pleurotremata)" ~ "carcharhiniformes", # essentially, an unidentified shark; code currently defines sharks as a list of orders, assign to carcharhiniformes for now
-                                 SciName == "sepiidae, sepiolidae" ~ "sepiidae", # Sepiidae = cuttlefish; Sepiolidae = bobtail squid; assigning to cuttlefish
-                                 SciName == "squalidae, scyliorhinidae" ~ "carcharhiniformes", # two different orders of sharks; code currently defines sharks as a list of orders, assign to carcharhiniformes for now
-                                 SciName == "stolothrissa, limnothrissa" ~ "clupeidae", 
-                                 SciName == "stolothrissa, limnothrissa spp" ~ "clupeidae", 
-                                 SciName == "xiphopenaeus, trachypenaeus" ~ "penaeidae", 
-                                 SciName == "xiphopenaeus, trachypenaeus spp" ~ "penaeidae",
-                                 SciName == "h. longifilis x c. gariepinus" ~ "clariidae", # Matched to the larger family because genus was different
-                                 SciName == "e. fuscoguttatus x e. lanceolatus" ~ "epinephelus", # matched by same genus
-                                 SciName == "alosa alosa, a. fallax" ~ "alosa spp", # common genus between both 
-                                 
-                                 # Manually fix outdated names
-                                 SciName == "branchiostegidae" ~ "malacanthidae",
-                                 SciName == "caspialosa spp" ~ "alosa spp",
-                                 SciName == "invertebrata" ~ "asteroidea",  # assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum, ascidians would be omitted as chordata)
-                                 SciName == "mobulidae" ~ "myliobatidae", 
-                                 SciName == "natantia" ~ "crangonidae",  # natantia is obsolete term for "shrimp"; assign to order = crangonidae for now
-                                 SciName == "reptantia" ~ "cancridae", # reptantia is obsolete term for "crab"; multiple families of crab, assign to family = "cancridae" for now
-                                 SciName == "siluroidei" ~ "siluriformes",
-                                 SciName == "aliger gigas" ~ "lobatus gigas", # Queen Conch
-                                 SciName == "liza spp" ~ "planiliza spp", # Referring to mullets
-                                 
-                                 # Incorrect Names (corrected via common name)
-                                 SciName == "mytilus unguiculatus" ~ "mytilus coruscus", # Korean Mussel
-                                 SciName == "tritia mutabilis" ~ "nassarius mutabilis", # Mutable/Changeable Nassa
-                                 SciName == "tritia reticulata" ~ "nassarius reticulatus", # Netted Dog whelk
-                                 
-                                 # Fix spelling errors:
-                                 SciName == "herklotsichthys quadrimaculat." ~ "herklotsichthys quadrimaculatus",
-                                 SciName == "pleuronectes quadrituberculat." ~ "pleuronectes quadrituberculatus",
-                                 SciName == "pseudopleuronectes herzenst." ~ "pseudopleuronectes herzensteini",
-                                 SciName == "salmonoidei" ~ "salmonidae",
-                                 SciName == "mobulinae" ~ "mobulidae",
-                                 SciName == "moroteuthopsis ingens" ~ "onykia ingens",
-                                 SciName == "pandalus spp, pandalopsis spp" ~ "pandalus spp", #"pandalus spp", # prawn
-                                 
-                                 # Downstream code ID's crustacea to class level; assign to branchiopoda for now; downstream code defines crustaceans as list of classes c("branchiopoda", "malacostraca", "maxillopoda", "merostomata"); reason: assuming non-crab/lobster/shrimp crustacean
-                                 SciName == "crustacea" ~ "branchiopoda",
-                                 
-                                 # Genus with missing spp:
-                                 SciName == "cantherhines" ~ "cantherhines spp",
-                                 
-                                 # Names not recognized by sealifebase/fishbase: Just go up one level in classification
-                                 SciName == "anodonta cygnea" ~ "anodonta spp", # Because of its morphological variability and its wide range of distribution, there are over 500 synonyms for this species, just use genus
-                                 SciName == "astacus astacus" ~ "astacus spp",
-                                 SciName == "austropotamobius pallipes" ~ "astacidae", # Sealifebase doesn't recognize the genus or species, just use family
-                                 SciName == "cherax tenuimanus" ~ "cherax spp",
-                                 SciName == "cipangopaludina chinensis" ~ "cipangopaludina spp",
-                                 SciName == "clupea pallasii" ~ "clupea pallasii pallasii", # Match to clupea pallasii pallasii to allow match with rfishbase, but then rename to clupea pallasii in the final step
-                                 SciName == "clupeoidei" ~ "clupeiformes",
-                                 SciName == "emmelichthys nitidus" ~ "emmelichthys spp",
-                                 SciName == "euastacus armatus" ~ "parastacidae", # sealifebase doesn't recognize the genus or species, just use family
-                                 SciName == "macrobrachium lar" ~ "macrobrachium spp",
-                                 SciName == "macrobrachium malcolmsonii" ~ "macrobrachium spp",
-                                 SciName == "merluccius gayi" ~ "merluccius spp",
-                                 #SciName == "morone" ~ "morone spp",
-                                 SciName == "mullus barbatus" ~ "mullus spp",
-                                 SciName == "oreochromis" ~ "oreochromis spp", 
-                                 SciName == "percoidei" ~ "perciformes",
-                                 SciName == "procambarus clarkii" ~ "procambarus spp",
-                                 SciName == "scombroidei" ~ "perciformes", # fishbase doesn't list scombiformes as an order (See fishbase %>% filter(Family == "scombridae"))
-                                 SciName == "sebastes marinus" ~ "sebastes spp",
-                                 SciName == "brachyura" ~ "decapoda", # Infraorder not part of fishbase database
-                                 SciName == "cherax cainii" ~ "cherax spp", # maron - classified into two species both cherax cainii and cherax tenuimanus however only cherax tenuimanus accepted in sealifebase synonyms but does not occur in sealifebase taxa table
-                                 SciName == "sinanodonta woodiana" ~ "anodonta spp", # Check to see if could be anodonta dejecta
-                                 #SciName == "bryozoa" ~ "polyzoa spp", # bryozoa is a phylum that refers to aquatic invertebrates
-                                 SciName == "caridina denticulata" ~ "neocaridina denticulata", # synonym to accepted name that isn't caught by fb or slb
-                                 SciName == "anomura" ~ "decapoda", # infraorder name to order name
-                                 SciName == "corbicula manilensis" ~ "corbicula spp",
-                                 SciName == "maguimithrax spinosissimus" ~ "mithrax spp", # This is a type species of mithrax, sea spiders
-                                 SciName == "macroramphosidae" ~ "centriscidae", # bellowfish, macroramphosidae used to be classified as a subfamily of centriscidae
-                                 SciName == "austrofusus glans" ~ "buccinum spp", # whelk
-                                 
-                                 # Tribe to genus name
-                                 SciName == "thunnini" ~ "thunnus spp",
-                                 
-                                 # Keep all other SciNames as is:
-                                 TRUE ~ SciName)) # end of pipe
+      mutate(
+        SciName = case_when(
+          SciName == "astacidae, cambaridae" ~ "cambaridae", # choose cambaridae, larger family
+          SciName == "auxis thazard, a. rochei" ~ "auxis spp",
+          SciName == "clarias gariepinus x c. macrocephalus" ~ "clarias spp",
+          SciName == "c. macropomum x p. brachypomus" ~ "serrasalmidae", # Colossoma macropomum x Piaractus brachypomus
+          SciName == "loliginidae, ommastrephidae" ~ "teuthida",
+          SciName == "merluccius capensis, m.paradoxus" ~ "merluccius",
+          SciName == "morone chrysops x m. saxatilis" ~ "morone spp",
+          SciName == "oreochromis aureus x o. niloticus" ~ "oreochromis",
+          SciName == "osmerus spp, hypomesus spp" ~ "osmeridae",
+          SciName == "p. mesopotamicus x c. macropomum" ~ "serrasalmidae", # Piaractus mesopotamicus x Colossoma macropomum
+          SciName == "selachimorpha (pleurotremata)" ~ "carcharhiniformes", # essentially, an unidentified shark; code currently defines sharks as a list of orders, assign to carcharhiniformes for now
+          SciName == "sepiidae, sepiolidae" ~ "sepiidae", # Sepiidae = cuttlefish; Sepiolidae = bobtail squid; assigning to cuttlefish
+          SciName == "squalidae, scyliorhinidae" ~ "carcharhiniformes", # two different orders of sharks; code currently defines sharks as a list of orders, assign to carcharhiniformes for now
+          SciName == "stolothrissa, limnothrissa" ~ "clupeidae", 
+          SciName == "stolothrissa, limnothrissa spp" ~ "clupeidae", 
+          SciName == "xiphopenaeus, trachypenaeus" ~ "penaeidae", 
+          SciName == "xiphopenaeus, trachypenaeus spp" ~ "penaeidae",
+          SciName == "h. longifilis x c. gariepinus" ~ "clariidae", # Matched to the larger family because genus was different
+          SciName == "e. fuscoguttatus x e. lanceolatus" ~ "epinephelus", # matched by same genus
+          SciName == "alosa alosa, a. fallax" ~ "alosa spp", # common genus between both 
+          
+          # Manually fix outdated names
+          SciName == "branchiostegidae" ~ "malacanthidae",
+          SciName == "caspialosa spp" ~ "alosa spp",
+          SciName == "invertebrata" ~ "asteroidea",  # assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum, ascidians would be omitted as chordata)
+          SciName == "mobulidae" ~ "myliobatidae", 
+          SciName == "natantia" ~ "crangonidae",  # natantia is obsolete term for "shrimp"; assign to order = crangonidae for now
+          SciName == "reptantia" ~ "cancridae", # reptantia is obsolete term for "crab"; multiple families of crab, assign to family = "cancridae" for now
+          SciName == "siluroidei" ~ "siluriformes",
+          SciName == "aliger gigas" ~ "lobatus gigas", # Queen Conch
+          SciName == "liza spp" ~ "planiliza spp", # Referring to mullets
+          
+          # Incorrect Names (corrected via common name)
+          SciName == "mytilus unguiculatus" ~ "mytilus coruscus", # Korean Mussel
+          SciName == "tritia mutabilis" ~ "nassarius mutabilis", # Mutable/Changeable Nassa
+          SciName == "tritia reticulata" ~ "nassarius reticulatus", # Netted Dog whelk
+          
+          # Fix spelling errors:
+          SciName == "herklotsichthys quadrimaculat." ~ "herklotsichthys quadrimaculatus",
+          SciName == "pleuronectes quadrituberculat." ~ "pleuronectes quadrituberculatus",
+          SciName == "pseudopleuronectes herzenst." ~ "pseudopleuronectes herzensteini",
+          SciName == "salmonoidei" ~ "salmonidae",
+          SciName == "mobulinae" ~ "mobulidae",
+          SciName == "moroteuthopsis ingens" ~ "onykia ingens",
+          SciName == "pandalus spp, pandalopsis spp" ~ "pandalus spp", #"pandalus spp", # prawn
+          
+          # Downstream code ID's crustacea to class level; assign to branchiopoda for now; downstream code defines crustaceans as list of classes c("branchiopoda", "malacostraca", "maxillopoda", "merostomata"); reason: assuming non-crab/lobster/shrimp crustacean
+          SciName == "crustacea" ~ "branchiopoda",
+          
+          # Genus with missing spp:
+          SciName == "cantherhines" ~ "cantherhines spp",
+          
+          # Names not recognized by sealifebase/fishbase: Just go up one level in classification
+          SciName == "anodonta cygnea" ~ "anodonta spp", # Because of its morphological variability and its wide range of distribution, there are over 500 synonyms for this species, just use genus
+          SciName == "astacus astacus" ~ "astacus spp",
+          SciName == "austropotamobius pallipes" ~ "astacidae", # Sealifebase doesn't recognize the genus or species, just use family
+          SciName == "cherax tenuimanus" ~ "cherax spp",
+          SciName == "cipangopaludina chinensis" ~ "cipangopaludina spp",
+          SciName == "clupea pallasii" ~ "clupea pallasii pallasii", # Match to clupea pallasii pallasii to allow match with rfishbase, but then rename to clupea pallasii in the final step
+          SciName == "clupeoidei" ~ "clupeiformes",
+          SciName == "emmelichthys nitidus" ~ "emmelichthys spp",
+          SciName == "euastacus armatus" ~ "parastacidae", # sealifebase doesn't recognize the genus or species, just use family
+          SciName == "macrobrachium lar" ~ "macrobrachium spp",
+          SciName == "macrobrachium malcolmsonii" ~ "macrobrachium spp",
+          SciName == "merluccius gayi" ~ "merluccius spp",
+          #SciName == "morone" ~ "morone spp",
+          SciName == "mullus barbatus" ~ "mullus spp",
+          SciName == "oreochromis" ~ "oreochromis spp", 
+          SciName == "percoidei" ~ "perciformes",
+          SciName == "procambarus clarkii" ~ "procambarus spp",
+          SciName == "scombroidei" ~ "perciformes", # fishbase doesn't list scombiformes as an order (See fishbase %>% filter(Family == "scombridae"))
+          SciName == "sebastes marinus" ~ "sebastes spp",
+          SciName == "brachyura" ~ "decapoda", # Infraorder not part of fishbase database
+          SciName == "cherax cainii" ~ "cherax spp", # maron - classified into two species both cherax cainii and cherax tenuimanus however only cherax tenuimanus accepted in sealifebase synonyms but does not occur in sealifebase taxa table
+          SciName == "sinanodonta woodiana" ~ "anodonta spp", # Check to see if could be anodonta dejecta
+          #SciName == "bryozoa" ~ "polyzoa spp", # bryozoa is a phylum that refers to aquatic invertebrates
+          SciName == "caridina denticulata" ~ "neocaridina denticulata", # synonym to accepted name that isn't caught by fb or slb
+          SciName == "anomura" ~ "decapoda", # infraorder name to order name
+          SciName == "corbicula manilensis" ~ "corbicula spp",
+          SciName == "maguimithrax spinosissimus" ~ "mithrax spp", # This is a type species of mithrax, sea spiders
+          SciName == "macroramphosidae" ~ "centriscidae", # bellowfish, macroramphosidae used to be classified as a subfamily of centriscidae
+          SciName == "austrofusus glans" ~ "buccinum spp", # whelk
+          
+          # Tribe to genus name
+          SciName == "thunnini" ~ "thunnus spp",
+          
+          # Keep all other SciNames as is:
+          TRUE ~ SciName)) # end of pipe
     
     # Identify taxonomic ranks
     # prod_ts will eventually be joined with fishbase classification info, use column name Genus01 to differentiate from column Genus

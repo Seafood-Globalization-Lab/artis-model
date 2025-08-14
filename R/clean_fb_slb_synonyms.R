@@ -16,6 +16,7 @@ clean_fb_slb_synonyms <- function(df) {
       status == 'ambiguous sciname' ~ 'sciname', # ambiguous scinames are treated like scinames
       status == 'provisionally accepted name' ~ 'accepted', # provisionally accepted names are treated as accepted names
       status == 'accepted name' ~ 'accepted', # change all accepted names into single word accepted
+      status ==  "ambiguous synonym" ~ "synonym",
       TRUE ~ status # leave the rest of the statuses the way they are - will get filtered out
     )) %>%
     filter((status == 'accepted' | status == 'synonym')) %>% # filter just for accepted and scinames
