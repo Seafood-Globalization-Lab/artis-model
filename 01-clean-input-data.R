@@ -23,7 +23,7 @@ hs_data_raw <- read.csv(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses =
 # Directory Structure:
   # creates fishbase_sealifebase_[MOST RECENT DATE] within model_inputs_raw (ie. "model_inputs_raw/fishbase_sealifebase_[MOST_RECENT_DATE]")
 if(need_new_fb_slb == TRUE) {
-  collect_fb_slb_data(datadir_raw)
+  collect_fb_slb_data(parent_outdir = datadir_raw)
   message("New fishbase and sealifebase data files have been generated.")
 } else {
   message("Existing fishbase and sealifebase data files are being used; Not collecting new data.")
