@@ -672,12 +672,29 @@ classify_prod_dat <- function(datadir,
       TRUE ~ Phylum
     ))
   
-  missing_scinames <- unique(prod_ts$SciName)[!(unique(prod_ts$SciName) %in% unique(prod_taxa_classification_clean$SciName))]
-  if (length(missing_scinames) > 0) {
-    warning(glue("Not all scinames in prod_data are in prod_taxa_classification", 
-    quantity > 0, "are missing and not matching to fishbase or sealifebase"))
-    warning(paste(missing_scinames))
-  }
+  missing_scinames <- unique(prod_ts$SciName)[
+    !(unique(prod_ts$SciName) %in% unique(prod_taxa_classification_clean$SciName))
+  ]
+
+if (length(missing_scinames) > 0) {
+  
+  cli_alert_danger(
+    "{length(missing_scinames)} {.field SciName}s in {.field prod_ts} are NOT found 
+    in {.field prod_taxa_classification_clean}. These names could not be matched to 
+    {.file fishbase} or {.file sealifebase}. They may not properly match to hs product 
+    codes in {.fn match_*} functions downstream in {.file ./01-clean-input-data.R}. 
+    Missing names writen to {.file datadir} as {.file missing_scinames_yyyy-mm-dd_HHMM.csv}
+    to add to manual corrections upstream in this {.fn classify_prod_dat} function."
+  )
+  
+  cli_h1("Missing scientific names")
+  cli_ul(missing_scinames)
+
+  fwrite(
+    tibble(missing_scinames), 
+    file.path(datadir, glue("missing_scinames_{format(Sys.time(), '%Y-%m-%d_%H%M')}.csv"))
+  )
+}
   
   return(list(prod_ts, prod_taxa_classification_clean))
   
