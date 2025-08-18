@@ -54,7 +54,7 @@ outdir_sql <- file.path(outdir, "sql_database")
 # Model Mode for 01-clean-model-inputs - TRUE fo#r SAU; FALSE for FAO
 running_sau <- FALSE
 ## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
-need_new_fb_slb <- TRUE
+need_new_fb_slb <- FALSE
 # List of possible HS versions: HS96, HS02, HS12, HS17
 HS_year <- c("96", "02", "07", "12", "17")
 #HS_year <- c("12")
