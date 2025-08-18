@@ -40,7 +40,7 @@ current_fb_slb_dir <- fb_slb_info$directory
 # prod_data_source = "FAO"
 # fb_slb_dir = current_fb_slb_dir
 
-# workspace_1_fp <- glue("{devdir}env-images/workspace_01-clean_classify_prod_dat_{Sys.Date()}.qs2")
+# workspace_1_fp <- glue("{devdir}dev-artis-2.0/workspace_01-clean_match-hs-taxa_{Sys.Date()}.qs2")
 # qs2::qs_save(as.list(environment()), file = workspace_1_fp)
 # # Read in workspace file
 # qs2::qs_readm(workspace_1_fp) 
@@ -70,8 +70,6 @@ prod_habitat <- prod_taxa_classification %>%
   distinct()
 
 prod_data <- prod_data_raw %>%
-  filter(quantity > 0) %>%
-  filter(year > 1995)  %>% # Filter to 1996 and on to work with a smaller file
   # Remove columns not needed for any analysis
   select(!c(any_of(c("alternate", "multiplier", "symbol", "symbol_identifier")), 
             contains(c("_ar", "_cn", "_es", "_fr", "_ru")),
@@ -96,18 +94,18 @@ prod_data <- prod_data_raw %>%
   mutate(habitat = case_when(str_detect(SciName, pattern = " ") & fb_habitat != fao_habitat & fb_habitat %in% c("inland", "marine") ~ fb_habitat,
                                  TRUE ~ fao_habitat)) %>% # ELSE, use FAO's habitat designation, including for all non species-level data
   # UPDATE taxa source to match structure in get country solutions
-  mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_")) %>%
-  group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en) %>%
+  mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_")) %>% 
+  group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en, area.code) %>%
   summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
   ungroup()
 
 # Changing class name based on FAO 2022 species list
 # some sources call actinopterygii a class others call it a superclass (might need to change with osteichthyes instead)
-prod_taxa_classification <- prod_taxa_classification %>%
-  mutate(Class = case_when(
-    Class == 'actinopteri' ~ 'actinopterygii',
-    TRUE ~ Class
-  ))
+# prod_taxa_classification <- prod_taxa_classification %>%
+#   mutate(Class = case_when(
+#     Class == 'actinopteri' ~ 'actinopterygii',
+#     TRUE ~ Class
+#   ))
 
 if (test) {
   
@@ -125,6 +123,15 @@ write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.cs
 
 prod_data <- standardize_countries(df = prod_data, 
                                    data_source = "FAO")
+# retain FAO area.code column
+write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod_more_cols.csv"), row.names = FALSE)
+
+# remove area.code column to format to prod version used in model
+prod_data <- prod_data %>% 
+  group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en) %>%
+  summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
+  ungroup()
+
 write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod.csv"), row.names = FALSE)
 
 rm(prod_list)
@@ -137,10 +144,9 @@ prod_list_sau <- classify_prod_dat(datadir = datadir_raw,
                                    fb_slb_dir = current_fb_slb_dir)
 
 prod_data_sau <- prod_list_sau[[1]] %>%
-  mutate(year = as.numeric(year)) %>%
-  mutate(quantity = as.numeric(quantity)) %>%
-  filter(quantity > 0) %>%
-  filter(year > 1995)
+  mutate(
+    year = as.numeric(year),
+    quantity = as.numeric(quantity))
 
 prod_data_sau <- prod_data_sau %>%
   mutate(habitat = "marine",
@@ -156,10 +162,7 @@ prod_data_sau <- prod_data_sau %>%
 
 rm(prod_list_sau)
 
-# FIXIT: check if this data gets read back in - may be able to remove if not
-# write.csv(prod_data_sau, file.path(datadir, "clean_sau_prod.csv"), 
-#           row.names = FALSE)
- write.csv(prod_classification_sau, file.path(datadir, "clean_sau_taxa.csv"), 
+write.csv(prod_classification_sau, file.path(datadir, "clean_sau_taxa.csv"), 
            row.names = FALSE)
 
 # initial country name cleaning and adding iso3c for SAU data
@@ -193,6 +196,7 @@ prod_data_sau <- prod_data_sau %>%
 # standardize countries for SAU production
 prod_data_sau <- standardize_countries(prod_data_sau, "FAO")
 
+# group by and summarize across more SAU production columns. 
 prod_data_sau <- prod_data_sau %>% 
   group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, 
            country_name_en, gear, eez, sector, end_use) %>% 
@@ -246,7 +250,7 @@ sciname_habitat <- prod_taxa_classification %>%
 # Step 2: Create V1 and V2 for each HS version----------------------------------
 # Load and clean the conversion factor data and run the matching functions. 
 # This data will be used to create V1 and V2. 
-hs_data_clean <- clean_hs(hs_data_raw = read.csv(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "character"),
+hs_data_clean <- clean_hs(hs_data_raw = fread(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "character"),
                           fb_slb_dir = current_fb_slb_dir)
 
 # Getting list of fmfo species
