@@ -1,6 +1,7 @@
 #' @import dplyr
 #' @importFrom magrittr %>%
 #' @importFrom readxl read_excel
+#' @importFrom tibble tibble
 #' @import stringr
 #' @import cli
 #' @import data.table
