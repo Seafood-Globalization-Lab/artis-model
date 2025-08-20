@@ -73,7 +73,9 @@ match_by_taxon <- function(hs_codes_row, possible_prod_taxa, match_code_output, 
     if (is.na(hs_codes_row[,taxa_level[i]])==FALSE){
       # Note that each taxa_level column is a list of vectors (each vector is a list of scientific names); index this taxa_level[[1]] to flatten into simple vector
       for (taxa_name in 1:length(hs_codes_row[,taxa_level[i]][[1]])){
-        taxa_to_match <- tolower(hs_codes_row[,get(taxa_level[i])][[1]][taxa_name])
+        # NOTE: requires carful use of indexing functions - data.table vs base R data.frame produce different values
+        # this syntax works for both data.table and base R data.frame
+        taxa_to_match <- tolower(hs_codes_row[[ taxa_level[i] ]][[1]][taxa_name])
 
         # use taxa classification info to grab all entries in the genus
         match_taxa <- possible_prod_taxa %>% 
