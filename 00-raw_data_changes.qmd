@@ -24,23 +24,25 @@ library(tidyr)
 library(knitr)
 library(kableExtra)
 library(readxl)
+library(gt)
+library(glue)
 
 
 #### Directory setup #####
 
 # Newest data
 datadir_new <- file.path("~", "Documents", "UW-SAFS", "ARTIS", "data",
-                         "model_inputs_raw_v2_0")
+                         "model_inputs_raw_2.0")
 # last data ingest
 datadir_old <- file.path("~", "Documents", "UW-SAFS", "ARTIS", "data",
-                         "model_inputs_raw")
+                         "model_inputs_raw_1.0_1.1.0")
 modelfundir <- file.path("~", "Documents", "git-projects", "artis-model", "R")
 
 
 # values for report
 raw_data_type <- "FAO Global Production"
-artis_prev <- "v1.0"
-artis_next <- "v2.0"
+artis_old <- "v1.0"
+artis_new <- "v2.0"
 data_v_old <- "2022.1.1"
 data_v_new <- "2025.1.0"
 
@@ -59,16 +61,6 @@ pattern_fao <- regex("(global[\\s_-]*production)", ignore_case = TRUE)
 # FAO Global production directory
 fao_dir_new <- subdirs_new[str_detect(subdirs_new, pattern_fao)]
 fao_dir_old <- subdirs_old[str_detect(subdirs_old, pattern_fao)]
-
-sp_new_fp <- file.path(
-  fao_dir_new, 
-  list.files(proddir_new, recursive = FALSE, full.names = FALSE) %>%
-    grep("SPECIES_GROUPS.+", ., ignore.case = TRUE, value = TRUE))
-
-sp_old_fp <- file.path(
-  fao_dir_old, 
-  list.files(proddir_old, recursive = FALSE, full.names = FALSE) %>%
-    grep("SPECIES_GROUPS.+", ., ignore.case = TRUE, value = TRUE))
 
 gp_new_fp <- file.path(fao_dir_new, "Global_production_quantity.csv")
 gp_old_fp <- file.path(fao_dir_old, "Global_production_quantity.csv")
@@ -212,15 +204,15 @@ model inputs (data build) fed directly into the ARTIS model.
 
 ### ARTIS model versions
 
-- ARTIS ``r artis_prev`` was the previous model run
-- ARTIS ``r artis_next`` is upcoming model run
+- ARTIS ``r artis_old`` was the previous model run
+- ARTIS ``r artis_new`` is upcoming model run
 
 # FAO Global Production
 
 ### Raw input data versions
 
 - `r raw_data_type` ``r data_v_old`` is the previous data version
-- `r raw_data_type` ``r data_v_new`` is the data version to be ingested in the upcoming ARTIS ``r artis_next`` model run
+- `r raw_data_type` ``r data_v_new`` is the data version to be ingested in the upcoming ARTIS ``r artis_new`` model run
 
 ### File changes
 
@@ -276,125 +268,159 @@ if (nrow(added_cols_log) > 0 ) {
 
 ```
 
-### Country and species
+### Sciname
 
 ```{r}
-
-##### Changes in species using prod
+#| include: TRUE
+#| results: 'asis'
 
 # Need to use production to assess species, SPECIES_GROUPS has many more species not reported in prod
-sp_old <- fread(sp_old_fp)
-gp_old <- fread(gp_old_fp)
 
-gp_sp_old <- gp_old |> 
-  select(SPECIES.ALPHA_3_CODE) |> 
-  left_join(
-    sp_old |> 
-      rename(SPECIES.ALPHA_3_CODE = `3A_Code`) |> 
-      select(SPECIES.ALPHA_3_CODE, Scientific_Name),
-    by = "SPECIES.ALPHA_3_CODE") |> 
-      distinct()
+# In order to run this species/taxa assessment between versions, Need to run 01-clean-input-data.R through "SAVE PRODUCTION OUTPUT" to write out clean_fao_taxa.csv
 
-sp_new <- fread(sp_new_fp)
-gp_new <- fread(gp_new_fp)
+##### Changes in species using prod
+input_dir_old <- file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_1.1.0_FAO")
+input_dir_new <- file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_2.0_FAO")
 
-gp_sp_new <- gp_new |> 
-  select(SPECIES.ALPHA_3_CODE) |> 
-  left_join(
-    sp_new |> 
-      rename(SPECIES.ALPHA_3_CODE = `3A_Code`) |> 
-      select(SPECIES.ALPHA_3_CODE, Scientific_Name),
-    by = "SPECIES.ALPHA_3_CODE") |> 
-      distinct()
+taxa_new <- read.csv(file.path(input_dir_new, "clean_fao_taxa.csv"))
+taxa_old <- read.csv(file.path(input_dir_old, "clean_fao_taxa.csv"))
 
-sp_comp <- gp_sp_new |> 
-  mutate(present_new = 1) |> 
-  full_join(
-    gp_sp_old |> 
-      mutate(present_old = 1),
-      by = c("SPECIES.ALPHA_3_CODE", "Scientific_Name")) |>
-  filter(is.na(present_new) | is.na(present_old)) 
+# which taxonomy rank columns exist in BOTH datasets
+tax_ranks_full <- c("Genus","Subfamily","Family","Order","Infraclass","Class","Superclass","Phylum","Kingdom")
+tax_ranks <- Reduce(intersect, list(tax_ranks_full, names(taxa_new), names(taxa_old)))
 
-sp_comp  |> group_by(SPECIES.ALPHA_3_CODE)  |> tally()  |> filter(n == 1)  |> nrow()
+new_only <- anti_join(taxa_new, select(taxa_old, SciName), by = "SciName") %>%
+  arrange(SciName)
 
-###### Change in countries 
-country_n_old <- length(unique(prod_old$country_iso3_alpha))
-country_n_new <- length(unique(prod_new$country_iso3_alpha))
+old_only <- anti_join(taxa_old, select(taxa_new, SciName), by = "SciName") %>%
+  arrange(SciName)
 
-country_unique_old <- setdiff(unique(prod_old$country_iso3_alpha),
-                              unique(prod_new$country_iso3_alpha))
-country_unique_new <- setdiff(unique(prod_new$country_iso3_alpha),
-                              unique(prod_old$country_iso3_alpha))
+# Count and diff
+sciname_old_n <- dplyr::n_distinct(taxa_old$SciName)
+sciname_new_n <- dplyr::n_distinct(taxa_new$SciName)
+sciname_diff <- sciname_new_n - sciname_old_n
 
-# countries_identical <- any(sort(unique(prod_old$country_iso3_alpha)) == 
-#                              sort(unique(prod_new$country_iso3_alpha)))
+# Table
+sciname_counts <- tibble(
+  dataset = c(glue({artis_old}), glue({artis_new}), "difference"),
+  n_distinct_sciname = c(sciname_old_n, sciname_new_n, sciname_diff)
+)
+
+# replaces: sciname_counts %>% gt::gt()
+sciname_counts %>%
+  kbl(
+    col.names = c("Dataset", "Distinct SciNames"),
+    booktabs = TRUE,
+    caption = "Distinct SciName counts"
+  ) %>%
+  kable_styling(
+    full_width = TRUE,
+    latex_options = c("hold_position", "scale_down")
+  )
+
 ```
 
-```{r country-species-changes}
-# source function to build usable 2022 FAO production data
-source(file.path(modelfundir, "rebuild_fao_2022_dat.R"))
-# source function to build usable 2024 FAO production data
-source(file.path(modelfundir, "rebuild_fao_2024_dat.R"))
+### Taxa ranks
 
-# combine and organize prod files
-prod_old <- rebuild_fao_2022_dat(datadir = datadir_old, 
-                                 filename = "GlobalProduction_2022.1.1.zip")
-prod_new <- rebuild_fao_2024_dat(datadir = datadir_new, 
-                                 filename = "GlobalProduction_2024.1.0.zip")
+```{r}
+#| include: TRUE
+#| results: 'asis'
 
-# define cleaning function
-# code is copied and changed from `classify_prod_dat.R` function in artis-model repo
-clean_prod <- function(a_prod_file, old_or_new = "old") {
-  
-  cols_keep <- c("country", "prod_method", "species_name_en", 
-                 "species_scientific_name", "country_iso3_code", 
-                 "species_major_group", "yearbook_group_en")
-  # code is copied and changed from `classify_prod_dat.R` function in artis-model repo
-      prod_ts <- a_prod_file %>%
-        # select columns we are interested in for the purposes of comparing version changes
-        select(any_of(cols_keep)) %>% 
-      # Standardize column names between FAO and SAU datasets 
-      dplyr::rename(
-        CommonName = species_name_en, 
-        SciName = species_scientific_name,
-        country_iso3_alpha = country_iso3_code, # alpha iso code
-        country_iso3_numeric = country) %>% # numeric iso code 
-      mutate(CommonName=tolower(as.character(CommonName)),
-             SciName=tolower(as.character(SciName))) %>%
-      # Trim any leading/trailing whitespace
-      mutate_all(str_trim) %>%
-      { if(old_or_new == "old") {   
-      # Filter out groups not considered in this analysis  
-      filter(., !species_major_group %in% c("PLANTAE AQUATICAE",
-                                         "MAMMALIA",
-                                         "Crocodiles and alligators",
-                                         "AMPHIBIA, REPTILIA",
-                                         "Turtles",
-                                         "Frogs and other amphibians",
-                                         "Corals",
-                                         "Sponges", 
-                                         "Pearls, mother-of-pearl, shells")) 
-        } else if (old_or_new == "new") {
-              # Filter out groups not considered in this analysis  
-      filter(., !species_major_group %in% c("PLANTAE AQUATICAE",
-                                        "AMPHIBIA, REPTILIA",
-                                        "MAMMALIA"),
-             # includes corals, sponges, pearl oysters, shells 
-             !yearbook_group_en == "Other aq. animals & products")
-          }
-      } %>%
-      mutate(
-        SciName = gsub(SciName, 
-                       pattern=" \\(\\=.*", 
-                       replacement=""))
-      
-      return(prod_ts)
-  
+rank_diffs <- lapply(tax_ranks, function(col){
+  old_vals <- taxa_old %>% distinct(.data[[col]]) %>% pull()
+  new_vals <- taxa_new %>% distinct(.data[[col]]) %>% pull()
+  tibble(
+    rank = col,
+    new_n = length(setdiff(new_vals, old_vals)),
+    dropped_n  = length(setdiff(old_vals, new_vals))
+  )
+}) %>% bind_rows()
+
+# replaces: rank_diffs %>% gt()
+rank_diffs %>%
+  arrange(rank) %>%
+  kbl(
+    col.names = c("Rank", glue("New in {artis_new} (n)"), "Dropped (n)"),
+    booktabs = TRUE,
+    caption = "New and dropped taxonomy values by classification rank"
+  ) %>%
+  kable_styling(
+    full_width = TRUE,
+    latex_options = c("hold_position", "scale_down")
+  )
+
+
+```
+
+### taxonomy changed
+
+```{r}
+#| eval: FALSE
+# If multiple rows per SciName exist, keep the first occurrence in each dataset
+new_rep <- taxa_new %>% arrange(SciName) %>% distinct(SciName, .keep_all = TRUE)
+old_rep <- taxa_old %>% arrange(SciName) %>% distinct(SciName, .keep_all = TRUE)
+
+cmp <- inner_join(new_rep, old_rep, by = "SciName", suffix = c(".new",".old"))
+
+tax_diffs_long <- cmp %>%
+  select(SciName, tidyselect::all_of(paste0(tax_ranks, ".new")), tidyselect::all_of(paste0(tax_ranks, ".old"))) %>%
+  pivot_longer(
+    cols = -SciName,
+    names_to = c("rank","which"),
+    names_pattern = "(.*)\\.(new|old)$",
+    values_to = "value"
+  ) %>%
+  pivot_wider(names_from = which, values_from = value) %>%
+  filter(new != old) %>%
+  arrange(SciName, rank)
+
+tax_diffs_long %>% gt()
+
+```
+
+### Broad fish taxa groupings
+
+```{r}
+#| include: TRUE
+#| results: 'asis'
+
+terms <- c("actinoptergii","actinopterygii","osteichthyes","teleostei")
+fields_to_check <- intersect(c("Class","Superclass"), tax_ranks)
+
+audit_field <- function(df, field){
+  df %>%
+    transmute(val = .data[[field]]) %>%
+    count(val, name = "n") %>%
+    filter(!is.na(val), val %in% terms) %>%
+    mutate(field = field, .before = 1)
 }
 
-# clean prod versions 
-prod_old <- clean_prod(prod_old, old_or_new = "old")
-prod_new <- clean_prod(prod_new, old_or_new = "new")
+audit_old <- bind_rows(lapply(fields_to_check, \(f) audit_field(taxa_old, f))) %>%
+  mutate(dataset = glue("ARTIS {artis_old}"), .before = 1)
+
+audit_new <- bind_rows(lapply(fields_to_check, \(f) audit_field(taxa_new, f))) %>%
+  mutate(dataset = glue("ARTIS {artis_new}"), .before = 1)
+
+# replaces the final bind_rows(...) %>% gt()
+bind_rows(audit_old, audit_new) %>%
+  arrange(dataset, field, val) %>%
+  kbl(
+    col.names = c("Dataset", "Field", "Value", "n"),
+    booktabs = TRUE,
+    caption = "Usage of actinoptergii / actinopterygii / osteichthyes / teleostei"
+  ) %>%
+  kable_styling(
+    full_width = TRUE,
+    latex_options = c("hold_position", "scale_down")
+  )
+
+
+```
+
+### Countries
+
+```{r countries}
+#| eval: FALSE
 
 ###### Change in countries 
 country_n_old <- length(unique(prod_old$country_iso3_alpha))
@@ -406,40 +432,5 @@ country_unique_new <- setdiff(unique(prod_new$country_iso3_alpha),
                               unique(prod_old$country_iso3_alpha))
 
 # countries_identical <- any(sort(unique(prod_old$country_iso3_alpha)) == 
-#                              sort(unique(prod_new$country_iso3_alpha)))
-
-####### Change in species 
-# before taxa cleaning, matching, and fishbase merging (classify_prod_dat.R)
-sp_n_old <- length(unique(prod_old$SciName))
-sp_n_new <- length(unique(prod_new$SciName))
-
-sp_unique_old <- setdiff(unique(prod_old$SciName),
-                         unique(prod_new$SciName))
-sp_unique_new <- setdiff(unique(prod_new$SciName),
-                         unique(prod_old$SciName))
-
+# 
 ```
-
-- Countries in the FAO Global Production data that are different:
-  - unique to the old version: `r country_unique_old`
-  - unique to the new version: `r country_unique_new`
-
-- Species in the FAO Global Production data that are different:  
-  - unique to the old version: 
-
-```{r}
-#| include: true
-#| output: true
-
-sort(sp_unique_old)
-```
-
-  - unique to the new version: 
-
-```{r}
-#| include: true
-#| output: true
-
-sort(sp_unique_new)
-```
-
