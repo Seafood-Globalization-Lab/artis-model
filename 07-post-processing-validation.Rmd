@@ -33,11 +33,14 @@ library(exploreARTIS)
 
 ```{r load data}
 # Set database folder location
-db_folder <- "/Users/gephart/Library/CloudStorage/Dropbox/Research/ARTIS/ARITS_1.1.0_FAO_2025_08_02/"
+db_folder <- "/Users/gephart/Library/CloudStorage/Dropbox/Research/ARTIS/ARTIS_1.1.0_FAO_2025_08_02/"
+# Alternate file path for SAU
+db_folder <- "/Users/gephart/Library/CloudStorage/Dropbox/Research/ARTIS/ARTIS_1.1.0_SAU_2025_08_07"
 
 # load ARTIS data set
 # point to the dataset folder
-artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_trade_v1.1.0_FAO_mid_2025-08-02.parquet"))
+# artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_trade_v1.1.0_FAO_mid_2025-08-02.parquet"))
+artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_v1.1.0_trade_SAU_mid_2025-08-12.parquet"))
 
 # custom timeseries filter - result "artis_ts_result" is NOT in-memory
 # this is a "Predicate Pushdown" or "On-disk filtering" method. 
@@ -65,7 +68,8 @@ artis_hs_summary <- artis_hs_summary %>%
 
 # load consumption data set
 # # point to the dataset folder
-artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_consumption_v1.1.0_FAO_mid_2025-08-02.parquet"))
+# artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_consumption_v1.1.0_FAO_mid_2025-08-02.parquet"))
+artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_v1.1.0_consumption_SAU_mid_2025-08-12-002.parquet"))
 
 # Summarize consumption file by source country
 artis_ts_result <- artis_ds %>%
@@ -116,10 +120,11 @@ foreign_consumption_totals <- artis_ts_result %>%
   collect()
 
 # Load attribute tables
-prod <- fread(file.path(db_folder, "attribute-tables", "prod.csv"))
-baci <- fread(file.path(db_folder, "attribute-tables", "baci.csv")) 
-sciname <- fread(file.path(db_folder, "attribute-tables", "sciname_metadata.csv"))
-code_max_resolved_taxa <- fread(file.path(db_folder, "attribute-tables", "code_max_resolved_taxa.csv"))
+#prod <- fread(file.path(db_folder, "attribute-tables", "prod.csv"))
+prod <- fread(file.path(db_folder, "attribute_tables", "prod_sau.csv"))
+baci <- fread(file.path(db_folder, "attribute_tables", "baci.csv")) 
+sciname <- fread(file.path(db_folder, "attribute_tables", "sciname_metadata.csv"))
+code_max_resolved_taxa <- fread(file.path(db_folder, "attribute_tables", "code_max_resolved_taxa.csv"))
 
 # Set parameters
 max_year <- max(artis_ts_df$year)
