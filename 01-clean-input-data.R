@@ -74,8 +74,6 @@ if(test_prod_taxa > 0){
   warning(paste0(test_prod_taxa," Scinames are missing habitat information in prod_taxa_classification"))
 }
 
-
-
 # SAVE PRODUCTION Taxa OUTPUT:
 write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)
 
@@ -83,6 +81,49 @@ write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.cs
 prod_habitat <- prod_taxa_classification %>%
   select(SciName, Fresh01, Brack01, Saltwater01) %>%
   distinct()
+
+# ISSCAP Metadata ---------------------------------------------------------
+
+# used to create code_max_resolved which is used in ARTIS calculate_consumption
+
+#Create 1-to-1 matching for 
+isscaap_metadata <- prod_data_raw %>%
+  select(SciName, isscaap_group) %>%
+  distinct()
+
+multiple_isscaap <- isscaap_metadata %>% 
+  group_by(SciName) %>%
+  tally() %>%
+  filter(n>1) %>%
+  pull(SciName)
+
+isscaap_metadata <- isscaap_metadata %>%
+  mutate(isscaap_group = case_when(
+    SciName %in% multiple_isscaap ~ "Multiple ISSCAAP groups",
+    !(SciName %in% multiple_isscaap) ~ isscaap_group
+  )) %>%
+  distinct()
+
+# Add ISSCAAP groups for custom "unknown origin" scinames
+unknown_isscaap <- data.frame(sciname = c("arthropoda", "chondrichthyes", 
+                                  "engraulis", "actinopteri", "homarus",
+                                  "mytilinae", "clupea", "hippoglossinae", 
+                                  "scombrinae", "salmoninae", "animalia", 
+                                  "dissostichus", "cypriniformes", 
+                                  "micromesistius", "echinoida", "chordata"),
+                      isscaap_group = c("Multiple ISSCAAP groups", "Sharks, rays, chimaeras",
+                                        "Herrings, sardines, anchovies", "Multiple ISSCAAP groups",
+                                        "Lobsters, spiny-rock lobsters", "Mussels",
+                                        "Herrings, sardines, anchovies", "Flounders, halibuts, soles", 
+                                        "Multiple ISSCAAP groups", "Salmons, trouts, smelts", 
+                                        "Multiple ISSCAAP groups", "Miscellaneous demersal fishes", 
+                                        "Carps, barbels and other cyprinids", "Cods, hakes, haddocks",
+                                        "Sea-urchins and other echinoderms", "Multiple ISSCAAP groups"))
+
+isscaap_metadata <- isscaap_metadata %>%
+  bind_rows(unknown_isscaap)
+
+write.csv(isscaap_metadata, file.path(outdir_attribute, "isscaap_metadata.csv"), row.names = FALSE)
 
 
 # Structure FAO prod -----------------------------------------------------
@@ -118,13 +159,6 @@ prod_data <- prod_data_raw %>%
   summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
   ungroup()
 
-# Changing class name based on FAO 2022 species list
-# some sources call actinopterygii a class others call it a superclass (might need to change with osteichthyes instead)
-# prod_taxa_classification <- prod_taxa_classification %>%
-#   mutate(Class = case_when(
-#     Class == 'actinopteri' ~ 'actinopterygii',
-#     TRUE ~ Class
-#   ))
 
 if (test) {
   
@@ -148,6 +182,8 @@ prod_data <- prod_data %>%
   ungroup()
 
 write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod.csv"), row.names = FALSE)
+
+
 
 # Clean SAU Production (taxa names and classification) -------------------------
 prod_list_sau <- classify_prod_dat(datadir = datadir_raw,
@@ -703,3 +739,263 @@ write.csv(std_pop, file.path(datadir, "fao_annual_pop.csv"), row.names = FALSE)
 
 
 
+################ Metadata tables
+
+# Load cleaned taxa details
+taxa <- fread(file.path(datadir, "clean_fao_taxa.csv")) %>%
+  rename(sciname = SciName, common_name = CommonName) %>%
+  distinct()
+
+# sciname_metadata --------------------------------------------------------
+
+# Create file for phylogenetic metadata
+# Create 1-to-1 matching for common names and taxa info
+taxa_metadata <- taxa %>%
+  mutate(common_name = case_when(
+    sciname =="alosa" ~ "shads nei", 
+    sciname == "asteroidea" ~ "starfishes nei", 
+    sciname == "branchiopoda" ~ "crustaceans nei", 
+    sciname == "carcharhiniformes" ~ "ground sharks nei", 
+    sciname == "clarias" ~ "catfishes nei", 
+    sciname == "clupeidae" ~ "sardines nei", 
+    sciname == "clupeiformes" ~ "clupeoids nei", 
+    sciname == "dentex tumifrons" ~ "yellowback seabream",
+    sciname == "epinephelus" ~ "groupers nei", 
+    sciname == "gadus macrocephalus" ~ "pacific cod", 
+    sciname == "gobiidae" ~ "gobies nei", 
+    sciname == "jasus edwardsii" ~ "red rock lobster", 
+    sciname == "lepidonotothen squamifrons" ~ "grey rockcod", 
+    sciname == "macrobrachium" ~ "river prawns nei", 
+    sciname == "merluccius" ~ "hakes nei", 
+    sciname == "mollusca" ~ "molluscs nei", 
+    sciname == "mullus" ~ "surmullets(=red mullets) nei", 
+    sciname == "myliobatidae" ~ "eagle and manta rays nei", 
+    sciname == "oreochromis" ~ "tilapias nei", 
+    sciname == "osteichthyes" ~ "fish nei", 
+    sciname == "palaemonidae" ~ "palaemonid shrimps nei", 
+    sciname == "parastacidae" ~ "crayfishes nei", 
+    sciname == "penaeidae" ~ "penaeid shrimps nei", 
+    sciname == "perciformes" ~ "tuna-like fishes nei", 
+    sciname == "planiliza haematocheilus" ~ "so-iny (redlip) mullet", 
+    sciname == "salmonidae" ~ "almonids nei", 
+    sciname == "sardinops sagax" ~ "south american pilchard", 
+    sciname == "sebastes" ~ "redfishes nei", 
+    sciname == "serrasalmidae" ~ "serrasalmids nei", 
+    sciname == "thunnus" ~ "tunas nei", 
+    sciname == "xiphopenaeus kroyeri" ~ "atlantic seabob", 
+    sciname == "bryzoa" ~ "bryzoa",
+    TRUE ~ common_name
+  )) %>%
+  distinct() %>%
+  bind_rows(data.frame(
+    sciname = c("arthropoda", "engraulis", "hippoglossinae", "scombrinae", "clupea",     
+                "chondrichthyes", "salmoninae", "mytilinae", "actinopteri", "animalia",    
+                "homarus", "cypriniformes", "dissostichus", "micromesistius", "echinoida"),
+    
+    common_name = c("arthropods", "anchovies", "flounders", "mackerels, tunas, and bonitos",
+                   "herrings", "sharks, skates, rays, and chimaeras", "salmons and trouts",
+                   "saltwater mussels", "ray-finned fish", "aquatic animals", "lobsters", 
+                   "carps, minnows, loaches, etc", "toothfish", "blue whitings", "sea urchins"),
+    
+    Genus = c(NA, "engraulis", NA, NA, "clupea",     
+              NA, NA, NA, NA, NA,    
+              "homarus", NA, "dissostichus", "micromesistius", NA),
+    
+    Subfamily = c(NA, "engraulinae", "hippoglossinae", "scombrinae", "clupeinae",     
+                  NA, "salmoninae", "mytilinae", NA, NA,    
+                  NA, NA, NA, NA, NA),
+    
+    Family = c(NA, "engraulidae", "pleuronectidae", "scombridae", "clupeidae",     
+               NA, "salmonidae", "mytilidae", NA, NA,    
+               "nephropidae", NA, "nototheniidae", "gadidae", NA), 
+    
+    Order = c(NA, "clupeiformes", "pleuronectiformes", "scombriformes", "	clupeiformes",     
+              NA, "salmoniformes", "mytilida", NA, NA,    
+              "decapoda", "cypriniformes", "perciformes", "gadiformes", "echinoida"), 
+    
+    Class = c(NA, "actinopterygii", "actinopterygii", "actinopterygii", "actinopterygii",     
+              "chondrichthyes", "actinopterygii", "bivalvia", "actinopterygii", NA,    
+              "malacostraca", "actinopterygii", "actinopterygii", "actinopterygii", "echinoidea"),
+    
+    Superclass = c(NA, NA, NA, NA, NA,     
+                   NA, NA, NA, "actinopteri", NA,    
+                   NA, NA, NA, NA, NA),
+    
+    Phylum = c("arthropoda", "chordata", "chordata", "chordata", "chordata",     
+               "chordata", "chordata", "mollusca", "chordata", NA,    
+               "arthropoda", "chordata", "chordata", "chordata", "echinodermata"),
+    
+    Kingdom = c("animalia", "animalia", "animalia", "animalia", "animalia",     
+                "animalia", "animalia", "animalia", "animalia", "animalia",    
+                "animalia", "animalia", "animalia", "animalia", "animalia")
+  )) 
+ 
+
+taxa_metadata <- taxa_metadata %>%
+  left_join(isscaap_metadata, by = "sciname")
+
+if(running_sau){
+# Add missing scinames from SAU with sau_taxa 
+sau_taxa <- fread(file.path(datadir, "clean_sau_taxa.csv")) %>%
+  rename(sciname = SciName, common_name = CommonName) %>%
+  distinct() %>%
+  filter(!(sciname %in% taxa_metadata$sciname))
+  }
+
+taxa_metadata <- taxa_metadata %>%
+  #bind_rows(sau_taxa) %>%
+  distinct() %>%
+  ungroup() %>%
+  mutate(sum_na = rowSums(is.na(.))) %>%
+  group_by(sciname) %>%
+  slice_min(order_by = sum_na, n = 1, with_ties = FALSE) %>%
+  select(-sum_na)
+
+write.csv(taxa_metadata, file.path(outdir_attribute, "sciname_metadata.csv"), row.names = FALSE)
+
+# Code_max_resolved_taxa -------------------------------------------------
+
+
+hs_taxa_match <- data.frame(Code = integer(),
+                            SciName = character(),
+                            Match_category = character(),
+                            HS_version = character(),
+                            Description = character(),
+                            Modification = character())
+
+hs_clade_match <- data.frame(Code = character(),
+                             hs_clade = factor(),
+                             classification_level = character(),
+                             hs_version = character())
+
+for(i in c("96", "02", "07", "12", "17")){
+  HS_year_rep <- i
+  
+  hs_taxa_match_i <- read.csv(file.path(datadir, paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = "")))
+  hs_clade_match_i <- match_hs_to_clade(hs_taxa_match = hs_taxa_match_i,
+                                        prod_taxa_classification = taxa %>%
+                                          rename(CommonName = common_name, SciName = sciname),
+                                        match_to_prod = FALSE) 
+  
+  hs_clade_match_i <- hs_clade_match_i %>%
+    mutate(Code = as.character(Code)) %>% # pad HS codes with zeroes
+    mutate(
+      Code = if_else(
+        str_detect(Code, "^30"),
+        true = str_replace(Code, pattern = "^30", replacement = "030"),
+        if_else(
+          str_detect(Code, "^511"),
+          true = str_replace(Code, pattern = "^511", replacement = "0511"),
+          false = Code
+        )
+      )
+    ) %>%
+    mutate(hs_version = HS_year_rep)
+  
+  # Add SAU matches - running with just SAU ARTIS v1.1.0 - not two separate model_inputs/
+  # hs_taxa_match_sau_i <- read.csv(file.path("model_inputs_sau", paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = "")))
+  # 
+  # hs_clade_match_sau_i <- match_hs_to_clade(hs_taxa_match = hs_taxa_match_sau_i ,
+  #                                       prod_taxa_classification = taxa %>%
+  #                                         rename(CommonName = common_name, SciName = sciname),
+  #                                       match_to_prod = FALSE) %>% 
+  #   # pad HS codes with zeroes
+  #   mutate(Code = as.character(Code)) %>%
+  #   mutate(Code = if_else(str_detect(Code, "^30"), true = str_replace(Code, pattern = "^30", replacement = "030"),
+  #                         if_else(str_detect(Code, "^511"), true = str_replace(Code, pattern = "^511", replacement = "0511"),
+  #                                 false = Code))) %>%
+  #   mutate(hs_version = HS_year_rep) %>%
+  #   filter(!is.na(hs_clade))
+  # 
+  hs_clade_match <- hs_clade_match %>%
+    bind_rows(hs_clade_match_i) %>%
+   # bind_rows(hs_clade_match_sau_i) %>%
+    distinct()
+
+  hs_taxa_match <- hs_taxa_match %>%
+    bind_rows(hs_taxa_match_i) %>%
+   # bind_rows(hs_taxa_match_sau_i) %>%
+    distinct()
+}
+
+hs_clade_match <- hs_clade_match %>%
+  rename("hs6" = "Code")
+
+hs_clade_match <- hs_clade_match %>%
+  mutate(hs6 = as.integer(hs6),
+         hs_version = as.integer(hs_version)) %>%
+  rename("code_taxa_level" = "classification_level")
+
+prod_taxa_classification <- taxa_metadata %>%
+  select(-common_name) %>%
+  unique() %>% 
+  mutate(
+    prod_taxa_level = case_when(
+      (str_count(sciname, pattern = " ") == 1) ~ "Species", 
+      sciname == Genus ~ "Genus", 
+      sciname == Subfamily ~ "Subfamily", 
+      sciname == Family ~ "Family", 
+      sciname == Order ~ "Order", 
+      sciname == Class ~ "Class", 
+      sciname == Superclass ~ "Superclass", 
+      sciname == Phylum ~ "Phylum", 
+      sciname == Kingdom ~ "Kingdom"
+    )
+  ) %>%
+  select(sciname, prod_taxa_level) %>%
+  bind_rows(data.frame(
+    sciname = c("animalia", "osteichthyes", "actinopteri"),
+    prod_taxa_level = c("Kingdom", "Superclass", "Class")
+  )) %>%
+  distinct()
+
+code_max_resolved_taxa <- hs_taxa_match %>%
+  rename(hs6 = Code, sciname = SciName) %>%
+  left_join(hs_clade_match %>% 
+              mutate(hs_version = paste("HS", hs_version, sep="")),
+            by = c("hs6", "HS_version" = "hs_version")) %>%
+  left_join(prod_taxa_classification, by = c("sciname")) %>%
+  mutate(code_taxa_level_numeric = case_when(
+    code_taxa_level == "Species" ~ 1, 
+    code_taxa_level == "Genus" ~ 2,
+    code_taxa_level == "Subfamily" ~ 3,
+    code_taxa_level == "Family" ~ 4,
+    code_taxa_level == "Order" ~ 5, 
+    code_taxa_level == "Class" ~ 6, 
+    code_taxa_level == "Superclass" ~ 7,
+    code_taxa_level == "Phylum" ~ 8,
+    code_taxa_level == "Kingdom" ~ 9
+  )) %>%
+  mutate(prod_taxa_level_numeric = case_when(
+    prod_taxa_level == "Species" ~ 1, 
+    prod_taxa_level == "Genus" ~ 2,
+    prod_taxa_level == "Subfamily" ~ 3,
+    prod_taxa_level == "Family" ~ 4,
+    prod_taxa_level == "Order" ~ 5, 
+    prod_taxa_level == "Class" ~ 6,
+    prod_taxa_level == "Superclass" ~ 7,
+    code_taxa_level == "Phylum" ~ 8,
+    prod_taxa_level == "Kingdom" ~ 9
+  )) %>%
+  mutate(hs_clade = as.character(hs_clade)) %>%
+  # Find the most resolved name from production or trade hs codes? -AM
+  mutate(sciname_hs_modified = case_when(
+    prod_taxa_level_numeric < code_taxa_level_numeric ~ sciname, 
+    code_taxa_level_numeric < prod_taxa_level_numeric ~ hs_clade,
+    prod_taxa_level_numeric == code_taxa_level_numeric ~ sciname
+  )) %>%
+  mutate(sciname_hs_modified = ifelse(is.na(sciname_hs_modified), sciname, sciname_hs_modified)) %>%
+  # Leave chordata as original names
+  mutate(sciname_hs_modified = case_when(
+    sciname_hs_modified == "chordata" ~ sciname_hs_modified,
+    sciname_hs_modified != "chordata" ~ sciname_hs_modified
+  )) %>%
+  select("hs_version" = "HS_version", hs6, sciname, sciname_hs_modified, 
+         "match_category" = "Match_category", "description" = "Description",
+         "modification" ="Modification", hs_clade, code_taxa_level, prod_taxa_level,
+         code_taxa_level_numeric, prod_taxa_level_numeric) %>%
+  mutate(hs6 = as.character(hs6)) %>%
+  distinct()
+
+write.csv(code_max_resolved_taxa, file.path(datadir, "code_max_resolved_taxa.csv"), row.names = FALSE)
+  
