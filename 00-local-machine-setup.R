@@ -28,7 +28,7 @@ datadir_raw <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data/model_inputs_raw_2
 # Directory for inputs to create the ARTIS database
 datadir <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_2.0_FAO"
 baci_version <- "202501"
-tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
+tradedatadir <- file.path(datadir_raw, "baci_raw") 
 
 # Model output directory paths --------------------------------------------
 # Directory where ARTIS database will be generated

@@ -54,8 +54,8 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
   first_four_digits <- substr(hs_first_match$Code, 1, 4)
   HS_groups <- unique(first_four_digits)
   
-  ##############################################################################################
-  # FIRST OUTPUT LIST
+ 
+# First Output List ------------------------------------------------------
   # Note: Code is divided into first output, second output, and special output
   first_output_list = list()
   
@@ -69,16 +69,22 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
     hs_categories <- possible_hs_codes %>%
       select(Fishes, Crustaceans, Molluscs, Aquatic_invertebrates) %>%
       distinct() 
-    # ASSUMPTION IS THAT hs_categories WILL ALWAYS BE ONE ROW, i.e., one commodity type. If not, these should have been filtered as part of the special cases
+    # ASSUMPTION IS THAT hs_categories WILL ALWAYS BE ONE ROW, i.e., one commodity type. 
+    # If not, these should have been filtered as part of the special cases
+    # FIXIT: AM - add assumption test here
     
+
+    ### get_taxa_group #############
     # Create data frame (possible_prod_taxa) of possible taxa matches to hs_categories
-    # function get_taxa_group filters prod_taxa_classification based on whether category contains fish, molluscs, crustaceans, and/or aquatic invertebrates
+    # function get_taxa_group filters prod_taxa_classification based on whether category 
+    # contains fish, molluscs, crustaceans, and/or aquatic invertebrates
     possible_prod_taxa <- get_taxa_group(hs_code_row = hs_categories, 
                                                     prod_taxa_classification = prod_taxa_classification)
  
     if (nrow(possible_prod_taxa) > 0) { 
       # Add this conditional to allow code to run for subsets of prod_taxa_classification
-      # i.e., if trying to run match_hs_to_taxa for just sharks, this will result in possible_prod_taxa == 0 for any of the Mollusc, Crustacean, or Aquatic Invert Codes
+      # i.e., if trying to run match_hs_to_taxa for just sharks, 
+      # this will result in possible_prod_taxa == 0 for any of the Mollusc, Crustacean, or Aquatic Invert Codes
       
       # BASIC STRUCTURE OF MATCHING CODE 
       #if (parent_p %in% c("XXXXXX")){ # Next list of HS parents with similar matching logic  
@@ -103,14 +109,16 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
         for (c in 1:length(possible_hs_codes$Code)){
           # NOTE: matching is done as literally as possible
           # Examples: anguilliformes doesn't match to 030192 because it's not exclusively made of just the one genus)
-          # oncorhynchus doesn't match to 030211 or 030213 because we assume that FAO data would be specific enough to match popular food fish in HS descriptions
+          # oncorhynchus doesn't match to 030211 or 030213 because we assume that FAO data would be specific 
+          # enough to match popular food fish in HS descriptions
           # thunnus doesn't match to 030194 or 030195 for the same reason
 
           match_code_output <- NULL # reset match_code output for each hs_codes_row_c
           hs_codes_row_c <- possible_hs_codes[c,]
           
-          
-          
+
+# Match by taxon ---------------------------------------------------------
+          ####### Match_by_taxon #############
           # MATCH TO SPECIES: extract species names in code_descript that match list of SciNames in possible_prod_taxa
           # Use function match_and_remove_by_classification.R to match to genera (next section) or any other taxonomic level besides species
           if (hs_codes_row_c$NEC == 0){ # if the code description calls for simple matching

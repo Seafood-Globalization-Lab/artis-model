@@ -417,20 +417,7 @@ bind_rows(audit_old, audit_new) %>%
 
 ```
 
-### Countries
 
-```{r countries}
-#| eval: FALSE
 
-###### Change in countries 
-country_n_old <- length(unique(prod_old$country_iso3_alpha))
-country_n_new <- length(unique(prod_new$country_iso3_alpha))
+### hs-taxa-match
 
-country_unique_old <- setdiff(unique(prod_old$country_iso3_alpha),
-                              unique(prod_new$country_iso3_alpha))
-country_unique_new <- setdiff(unique(prod_new$country_iso3_alpha),
-                              unique(prod_old$country_iso3_alpha))
-
-# countries_identical <- any(sort(unique(prod_old$country_iso3_alpha)) == 
-# 
-```
