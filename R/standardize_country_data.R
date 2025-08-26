@@ -27,8 +27,7 @@ standardize_country_data <- function(){
                                              "REU","MAF","BLM","ATF","HKG",
                                              "MAC","ABW","ANT","BES","SXM",
                                              "CUW","COK","NIU","TKL","NFK",
-                                             "CXR","CCK","GRL","FRO", "GGY",
-                                             "JEY"),
+                                             "CXR","CCK","GRL","FRO"),
                              artis_iso3c = c("USA","USA","USA","USA","USA",
                                               "GBR","GBR","GBR","GBR","GBR",
                                               "GBR","GBR","GBR","GBR","GBR",
@@ -101,6 +100,24 @@ standardize_country_data <- function(){
     group_by(iso3c, artis_iso3c) %>%
     expand(year = 1996:2020)
   
+  iso_name_pairs <- tibble::tibble(
+    iso3c     = c("TLS", "SRB", "MNE", "SSD", "BWA", "LSO", "NAM", "SWZ", "NEI", "SCG", "SDN", "ZAF"),
+    col_country_name  = c(
+      "Timor Leste",          # TLS
+      "Serbia",               # SRB
+      "Montenegro",           # MNE
+      "South Sudan",          # SSD
+      "Botswana",             # BWA
+      "Lesotho",              # LSO
+      "Namibia",              # NAM
+      "Swaziland",            # SWZ
+      "Other nei",            # NEI
+      "Serbia and Montenegro",# SCG
+      "Sudan",                # SDN
+      "South Africa"          # ZAF
+    )
+  )
+  
   # 2. Cross-join with years and apply all your historic overrides
   standardize_prod_special_cases <- tidyr::expand_grid(
     tibble(
@@ -118,9 +135,8 @@ standardize_country_data <- function(){
         iso3c == "TLS" & year < 2002                             ~ "IDN",
         iso3c %in% c("SRB","MNE") & year < 2006                   ~ "SCG",
         (iso3c == "SSD" | str_detect(col_country_name, "Sudan")) & year < 2012 ~ "SDN",
-        # iso3c %in% c("BWA","LSO","NAM","SWZ") & year < 2000       ~ "ZAF",
+        iso3c %in% c("BWA","LSO","NAM","SWZ") & year < 2000       ~ "ZAF",
         col_country_name == "Other nei"                                   ~ "NEI",
-        iso3c == "ZAF" & year >= 2000 ~ "ZAF",
         TRUE                                                               ~ iso3c
       ),
       artis_country_name = case_when(
@@ -141,8 +157,7 @@ standardize_country_data <- function(){
       )
     ) %>%
     filter(!artis_iso3c %in% c("CSK","SUN","YUG")) %>%
-    select(iso3c, year, artis_iso3c, artis_country_name) %>%
-    filter(!(year < 2000 & artis_iso3c == "ZAF"))
+    select(iso3c, year, artis_iso3c, artis_country_name)
   
   # FUNCTION 3
   # dwf (standardize_sau_eez function) normal cases
@@ -313,7 +328,7 @@ standardize_country_data <- function(){
     expand(year = 1996:1999)
   
   # Bind rows
-  output_data <- bind_rows(standardize_country_data, input_countries, south_africa_corrections) %>%
+  output_data <- bind_rows(standardize_country_data, input_countries) %>%
     distinct(iso3c, artis_iso3c, year, country_name, artis_country_name) %>%
     select(country_name, iso3c, year, artis_country_name, artis_iso3c)
   
