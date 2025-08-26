@@ -48,6 +48,11 @@ classify_prod_dat <- function(datadir,
       !str_detect(yearbook_group_en,
         regex("^other\\s+aq(?:\\.|uatic)\\s+animals?\\s*(?:&|and)?\\s*products?$", 
         ignore_case = TRUE))) %>% 
+      
+      # currently excluding copepods, copepoda it does not go into any HS codes considered
+      # seems to be used as a starter feed for aquaculture. 
+      # calanus finmarchicus is the Sciname reported in FAO production 2023
+      filter(SciName != "calanus finmarchicus") %>% 
 
       # Dev_mode: check prod_ts at this point unique(prod_ts$isscaap_group)
       # to further filter prod species by isscaap_group
@@ -713,7 +718,7 @@ classify_prod_dat <- function(datadir,
   prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
     mutate(Phylum = case_when(
       Class %in% c("elasmobranchii", "holocephali", "myxini", "cephalaspidomorphi", "sarcopterygii") ~ "chordata",
-      Superclass == "osteichthyes" ~ "chordata",
+      Superclass %in% c("osteichthyes", "chondrichthyes") ~ "chordata",
       TRUE ~ Phylum))
   
   # Fill in missing Kingdom 
@@ -721,7 +726,7 @@ classify_prod_dat <- function(datadir,
     mutate(Kingdom = "animalia")
 
   # Add Infraclass column
-  prod_taxa_classification <- prod_taxa_classification %>% 
+  prod_taxa_classification_clean <- prod_taxa_classification_clean %>% 
     mutate(Infraclass = case_when(
       Family %in% c("carcharhiniformes", "heterodontiformes", "lamniformes", 
         "orectolobiformes", "echinorhiniformes", "hexanchiformes", "pristiophoriformes", 
@@ -755,11 +760,7 @@ classify_prod_dat <- function(datadir,
       TRUE ~ Phylum
     )) %>%
     # Only keep taxa represented within prod
-    filter(SciName %in% prod_ts$SciName,
-      # currently excluding copepods, copepoda it does not go into any HS codes considered
-      # seems to be used as a starter feed for aquaculture. 
-      # calanus finmarchicus is the Sciname reported in FAO production 2023
-          Class != "copedoda") 
+    filter(SciName %in% prod_ts$SciName)
       
   
 # Missing Sciname Check --------------------------------------------------
