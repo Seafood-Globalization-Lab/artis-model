@@ -20,3 +20,5 @@ man/*
 dev/*
 renv/*
 
+
+/.quarto/
