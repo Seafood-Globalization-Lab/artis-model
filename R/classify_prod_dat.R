@@ -697,27 +697,11 @@ classify_prod_dat <- function(datadir,
   # Replace all empty values with NAs for consistent reporting
   prod_ts[prod_ts == ""] <- NA
   
-  # Final Formatting of Prod TS to match previous code version's types
-  # FIXIT: Verify if this is needed, we think these columns get removed
-  # in downstream 01-clean-input-data. alternate throws warning. 
-  if (prod_data_source == "FAO") {
-    prod_ts <- prod_ts %>%
-      mutate(country_iso3_numeric = as.integer(country_iso3_numeric),
-             area.code = as.integer(area.code),
-             country_identifier = as.integer(country_identifier),
-             production_identifier = as.integer(production_identifier),
-             sort = as.integer(sort),
-             species_identifier = as.integer(species_identifier),
-             unit_identifier = as.integer(unit_identifier),
-             multiplier = as.integer(multiplier),
-             alternate = as.integer(alternate),
-             symbol_identifier = as.integer(symbol_identifier))
-  }
-  
   # Fill in Missing Phyla  
   prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
     mutate(Phylum = case_when(
-      Class %in% c("elasmobranchii", "holocephali", "myxini", "cephalaspidomorphi", "sarcopterygii") ~ "chordata",
+      Class %in% c("elasmobranchii", "holocephali", "myxini", 
+                  "cephalaspidomorphi", "sarcopterygii") ~ "chordata",
       Superclass %in% c("osteichthyes", "chondrichthyes") ~ "chordata",
       TRUE ~ Phylum))
   
