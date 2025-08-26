@@ -36,18 +36,6 @@ if(need_new_fb_slb == TRUE) {
 fb_slb_info <- get_most_recent_dir(datadir_raw, "fishbase_sealifebase")
 current_fb_slb_dir <- fb_slb_info$directory
 
-### Development Mode enviroment write out: 
-# set arguements for classify_prod_dat
-# datadir = datadir_raw
-# filename = "GlobalProduction_2025.1.0.zip" 
-# prod_data_source = "FAO"
-# fb_slb_dir = current_fb_slb_dir
-
-# workspace_1_fp <- glue("{devdir}dev-artis-2.0/workspace_01-clean_match-hs-taxa_{Sys.Date()}.qs2")
-# qs2::qs_save(as.list(environment()), file = workspace_1_fp)
-# # Read in workspace file
-# qs2::qs_readm(workspace_1_fp) 
-
 
 # Clean FAO Production (taxa names and classification) ---------------------------
 
@@ -56,9 +44,16 @@ prod_list <- classify_prod_dat(datadir = datadir_raw,
                                prod_data_source = "FAO",
                                fb_slb_dir = current_fb_slb_dir)
 
-# Reassign to separate objects:
+# Reassign list to separate objects:
 prod_data_raw <- prod_list[[1]] 
-prod_taxa_classification <- prod_list[[2]] %>%
+prod_taxa_classification <- prod_list[[2]]
+
+# remove large environmental object
+rm(prod_list)
+
+
+# Structure FAO prod taxa classification ---------------------------------
+prod_taxa_classification <- prod_taxa_classification %>%
   # Manually assign missing habitat coding
   mutate(Fresh01 = case_when(
     SciName %in% c("neocaridina denticulata", "caridina nilotica") ~ as.integer(1),
@@ -69,7 +64,7 @@ prod_taxa_classification <- prod_list[[2]] %>%
     TRUE ~ as.integer(Saltwater01)
   ))
 
-## Verify that habitat information is complete before matching processes
+## DATA CHECK: Verify that habitat information is complete before matching processes
 test_prod_taxa <- prod_taxa_classification %>% 
   mutate(test = Fresh01 + Brack01 + Saltwater01) %>%
   filter(test == 0) %>%
@@ -79,14 +74,23 @@ if(test_prod_taxa > 0){
   warning(paste0(test_prod_taxa," Scinames are missing habitat information in prod_taxa_classification"))
 }
 
+
+
+# SAVE PRODUCTION Taxa OUTPUT:
+write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)
+
 # Get fishbase habitat data from prod_taxa_classification to standardize habitat info in prod_data
 prod_habitat <- prod_taxa_classification %>%
   select(SciName, Fresh01, Brack01, Saltwater01) %>%
   distinct()
 
+
+# Structure FAO prod -----------------------------------------------------
 prod_data <- prod_data_raw %>%
   # Remove columns not needed for any analysis
-  select(!c(any_of(c("alternate", "multiplier", "symbol", "symbol_identifier")), 
+  select(!c(any_of(c("alternate", "multiplier", "symbol", "symbol_identifier", 
+                    "country_iso3_numeric", "country_identifier", "production_identifier", 
+                    "sort", "unit_identifier")), # "species_identifier" still available here
             contains(c("_ar", "_cn", "_es", "_fr", "_ru")),
             CommonName)) %>%
   # Create new column that combines SciName with souce info (i.e., habitat + production method)
@@ -132,10 +136,6 @@ if (test) {
     filter(SciName %in% test_scinames)
 }
 
-# SAVE PRODUCTION OUTPUT:
-#write.csv(prod_data, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
-write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)
-
 prod_data <- standardize_countries(df = prod_data, 
                                    data_source = "FAO")
 # retain FAO area.code column
@@ -148,8 +148,6 @@ prod_data <- prod_data %>%
   ungroup()
 
 write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod.csv"), row.names = FALSE)
-
-rm(prod_list)
 
 # Clean SAU Production (taxa names and classification) -------------------------
 prod_list_sau <- classify_prod_dat(datadir = datadir_raw,
