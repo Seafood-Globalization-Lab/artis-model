@@ -176,7 +176,7 @@ prod <- prod %>%
 write.csv(prod, file.path(outdir_sql, "prod.csv"), row.names=FALSE)
 
 # clean SAU prod
-prod_sau <- fread(file.path(datadir, "standardized_combined_prod.csv"))
+prod_sau <- read.csv(file.path(datadir, "standardized_combined_prod.csv"))
 
 prod_sau <- prod_sau %>%
   select(c(country_iso3_alpha, SciName, prod_method, habitat, quantity, year)) %>%
@@ -186,7 +186,7 @@ prod_sau <- prod_sau %>%
     method = prod_method,
     live_weight_t = quantity
   )
-fwrite(prod, file.path(outdir_sql, "prod_sau.csv"), row.names=FALSE)
+write.csv(prod_sau, file.path(outdir_sql, "prod_sau.csv"), row.names=FALSE)
 #-------------------------------------------------------------------------------
 # Creating Country metadata table
 
