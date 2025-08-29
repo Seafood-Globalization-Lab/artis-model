@@ -48,44 +48,156 @@ ARTIS reconstructs seafood supply chains by:
 - Tracing each product through exports, imports, processing, and consumption pathways.
 - Providing per-country, per-species, and per-product estimates of seafood availability and use.
 
-For full conceptual diagrams and methods, see the [ARTIS Manual](https://seafood-globalization-lab.github.io/artis-manual/).
+### Spill the :coffee: (further details)
+
+- [ARTIS Manual](https://seafood-globalization-lab.github.io/artis-manual/): Conceptual background, methods, output structure, data access.
+- [CHANGELOG](./CHANGELOG.md): Complete change history with new ARTIS versions.
+- [ARTIS Wiki](https://github.com/Seafood-Globalization-Lab/artis-model/wiki): Database table definitions, data sources, version mapping, new data ingest instructions. 
+
+## How to Cite the ARTIS model (not the data)
+
+> A formal dataset DOI will be posted here after the v1.1.0 release.  
+> For now, cite the software as:
+
+```
+Jessica Gephart, Rahul Agrawal Bejarano, Althea Marks, & Kelvin Gorospe. (2024).
+ARTIS input data and model. Knowledge Network for Biocomplexity. doi:10.5063/F1862DXT.
+```
+
+```bibtex
+@software{artis-v1.1.0,
+  title        = {ARTIS Model (Aquatic Resource Trade In Species), v1.1.0},
+  author       = {Gephart, Jessica and Agrawal Bejarano, Rahul and Marks, Althea and Gorospe, Kelvin},
+  year         = {2025},
+  version      = {1.1.0},
+  url          = {https://github.com/Seafood-Globalization-Lab/artis-model},
+  note         = {Accessed: yyyy-mm-XX},
+  institution  = {University of Washington},
+  organization = {Seafood Globalization Lab},
+  howpublished = {GitHub repository}
+}
+```
 
 ## Run Modes
 
-- **local**: Run ARTIS on your local machine. Used for specific HS versions/years runs. 
+- **local**: Run ARTIS on your local machine. Used for specific HS versions/years runs. See [Local run instrucitons](#installations) below.
   _Requires significant compute resources and is developed/tested on macOS with ARM64 (Apple Silicon) architecture._
+- **aws**: Large-scale cloud runs on AWS Batch. See [`artis-hpc`](https://github.com/Seafood-Globalization-Lab/artis-hpc) for details. Numerous `if(run_env == "aws")` conditions throughout ARTIS pipeline that read and write files to and from S3 and the Docker artis-image instance running ARTIS. 
 - **demo**: Fast, small test dataset for local runs and troubleshooting. (has not been maintained or checked recently) 
-- **aws**: Large-scale cloud runs on AWS Batch. See [`artis-hpc`](https://github.com/Seafood-Globalization-Lab/artis-hpc) for details.
 
-## Installation
+## Local ARTIS Run Instructions
 
-### Prerequisites
+### Installations - Local Prerequisites
 
-- Python 3.11.x ([Download](https://www.python.org/downloads/release/python-3110/))
+- Python 3.12.x ([Download](https://www.python.org/downloads/release/python-31211/))
 - R (tested with R 4.2.2) ([Download](https://www.r-project.org/))
-- RStudio ([Download](https://posit.co/download/rstudio-desktop/))
-
-### Python Environment
-
-```
-python3 -m venv /path/to/your/venv --without-scm-ignore-files
-source venv/bin/activate
-pip install -r requirements.txt
-pip list  # confirm: qpsolvers, quadprog, cvxopt
-```
+- RStudio IDE ([Download](https://posit.co/download/rstudio-desktop/)) 
+  - OR Positron IDE *a fork of VS Code that supports many more R features* ([Download](https://positron.posit.co/download))
 
 ### `artis` R Package Installation
 
 - Get a local copy of the latest ARTIS release from Github
-```sh
-$gh repo clone Seafood-Globalization-Lab/artis-model
-```
-- install the R package from the project root directory
-```R
-devtools::install()
-```
+  ```zsh
+  gh repo clone Seafood-Globalization-Lab/artis-model
+  ```
+- install the R package from the project root directory (run in console)
+  ```R
+  devtools::install()
+  ```
 
-FIXIT: Need instructions to run model locally
+### Python Environment
+
+- Ensure your working directory is set to the project root (i.e. `/Users/theamarks/Documents/git-projects/artis-model`):
+  ```sh
+  pwd
+  ```
+- Create a new Python 3.12 environment 
+  - **IF** you already have an up-to-date `./venv` in your project you can just run `source venv/bin/activate` to activate it and skip the following steps.
+  - Check periodically that your local python version aligns with the `artis-hpc` `dockerfile` instalation of python.
+
+  ```sh
+  python3.12 -m venv venv
+  ```
+- Activate the environment:
+  ```sh 
+  source venv/bin/activate
+  ```
+- Upgrade base tooling used to install packages
+  ```sh
+  pip install --upgrade pip setuptools wheel
+  ```
+- Install package dependencies
+  ```sh 
+  pip install --no-deps -r requirements.lock
+  ```
+
+### Update Local Model Configuration
+
+- Open `./00-local-machine-setup.R` 
+- Change directory paths to appropriate data folders
+- Adjust model parameters such as `running_sau`, `HS_year`, `test_years`, `estimate_data_type`, `prod_data_type`, and `dev_mode`.
+- Save changes
+
+### Clean and Structure Raw Data
+
+- Open `./01-clean-input-data.R`
+- Ensure required raw data files exist in the directory set as `datadir_raw` ([See this wiki page for details](https://github.com/Seafood-Globalization-Lab/artis-model/wiki/Ingest-New-FAO-Data-Instructions#required-raw-data-files---not-generated-by-script)).
+- Run entire script to generate the ARTIS `model_inputs` folder.
+
+  ```R
+  source("01-clean-input-data.R")
+  ```
+
+### Run ARTIS model
+
+- Open `./02-artis-pipeline.R`
+- Ensure `run_env <- "local"` and `hs_version_run <- "12"` is set to the corresponding desired HS version. *Note*: 
+  - years are set by `test_years` in `00-local-machine-setup.R`
+  - Currently running ARTIS locally only runs a single HS version at a time through `02-artis-pipeline.R`. 
+- Run entire script. This will take a substancial amount of compute and time. 
+  ```R
+  source("02-artis-pipeline.R")
+  ```
+
+### Build trade and consumption datafiles
+
+- Open `./03-combine-tables.R`
+- Run entire script to create a single `.parquet` file each for trade and consumption data
+  ```R
+  source("03-combine-tables.R")
+  ```
+- This step in the pipeline is run locally regardless if `02-artis-pipeline.R` was run locally or on AWS.
+
+### Build Attribute tables
+
+- Open `./04-create-metadata.R`
+- Run entire script to build attribute tables useful for analysis.
+  ```R
+  source("04-create-metadata.R")
+  ```
+- This step in the pipeline is run locally regardless if `02-artis-pipeline.R` was run locally or on AWS.
+- *Note:* `./04-create-metadata.R` amd `./05-prep-db-files.R` will be combined in the future
+
+### Clean tables for database
+
+- Open `./05-prep-db-files.R`
+- Run entire script to standardize naming conventions and syntax for final tables. 
+  ```R
+  source("05-prep-db-files.R")
+  ```
+- This step in the pipeline is run locally regardless if `02-artis-pipeline.R` was run locally or on AWS.
+- *Note:* `./04-create-metadata.R` amd `./05-prep-db-files.R` will be combined in the future
+
+### Generate Package Citations
+
+- Open `./06-cite-packages.R` 
+- Run entire script to generate citations for package dependencies in the `artis` model. Use for attribution in published works. 
+
+### Post Prossessing Data Validation
+
+- Open `./07-post-processing-validation.Rmd`
+- Run code chunk by chunk OR render the entire report to generate summary stats and figures to ensure the quality and assumption of ARTIS.
+- *Note*: Rendering this file will take significant compute resources and may crash depending on your machine. 
 
 ## Development Workflow
 
@@ -134,34 +246,6 @@ gitGraph
 - **Key R packages:** data.table, dplyr, stringr, tidyverse, reticulate, etc. See `.renv_lock` file for package version details
 - **Key Python packages:** qpsolvers, quadprog, cvxopt
 
-## Citation
-
-> A formal dataset DOI will be posted here after the v1.1.0 release.  
-> For now, cite the software as:
-
-```
-Jessica Gephart, Rahul Agrawal Bejarano, Althea Marks, & Kelvin Gorospe. (2024).
-ARTIS input data and model. Knowledge Network for Biocomplexity. doi:10.5063/F1862DXT.
-```
-
-```bibtex
-@software{artis-v1.1.0,
-  title        = {ARTIS Model (Aquatic Resource Trade In Species), v1.1.0},
-  author       = {Gephart, Jessica and Agrawal Bejarano, Rahul and Marks, Althea and Gorospe, Kelvin},
-  year         = {2025},
-  version      = {1.1.0},
-  url          = {https://github.com/Seafood-Globalization-Lab/artis-model},
-  note         = {Accessed: yyyy-mm-XX},
-  institution  = {University of Washington},
-  organization = {Seafood Globalization Lab},
-  howpublished = {GitHub repository}
-}
-```
-
-## More Information
-
-- [ARTIS Manual](https://seafood-globalization-lab.github.io/artis-manual/): Conceptual background, methods, output structure, data access.
-- [CHANGELOG](./CHANGELOG.md): Complete change history.
 
 ## Model Visual Schematic
 
