@@ -154,7 +154,7 @@ get_snet <- function(quadprog_dir,
       select(importer_iso3c, exporter_iso3c, hs6, total_q)
     
     # Get country solutions ---------------------------------------------------------------
-    # read in all-country-est file in created in get_county_solutions.R for both solver output folers
+    # read in all-country-est file created in get_county_solutions.R for both solver output folers
     
     # build solver‐specific paths
     quad_hs_yr_dir <- file.path(quadprog_dir, hs_dir, analysis_year)
@@ -162,7 +162,7 @@ get_snet <- function(quadprog_dir,
     
     # pattern to match the combined all country RDS files
     rds_pattern <- paste0(
-      ".*_all-country-est_.*",        # any prefix + “_all-country-est_”
+      ".*_all-country-est_.*",     # any prefix + “_all-country-est_”
       analysis_year,               # “_<year>_”
       "_HS", HS_year_rep,          # “_HS<ver>”
       "\\.RDS$"
@@ -337,7 +337,7 @@ get_snet <- function(quadprog_dir,
                           "_", analysis_year, ".qs2"))
     
     # write out R environmental objects for validation and troubleshooting
-    if(analysis_year %in% c("1996", "2017", "2020")){
+    if(analysis_year %in% c(1996, 2017, 2020)){
 
       workspace_fp <- file.path(hs_analysis_year_dir, 
         paste0(file.date, "_workspace_create_snet_", estimate_type, "_HS", HS_year_rep, 
@@ -385,7 +385,7 @@ get_snet <- function(quadprog_dir,
                                        analysis_year,"_HS", HS_year_rep, ".qs2"))
     
         # write out R environmental objects for validation and troubleshooting
-    if(analysis_year %in% c("1996", "2017", "2020")){
+    if(analysis_year %in% c(1996, 2017, 2020)){
 
       workspace_fp <- file.path(hs_analysis_year_dir, 
         paste0(file.date, "_workspace_consumption_", estimate_type, "_HS", HS_year_rep, 
