@@ -21,7 +21,7 @@ library(rfishbase)
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()
-artis_version <- "v1.1.0"
+artis_version <- "v2.0"
 
 # Input data directory paths --------------------------------------------------
 datadir_raw <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data/model_inputs_raw_2.0"
@@ -63,7 +63,7 @@ test <- FALSE
 test_year <- c()
 
 # 02-artis-pipeline parameters ------------------------------------
-# set years to run - empty if all years [c()]
+# set years to run - empty if all years [c()], [c(2017)] or [c(2017,2020)] for subset of years
 test_years <- c(2017) 
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
