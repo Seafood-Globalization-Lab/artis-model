@@ -123,7 +123,7 @@ unknown_isscaap <- data.frame(sciname = c("arthropoda", "chondrichthyes",
 isscaap_metadata <- isscaap_metadata %>%
   bind_rows(unknown_isscaap)
 
-write.csv(isscaap_metadata, file.path(outdir_attribute, "isscaap_metadata.csv"), row.names = FALSE)
+write.csv(isscaap_metadata, file.path(datadir, "isscaap_metadata.csv"), row.names = FALSE)
 
 
 # Structure FAO prod -----------------------------------------------------

@@ -39,7 +39,7 @@ if (run_env == "aws") {
 # if it already exists
 if(dir.exists(outdir)) {
   warning(glue::glue("`{outdir}/` folder already exists, all contents are being deleted to create an empty folder."))
-  unlink(outdir, recursive = TRUE)
+  #unlink(outdir, recursive = TRUE)
 }
 dir.create(outdir)
 
@@ -47,7 +47,7 @@ dir.create(outdir)
 # solver quadprog. Will delete folder if it already exists
 if (dir.exists(outdir_quadprog)) {
   warning("quadprog output folder already exists, all contents are being deleted to create an empty folder.")
-  unlink(outdir_quadprog, recursive = TRUE)
+  #unlink(outdir_quadprog, recursive = TRUE)
 }
 dir.create(outdir_quadprog)
 
@@ -55,7 +55,7 @@ dir.create(outdir_quadprog)
 # and passes them into the python quadprog solver. All solutions are saved in the
 # quadprog solver output folder.
 
-message("Starting `get_country_solutions()` with quadprog solver")
+message(glue("Starting HS{hs_version_run} `get_country_solutions()` with quadprog solver"))
 
 if (run_env == "aws") {
   get_country_solutions(
@@ -132,7 +132,7 @@ if (run_env == "aws") {
 # solver quadprog. Will delete folder if it already exists
 if (dir.exists(outdir_cvxopt)) {
   warning("cvxopt output folder already exists, all contents are being deleted to create an empty folder.")
-  unlink(outdir_cvxopt, recursive = TRUE)
+  #unlink(outdir_cvxopt, recursive = TRUE)
 }
 dir.create(outdir_cvxopt)
 
