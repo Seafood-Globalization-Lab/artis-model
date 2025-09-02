@@ -154,7 +154,11 @@ prod_data <- prod_data_raw %>%
   mutate(habitat = case_when(str_detect(SciName, pattern = " ") & fb_habitat != fao_habitat & fb_habitat %in% c("inland", "marine") ~ fb_habitat,
                                  TRUE ~ fao_habitat)) %>% # ELSE, use FAO's habitat designation, including for all non species-level data
   # UPDATE taxa source to match structure in get country solutions
-  mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_")) %>% 
+  mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_")) 
+
+write.csv(prod_data, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
+
+prod_data <- prod_data %>% 
   group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en, area.code) %>%
   summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
   ungroup()
@@ -524,7 +528,7 @@ for(i in 1:length(HS_year)) {
   
   # Load and clean the live weight conversion factor data
   # These CF's convert from commodity to the live weight equivalent (min value is therefore 1, for whole fish)
-  set_match_criteria = "strict"
+  set_match_criteria = "strict" # FIXIT: AM 2025-08 this parameter can be moved to 00-local-setup.R
   hs_taxa_CF_match <- compile_cf(conversion_factors = read.csv(file.path(datadir_raw, "seafood_conversion_factors.csv"), stringsAsFactors = FALSE),
                                  eumofa_data = read.csv(file.path(datadir_raw, "EUMOFA_compiled.csv"), stringsAsFactors = FALSE),
                                  hs_hs_match,
@@ -736,8 +740,6 @@ if (test) {
 }
 
 write.csv(std_pop, file.path(datadir, "fao_annual_pop.csv"), row.names = FALSE)
-
-
 
 ################ Metadata tables
 
