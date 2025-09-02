@@ -15,10 +15,8 @@ if (!dir.exists(datadir)) {
   warning(glue::glue("Directory datadir `{datadir}` already exists!"))
 }
 
-
 # Load raw HS codes ------------------------------------------------------
 hs_data_raw <- read.csv(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "character")
-
 
 # Get fishbase data ------------------------------------------------------
 # Generate new fishbase and sealifebase data files
