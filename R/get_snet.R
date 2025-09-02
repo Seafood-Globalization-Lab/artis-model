@@ -57,7 +57,7 @@ get_snet <- function(quadprog_dir,
   V1_long <- data.frame(V1) %>%
     mutate(hs6 = colnames(V2)) %>% 
     pivot_longer(cols = -hs6, names_to = "SciName", values_to = "live_weight_cf") %>%
-    filter(live_weight_cf > 0) %>%
+    filter(live_weight_cf > 0) %>% ### BUG?? AM 2025-08-29 
     # Transform conversion factors to represent conversion from product to live
     mutate(live_weight_cf = 1/live_weight_cf)
   
