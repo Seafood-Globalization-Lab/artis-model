@@ -79,7 +79,7 @@ if (run_env == "aws") {
     test_year = test_years,
     prod_type = prod_data_type,
     solver_type = "quadprog",
-    num_cores = 1,
+    num_cores = 0,
     run_env = "demo",
     dev_mode = FALSE
   )
@@ -168,7 +168,7 @@ if (nrow(no_solve_countries) > 0) {
       prod_type = prod_data_type,
       solver_type = "cvxopt",
       no_solve_countries = no_solve_countries,
-      num_cores = 1,
+      num_cores = 0,
       run_env = "demo",
       dev_mode = FALSE
     )
