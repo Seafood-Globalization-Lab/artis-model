@@ -19,6 +19,8 @@ grateful-report.html
 man/*
 dev/*
 renv/*
+requirements.lock
+requirements_old_local.txt
 
 
 /.quarto/

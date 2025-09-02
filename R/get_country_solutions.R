@@ -1,4 +1,30 @@
+#' @importFrom dplyr filter select mutate if_else group_by summarize
+#' @importFrom stringr str_detect str_replace
+#' @importFrom future plan
+#' @importFrom future.apply future_lapply
+#' @importFrom reticulate py_run_string
+#' @importFrom aws.s3 save_object put_object
+#' @importFrom utils read.csv write.csv readRDS saveRDS
+#' #' Solve country mass balance problems in parallel
+#'
+#' @param num_cores Integer. Controls parallel worker allocation for solving
+#'   country-level mass balance problems within each year.
+#'
+#'   - `num_cores = 1` → **sequential mode** (no parallelism; useful for debugging).
+#'   - `num_cores = 0` or `NULL` → **auto mode**: use all available cores minus one
+#'     (to leave one free for the OS), then cap by the number of countries
+#'     to analyze for that year.
+#'   - `num_cores >= 2` → **explicit cap**: request that many workers, but will
+#'     still be capped at the number of countries for that year.
+#'
+#'   In all cases, the number of workers is
+#'   `min(requested_cores, length(countries_to_analyze))`.
+#'
+#'   Parallelization is implemented via [future.apply::future_lapply()] with a
+#'   `multisession` backend (safe with reticulate).
+
 #' @export
+#' 
 get_country_solutions <- function(datadir, 
                                   outdir, 
                                   hs_version = NA, 
@@ -41,6 +67,10 @@ get_country_solutions <- function(datadir,
   hs_dir <- setup_values[[23]]
   
   rm(setup_values)
+
+# parallel plan (safe with reticulate)
+on.exit(future::plan("sequential"), add = TRUE)
+
   
   # Analysis documentation: Only need this to be outputted once for entire
   # time series so save outside of analysis_year_loop.
@@ -277,17 +307,52 @@ convert = TRUE)
     
     # explicitly set inside parent environment
     dev_mode_logic <- dev_mode
+
+    #### Setup for for running `solve_country()` in parallel
+    reserve_for_os <- 1L
+    auto_max <- max(1L, as.integer(future::availableCores()) - reserve_for_os)
+
+    # Normalize user input
+    if (is.null(num_cores)) num_cores <- 0L
+    num_cores <- as.integer(num_cores)
+
+    if (num_cores == 1L) {
+      # Force sequential
+      if (!inherits(future::plan(), "sequential")) {
+        on.exit(future::plan("sequential"), add = TRUE)
+      }
+      future::plan("sequential")
+      workers_to_use <- 1L
+      message(sprintf(
+        "[parallel] Running sequentially (num_cores=%d, countries=%d)",
+        num_cores, length(countries_to_analyze)
+      ))
+    } else {
+      # Auto (0 or <0) or explicit (>=2)
+      requested <- if (num_cores <= 0L) auto_max else num_cores
+      workers_to_use <- min(requested, length(countries_to_analyze))
+      if (!inherits(future::plan(), "multisession")) {
+        on.exit(future::plan("sequential"), add = TRUE)
+      }
+      future::plan("multisession", workers = workers_to_use)
+      message(sprintf(
+        "[parallel] Running multisession with %d workers (requested=%d, auto_max=%d, countries=%d)",
+        workers_to_use, num_cores, auto_max, length(countries_to_analyze)
+      ))
+    }
+
     
     # Parallelize solution to country mass balance problems:
-    mclapply(countries_to_analyze,
-             solve_country,
-             solver_to_use = solver_type,
-             run_env = run_env,
-             s3_bucket_name = s3_bucket_name,
-             dev_mode_logic = dev_mode_logic,
-             mc.cores = num_cores,
-             mc.preschedule = FALSE
-             )
+    country_results <- future.apply::future_lapply(
+      countries_to_analyze,
+      solve_country,
+      solver_to_use  = solver_type,
+      run_env        = run_env,
+      s3_bucket_name = s3_bucket_name,
+      dev_mode_logic = dev_mode_logic,
+      future.seed    = TRUE
+    )
+
 
     # Read in individual country solutions and combine into a list
     output_files <- list.files(hs_analysis_year_dir)
