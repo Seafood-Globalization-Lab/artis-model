@@ -1,19 +1,16 @@
-#' @importFrom tidyr
-#' @importFrom dplyr
-#' @importFrom countrycode
+#' @import tidyr
+#' @import dplyr
+#' @import countrycode
+#' @import stringr
 #' @export
 
-#' Create standardize countries .csv correction key
-#' Connor Quiroz
-#' Created May 7, 2025
+# Create standardize countries .csv correction key
+# Connor Quiroz
+# Created May 7, 2025
 
-library(tidyr)
-library(dplyr)
-#library(tidyverse)
-library(countrycode)
-library(stringr)
 
-# FIX IT
+standardize_country_data <- function(){
+  
 
 # FUNCTION 1
 # 44 countries, 24 years of data baci data standardize_baci
@@ -240,5 +237,6 @@ bind_rows(standardize_prod) %>%
   bind_rows(standardize_sau_eez) %>%
   distinct(input_iso3c, output_iso3c, year, output_country_name)
 
-View(standardize_country_data)
+return(standardize_country_data)
 
+}
