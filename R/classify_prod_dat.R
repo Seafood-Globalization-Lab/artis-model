@@ -696,7 +696,16 @@ classify_prod_dat <- function(datadir,
   
   # Replace all empty values with NAs for consistent reporting
   prod_ts[prod_ts == ""] <- NA
-  
+
+  ################## Temp 2025-08 fix for symbol bug e.g. "perciformes/percoidei_marine_capture" 
+  prod_ts <- prod_ts %>%
+    mutate(SciName = case_when(
+      # collapse perciformes/whatever into perciformeswhatever
+      str_detect(SciName, regex("^perciformes/", ignore_case = TRUE)) ~
+      str_replace(SciName, "/", ""),
+      TRUE ~ SciName))
+  #################
+
   # Fill in Missing Phyla  
   prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
     mutate(Phylum = case_when(
@@ -743,6 +752,11 @@ classify_prod_dat <- function(datadir,
       SciName == "sipunculus nudus" ~ "annelida",
       TRUE ~ Phylum
     )) %>%
+    mutate(SciName = case_when(
+      # collapse perciformes/whatever into perciformeswhatever
+      str_detect(SciName, regex("^perciformes/", ignore_case = TRUE)) ~
+      str_replace(SciName, "/", ""),
+      TRUE ~ SciName)) %>%
     # Only keep taxa represented within prod
     filter(SciName %in% prod_ts$SciName)
       

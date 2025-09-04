@@ -5,7 +5,7 @@ create_reweight_X_long <- function(country_est, V1, V2) {
   
   reweight_X_long <- data.frame()
   for(i in 1:length(countries_to_analyze)){
-    tmp <- reweight_X(country_est, countries_to_analyze[i], V1, V2)
+    tmp <- reweight_X(country_est, country_j = countries_to_analyze[i], V1, V2)
     reweight_X_long <- reweight_X_long %>%
       bind_rows(tmp)
   }
