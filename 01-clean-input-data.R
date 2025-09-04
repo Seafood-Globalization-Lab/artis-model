@@ -49,7 +49,6 @@ prod_taxa_classification <- prod_list[[2]]
 # remove large environmental object
 rm(prod_list)
 
-
 # Structure FAO prod taxa classification ---------------------------------
 prod_taxa_classification <- prod_taxa_classification %>%
   # Manually assign missing habitat coding
@@ -534,6 +533,7 @@ for(i in 1:length(HS_year)) {
                                  match_criteria = set_match_criteria,
                                  fb_slb_dir = current_fb_slb_dir)
   
+  ##### Data Check ######
   # Check that everything in HS taxa match has a conversion factor value
   hs_taxa_matches <- hs_taxa_match %>%
     mutate(taxa_matches = paste(Code, SciName, sep = "_")) %>%

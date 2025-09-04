@@ -278,6 +278,12 @@ if (nrow(added_cols_log) > 0 ) {
 
 # In order to run this species/taxa assessment between versions, Need to run 01-clean-input-data.R through "SAVE PRODUCTION OUTPUT" to write out clean_fao_taxa.csv
 
+# FIXIT / NOTE: This compares cleaned model inputs. To get a more stable comparison of raw data
+# using rebuild_fao_[yyyy]_data.R here and then comparing species list would be more
+# revealing of differences imporant for updating the 01-clean-input-data.R script and 
+# classify_prod_dat.R function for new and retired species names.
+
+
 ##### Changes in species using prod
 input_dir_old <- file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_1.1.0_FAO")
 input_dir_new <- file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_2.0_FAO")
@@ -385,7 +391,7 @@ tax_diffs_long %>% gt()
 #| results: 'asis'
 
 terms <- c("actinoptergii","actinopterygii","osteichthyes","teleostei")
-fields_to_check <- intersect(c("Class","Superclass"), tax_ranks)
+fields_to_check <- c("Class","Superclass")
 
 audit_field <- function(df, field){
   df %>%

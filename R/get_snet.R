@@ -216,6 +216,8 @@ get_snet <- function(quadprog_dir,
     # Determine most specific clade of each HS code (but if clade is not reported
     # in production data (i.e., hs_taxa_match$SciName), return NA)
     # To match to clade, even if not reported in production data, set match_to_prod to FALSE
+
+    # FIXIT: AM 2025-08 Move to 01-clean-input-data.R 
     hs_clade_match <- match_hs_to_clade(
       hs_taxa_match = read.csv(
         file.path(datadir, paste0("hs-taxa-match_HS", HS_year_rep, ".csv"))) %>%
