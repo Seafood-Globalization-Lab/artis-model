@@ -33,6 +33,8 @@ tradedatadir <- file.path(datadir_raw, "baci_raw")
 # Model output directory paths --------------------------------------------
 # Directory where ARTIS database will be generated
 outdir <- "~/Documents/UW-SAFS/ARTIS/data/outputs_2.0_FAO"
+
+# Don't change this bit #############
 # Path for sub folder within outputs that will contain all country-level solutions
 # to mass balance equation, solved using the python solver "quadprog"
 outdir_quadprog <- file.path(outdir, "quadprog_snet")
@@ -101,7 +103,7 @@ dir.create(outdir_cvxopt)
 # if it already exists
 if(dir.exists(outdir_snet)) {
   warning("ARTIS snet output folder already exists, all contents are being deleted to create an empty folder.")
-  unlink(outdir_snet, recursive = TRUE)
+  #unlink(outdir_snet, recursive = TRUE)
 }
 dir.create(outdir_snet)
 
