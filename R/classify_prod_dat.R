@@ -196,16 +196,18 @@ classify_prod_dat <- function(datadir,
           SciName == "batoidea or batoidimorpha (hypotremata)" ~ "batoidea",
           SciName == "selachii or selachimorpha (pleurotremata)" ~ "selachii",
 
-          SciName == "osteichthyes" ~ "actinopterygii",
+          # fishbase updated class from actinoptergi to teleostei
+          # we decided to lump all actinoptergygii as osteichthyes 
+          SciName == "actinopterygii" ~ "osteichthyes", 
 
           # FIXIT: Repull rfishbase data and remove this section once species are 
-          # verified in the record 
-          SciName == "lophiosilurus apurensis" ~ "actinopterygii",
-          SciName == "orthopristis chalcea" ~ "actinopterygii",
-          SciName == "meuschenia scabra" ~ "actinopterygii",
-          SciName == "ratabulus prionotus" ~ "actinopterygii",
+          # verified in the record - currently are not listed at all 2025-09
+          SciName == "lophiosilurus apurensis" ~ "osteichthyes",
+          SciName == "orthopristis chalcea" ~ "osteichthyes",
+          SciName == "meuschenia scabra" ~ "osteichthyes",
+          SciName == "ratabulus prionotus" ~ "osteichthyes",
           # FIXIT: Temporary change to genus - remove once these specie are added to rfishbase 
-          # data version (show on fishbase website search). FAO 2023 is using rfishbase "latest" version "24.07"
+          # data version (show on fishbase website search). FAO 2025 is using rfishbase "latest" version "24.07"
           SciName == "bodianus parrae" ~ "bodianus",
           SciName == "bodianus pulcher" ~ "bodianus",
           SciName == "haemulopsis nitida" ~ "haemulopsis",
@@ -311,7 +313,7 @@ classify_prod_dat <- function(datadir,
                                  SciName == 'macrostrombus costatus' ~ 'strombidae', # Move from species to family name for identification
                                  SciName == 'phrontis vibex' ~ 'nassarius vibex',
                                  SciName == 'sinistrofulgur sinistrum' ~ 'neogastropoda', # Move from species to order
-                                 SciName == "osteichthyes" ~ "actinopterygii",
+                                 SciName == "actinopterygii" ~ "osteichthyes",
                                  TRUE ~ SciName)) 
     
     prod_ts$Species01 <- 0
@@ -665,6 +667,7 @@ classify_prod_dat <- function(datadir,
     filter(Freq > 1) %>%
     pull(Var1)
   
+  ## FIXIT: This needs a warning or this needs to be a different process that is not silent - introduces NAs. 
   # Check, in each of these cases, there is a discrepancy in the classification scheme: prod_taxa_classification %>% filter(SciName %in% classification_to_fix)
   # Standardize them by inserting NA for when there is a discrepancy
   prod_taxa_fix <- NULL
@@ -734,32 +737,36 @@ classify_prod_dat <- function(datadir,
   # Fill in missing rows for perciformes and bryozoa
   prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
     bind_rows(
-      data.frame(SciName = c("perciformes", "actinopterygii", "scorpaeniformes",  "batoidea", "selachii"),
-                 CommonName = c("tuna-like fishes nei", "ray-finned fishes", "mail-cheeked fishes", "rays", "sharks"),
+      data.frame(SciName = c("perciformes", "scorpaeniformes",  "batoidea", "selachii"),
+                 CommonName = c("tuna-like fishes nei", "mail-cheeked fishes", "rays", "sharks"),
                  Genus = NA,
                  Subfamily = NA,
                  Family = NA,
-                 Order = c("perciformes", NA, "scorpaeniformes", NA, NA),
-                 Infraclass = c(NA, NA, NA, "batoidea",  "selachii"),
-                 Class = c("actinopterygii", "actinopterygii", "actinopterygii", "elasmobranchii", "elasmobranchii"),
+                 Order = c("perciformes", "scorpaeniformes", NA, NA),
+                 Infraclass = c(NA, NA, "batoidea",  "selachii"),
+                 Class = c("teleostei", "eleostei", "elasmobranchii", "elasmobranchii"),
                  Superclass = NA,
-                 Phylum = c("chordata", "chordata", "chordata", "chordata", "chordata"),
-                 Kingdom = c("animalia", "animalia", "animalia", "animalia", "animalia"),
+                 Phylum = c("chordata", "chordata", "chordata", "chordata"),
+                 Kingdom = c("animalia", "animalia", "animalia", "animalia"),
                  Aquarium = NA,
                  Fresh01 = NA,
                  Brack01 = NA, 
                  Saltwater01 = NA)
-    ) %>%
+    ) %>% 
     # Special case Phylum for
     mutate(Phylum = case_when(
       SciName == "sipunculus nudus" ~ "annelida",
       TRUE ~ Phylum
     )) %>%
     mutate(SciName = case_when(
-      # collapse perciformes/whatever into perciformeswhatever
+      # collapse perciformes/whatever into perciformessomething
       str_detect(SciName, regex("^perciformes/", ignore_case = TRUE)) ~
       str_replace(SciName, "/", ""),
       TRUE ~ SciName)) %>%
+    mutate(CommonName = case_when(
+      SciName == "osteichthyes" ~ "ray-finned fishes", 
+      TRUE ~ CommonName
+    )) %>%
     # Only keep taxa represented within prod
     filter(SciName %in% prod_ts$SciName)
       
@@ -791,7 +798,5 @@ if (length(missing_scinames) > 0) {
 }
   
   return(list(prod_ts, prod_taxa_classification_clean))
-  
-  # NOTE: resulting tibble is allowed to have duplicate scientific names (but each should have a different CommonName)
   
 }
