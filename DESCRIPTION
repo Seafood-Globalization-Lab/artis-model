@@ -42,6 +42,8 @@ Imports:
     magrittr,
     Matrix,
     parallel,
+    doParallel,
+    foreach,
     readxl,
     reticulate,
     slam,
