@@ -1,11 +1,4 @@
-#' @importFrom dplyr filter select mutate if_else group_by summarize
-#' @importFrom stringr str_detect str_replace
-#' @importFrom future plan
-#' @importFrom future.apply future_lapply
-#' @importFrom reticulate py_run_string
-#' @importFrom aws.s3 save_object put_object
-#' @importFrom utils read.csv write.csv readRDS saveRDS
-#' #' Solve country mass balance problems in parallel
+#' Solve country mass balance problems in parallel
 #'
 #' @param num_cores Integer. Controls parallel worker allocation for solving
 #'   country-level mass balance problems within each year.
@@ -22,7 +15,14 @@
 #'
 #'   Parallelization is implemented via [future.apply::future_lapply()] with a
 #'   `multisession` backend (safe with reticulate).
-
+#' 
+#' @importFrom dplyr filter select mutate if_else group_by summarize
+#' @importFrom stringr str_detect str_replace
+#' @importFrom future plan
+#' @importFrom future.apply future_lapply
+#' @importFrom reticulate py_run_string
+#' @importFrom aws.s3 save_object put_object
+#' @importFrom utils read.csv write.csv
 #' @export
 #' 
 get_country_solutions <- function(datadir, 
