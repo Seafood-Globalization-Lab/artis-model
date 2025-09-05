@@ -339,7 +339,7 @@ get_snet <- function(quadprog_dir,
                           "_", analysis_year, ".qs2"))
     
     # write out R environmental objects for validation and troubleshooting
-    if(analysis_year %in% c(1996, 2017, 2020)){
+    if(run_env != "aws"){
 
       workspace_fp <- file.path(hs_analysis_year_dir, 
         paste0(file.date, "_workspace_create_snet_", estimate_type, "_HS", HS_year_rep, 
@@ -387,7 +387,7 @@ get_snet <- function(quadprog_dir,
                                        analysis_year,"_HS", HS_year_rep, ".qs2"))
     
         # write out R environmental objects for validation and troubleshooting
-    if(analysis_year %in% c(1996, 2017, 2020)){
+    if(run_env != "aws"){
 
       workspace_fp <- file.path(hs_analysis_year_dir, 
         paste0(file.date, "_workspace_consumption_", estimate_type, "_HS", HS_year_rep, 
