@@ -196,12 +196,14 @@ classify_prod_dat <- function(datadir,
           SciName == "batoidea or batoidimorpha (hypotremata)" ~ "batoidea",
           SciName == "selachii or selachimorpha (pleurotremata)" ~ "selachii",
 
+          SciName == "osteichthyes" ~ "actinopterygii",
+
           # FIXIT: Repull rfishbase data and remove this section once species are 
           # verified in the record 
-          SciName == "lophiosilurus apurensis" ~ "osteichthyes",
-          SciName == "orthopristis chalcea" ~ "osteichthyes",
-          SciName == "meuschenia scabra" ~ "osteichthyes",
-          SciName == "ratabulus prionotus" ~ "osteichthyes",
+          SciName == "lophiosilurus apurensis" ~ "actinopterygii",
+          SciName == "orthopristis chalcea" ~ "actinopterygii",
+          SciName == "meuschenia scabra" ~ "actinopterygii",
+          SciName == "ratabulus prionotus" ~ "actinopterygii",
           # FIXIT: Temporary change to genus - remove once these specie are added to rfishbase 
           # data version (show on fishbase website search). FAO 2023 is using rfishbase "latest" version "24.07"
           SciName == "bodianus parrae" ~ "bodianus",
@@ -280,12 +282,12 @@ classify_prod_dat <- function(datadir,
       # First do some cleaning of SciNames
       # List of fixes comes from finding SciNames that do not match to either the fishbase classification database or fishbase synonyms function in downstream code
       # Address non-scientific names
-      mutate(SciName = case_when(SciName == "marine finfishes not identified" ~ "osteichthyes", 
-                                 SciName == "marine fishes not identified" ~ "osteichthyes",
-                                 SciName == "marine groundfishes not identified" ~ "osteichthyes",
-                                 SciName == "marine pelagic fishes not identified" ~ "osteichthyes", 
+      mutate(SciName = case_when(SciName == "marine finfishes not identified" ~ "actinopterygii", 
+                                 SciName == "marine fishes not identified" ~ "actinopterygii",
+                                 SciName == "marine groundfishes not identified" ~ "actinopterygii",
+                                 SciName == "marine pelagic fishes not identified" ~ "actinopterygii", 
                                  SciName == "miscellaneous aquatic invertebrates" ~ "asteroidea", # assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum, ascidians would be omitted as chordata)
-                                 SciName == "miscellaneous diadromous fishes" ~ "osteichthyes",
+                                 SciName == "miscellaneous diadromous fishes" ~ "actinopterygii",
                                  SciName == "miscellaneous marine crustaceans" ~ "malacostraca", # assuming some sort of crab/lobster/shrimp/prawn/crayfish crustacean
                                  
                                  # Names not recognized by fish/sealifebase, just go up one (in some cases, down) one level in classification
@@ -309,6 +311,7 @@ classify_prod_dat <- function(datadir,
                                  SciName == 'macrostrombus costatus' ~ 'strombidae', # Move from species to family name for identification
                                  SciName == 'phrontis vibex' ~ 'nassarius vibex',
                                  SciName == 'sinistrofulgur sinistrum' ~ 'neogastropoda', # Move from species to order
+                                 SciName == "osteichthyes" ~ "actinopterygii",
                                  TRUE ~ SciName)) 
     
     prod_ts$Species01 <- 0
@@ -358,7 +361,7 @@ classify_prod_dat <- function(datadir,
           TRUE ~ Family01
         ),
         Other01 = case_when(
-          SciName == 'osteichthyes' ~ 1,
+          SciName == 'actinopterygii' ~ 1,
           SciName == 'pleuronectoidei' ~ 1,
           SciName == 'mytilida' ~ 1, # Order of molluscs
           SciName == 'rhizostomeae' ~ 1, # order of jellyfish
