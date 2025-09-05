@@ -67,19 +67,31 @@ initial_variable_setup <- function(datadir,
   #-----------------------------------------------------------------------------
   # Step 2: Loop through all years for each HS code year
   
-  # List of possible HS versions: HS92, HS96, HS02, HS12, HS17
-  # No need to do HS92 when using BACI though as that data starts in 1996
-  df_years <- data.frame(HS_year = c(rep("96", length(1996:2020)),
-                                     rep("02", length(2002:2020)),
-                                     rep("07", length(2007:2020)),
-                                     rep("12", length(2012:2020)),
-                                     rep("17", length(2017:2020))),
-                         analysis_year = c(1996:2020, 2002:2020, 2007:2020,
-                                           2012:2020, 2017:2020))
+# Only change df_years when incorporating new HS version
+# List of possible HS versions: HS96, HS02, HS07, HS12, HS17
+
+# change this when ingesting new data with new years represented 
+max_year <- 2023
+
+# List of possible HS versions: HS96, HS02, HS07, HS12, HS17
+# No need to do HS92 when using BACI though as that data starts in 1996
+df_years <- data.frame(HS_year = c(rep("96", length(1996:max_year)),
+                                   rep("02", length(2002:max_year)),
+                                   rep("07", length(2007:max_year)),
+                                   rep("12", length(2012:max_year)),
+                                   rep("17", length(2017:max_year))),
+                                   # add new HS version here
+                       analysis_year = c(1996:max_year, 
+                                          2002:max_year, 
+                                          2007:max_year,
+                                          2012:max_year, 
+                                          2017:max_year
+                                          # add new HS years version here
+                                        ))
   
   #-----------------------------------------------------------------------------
-  # Choose single HS (this will change for each file submitted to Zorro - 
-  # run one HS code per Zorro submission)
+  # Choose single HS. initial_variable_setup.R is called within each run of 02-artis-pipeline.R which
+  # only runs a single HS version. (Jobs submitted to AWS Batch using 02 are broken up by HS version).
   
   HS_year_rep <- hs_version
   

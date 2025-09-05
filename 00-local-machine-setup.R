@@ -6,17 +6,21 @@
 library(artis)
 library(data.table)
 library(magrittr)
-library(Matrix)
-library(parallel)
-library(reticulate)
-library(slam)
-library(tidyverse)
-library(doParallel)
-library(aws.s3)
-library(arrow)
-library(countrycode)
 library(glue)
-library(qs2)
+library(dplyr)
+library(stringr)
+library(tidyr)
+#library(Matrix)
+#library(parallel)
+library(reticulate)
+#library(slam)
+#library(tidyverse)
+#library(doParallel)
+#library(aws.s3)
+library(arrow)
+#library(countrycode)
+library(glue)
+#library(qs2)
 library(rfishbase)
 
 # Set up Start date for finding no solution countries
@@ -56,16 +60,17 @@ outdir_sql <- file.path(outdir, "sql_database")
 running_sau <- FALSE
 ## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
 need_new_fb_slb <- FALSE
-# List of possible HS versions: HS96, HS02, HS12, HS17
-#HS_year <- c("96", "02", "07", "12", "17")
-HS_year <- c("12")
+
+
 # AM - I think this is leftover code - can set HS year and year for running tests
 test <- FALSE
 test_year <- c()
 
 # 02-artis-pipeline parameters ------------------------------------
 # set years to run - empty if all years [c()], [c(2017)] or [c(2017,2020)] for subset of years
-test_years <- c(2017) 
+#test_years <- c(2023) 
+#test_years <- c(2017)
+test_years <- c()
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
 # Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
@@ -73,6 +78,33 @@ prod_data_type <- "FAO"
 dev_mode <- FALSE
 
 # hs_version_run is set in 02-artis-pipeline because of current `artis-hpc` setup
+
+# Create HS version / year assignments -----------------------------------
+
+# Only change df_years when incorporating new HS version
+# List of possible HS versions: HS96, HS02, HS07, HS12, HS17
+
+# change this when ingesting new data with new years represented 
+max_year <- 2023
+
+# List of possible HS versions: HS96, HS02, HS07, HS12, HS17
+# No need to do HS92 when using BACI though as that data starts in 1996
+df_years <- data.frame(HS_year = c(rep("96", length(1996:max_year)),
+                                   rep("02", length(2002:max_year)),
+                                   rep("07", length(2007:max_year)),
+                                   rep("12", length(2012:max_year)),
+                                   rep("17", length(2017:max_year))),
+                                   # add new HS version here
+                       analysis_year = c(1996:max_year, 
+                                          2002:max_year, 
+                                          2007:max_year,
+                                          2012:max_year, 
+                                          2017:max_year
+                                          # add new HS version here
+                                        ))
+
+## NOTE: If updating df_years here - you also need to update in ./R/initial_variable_setup.R which 
+# creates and makes df_years available for running all functions in 02-artis-pipeline.R
 
 # Create ARTIS directory architecture ------------------------------------
 
@@ -119,7 +151,7 @@ if (!dir.exists(outdir_sql)) { dir.create(outdir_sql) }
 #use_python(python_path, required = TRUE)
 
 python_path <- file.path(getwd(), "venv")
-use_virtualenv(python_path, required = TRUE)
+reticulate::use_virtualenv(python_path, required = TRUE)
 
 # empty AWS values --------------------------------------------------------
 # need explicit empty AWS values when running locally - do not change

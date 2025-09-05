@@ -8,13 +8,6 @@ rm(list=ls())
 # Local Machine Configuration setup
 source("00-local-machine-setup.R")
 
-# Creating folder for clean data if necessary
-if (!dir.exists(datadir)) {
-  dir.create(datadir)
-} else {
-  warning(glue::glue("Directory datadir `{datadir}` already exists!"))
-}
-
 # Load raw HS codes ------------------------------------------------------
 hs_data_raw <- read.csv(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "character")
 
@@ -218,7 +211,7 @@ write.csv(prod_classification_sau, file.path(datadir, "clean_sau_taxa.csv"),
 # initial country name cleaning and adding iso3c for SAU data
 prod_data_sau <- prod_data_sau %>%
   mutate(country_name_en = str_remove(country_name_en, ' \\(.+\\)$')) %>%
-  mutate(country_iso3_alpha = countrycode(country_name_en, origin = 'country.name', destination = 'iso3c')) %>%
+  mutate(country_iso3_alpha = countrycode::countrycode(country_name_en, origin = 'country.name', destination = 'iso3c')) %>%
   # Renaming for standardize countries function later
   mutate(country_name_en = case_when(
     country_name_en == 'Channel Isl.' ~ 'Channel Islands',
@@ -239,7 +232,7 @@ prod_data_sau <- prod_data_sau %>%
     country_name_en == 'Unknown Fishing Country' ~ 'NEI',
     TRUE ~ country_iso3_alpha
   )) %>%
-  mutate(country_iso3_numeric = countrycode(country_iso3_alpha, 
+  mutate(country_iso3_numeric = countrycode::countrycode(country_iso3_alpha, 
                                             origin = 'iso3c', 
                                             destination = 'iso3n'))
 
@@ -317,12 +310,14 @@ fmfo_species <- get_fmfo_species(
 
 write.csv(fmfo_species, file.path(datadir_raw, 'fmfo_species_list.csv'), row.names = FALSE)
 
+# Get HS years for data cleaning loops below
+HS_year <- unique(df_years$HS_year)
+
 if (test) {
   HS_year <- HS_year[HS_year %in% test_hs]
   hs_data_clean <- hs_data_clean %>%
     filter(Code %in% test_codes)
 }
-
 
 # Loop HS versions through match funs and cf's --------------------------------
 for(i in 1:length(HS_year)) {
@@ -568,15 +563,7 @@ for(i in 1:length(HS_year)) {
 # Load trade (BACI) data, filter to just seafood products, and standardize countries between production and trade data
 # Create data frame with all hs year and analysis year combinations
 
-# List of possible HS versions: HS96, HS02, HS12, HS17
-# No need to do HS92 when using BACI though as that data starts in 1996
-df_years <- data.frame(HS_year = c(rep("96", length(1996:2020)),
-                                   rep("02", length(2002:2020)),
-                                   rep("07", length(2007:2020)),
-                                   rep("12", length(2012:2020)),
-                                   rep("17", length(2017:2020))),
-                       analysis_year = c(1996:2020, 2002:2020, 2007:2020,
-                                         2012:2020, 2017:2020))
+# df_years dataframe contains all HS version and year pairs. Created in 00-local-machine-setup.R
 
 if (test) {
   df_years <- df_years %>%
@@ -589,15 +576,15 @@ if (test) {
 
 #### Filter raw baci data #######
 for (i in 1:nrow(df_years)){
-  HS_year <- df_years[i,]$HS_year
+  a_HS_year <- df_years[i,]$HS_year
   analysis_year <- df_years[i,]$analysis_year
-  print(paste(HS_year, analysis_year))
+  print(glue("HS{a_HS_year} {analysis_year}"))
   
   # Creating out folder if necessary
-  if (!file.exists(file.path(datadir_raw, paste("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))) {
+  if (!file.exists(file.path(datadir_raw, paste("filtered_BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))) {
     baci_data_i <- read.csv(file = file.path(tradedatadir, 
-                                           paste("BACI_", "HS", HS_year, "_V", baci_version, sep = ""),
-                                           paste("BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
+                                           paste("BACI_", "HS", a_HS_year, "_V", baci_version, sep = ""),
+                                           paste("BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
                           stringsAsFactors = FALSE)
     
     baci_data_i  <- baci_data_i  %>%
@@ -609,28 +596,28 @@ for (i in 1:nrow(df_years)){
       baci_data_i ,
       hs_codes = as.numeric(unique(hs_data_clean$Code)),
       baci_country_codes = read.csv(file.path(tradedatadir, 
-                                              paste("BACI_", "HS", HS_year, "_V", baci_version, sep = ""),
+                                              paste("BACI_", "HS", a_HS_year, "_V", baci_version, sep = ""),
                                               paste("country_codes_V", baci_version, ".csv", sep = "")))
     )
     
-    write.csv(baci_data_i, file.path(datadir_raw, paste("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
+    write.csv(baci_data_i, file.path(datadir_raw, paste("filtered_BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
               row.names = FALSE)
   } else {
-    print("Filtered BACI file already exists")
+    print(glue("Filtered BACI HS{a_HS_year} {analysis_year} file already exists. Skipping to next HS/year pair."))
     }
   } 
 
 #### Standardize BACI data ####
 for (i in 1:nrow(df_years)){
-  HS_year <- df_years[i,]$HS_year
+  a_HS_year <- df_years[i,]$HS_year
   analysis_year <- df_years[i,]$analysis_year
-  print(paste(HS_year, analysis_year))
+  print(glue("standardize BACI {a_HS_year} {analysis_year}"))
   
-  baci_data <- read.csv(file.path(datadir_raw, paste("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))
+  baci_data <- read.csv(file.path(datadir_raw, paste("filtered_BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))
   
   baci_data <- baci_data %>%
     mutate(year = analysis_year,
-           hs_version = paste("HS", HS_year, sep = ""))
+           hs_version = paste("HS", a_HS_year, sep = ""))
   
   baci_data <- standardize_countries(baci_data, "BACI")
   
@@ -638,14 +625,14 @@ for (i in 1:nrow(df_years)){
   write.csv(
     baci_data %>%
       select(-c(total_v)),
-    file.path(datadir, paste("standardized_baci_seafood_hs", HS_year, "_y", analysis_year, ".csv", sep = "")),
+    file.path(datadir, paste("standardized_baci_seafood_hs", a_HS_year, "_y", analysis_year, ".csv", sep = "")),
     row.names = FALSE
   )
 
   # BACI output with total and unit value
   write.csv(
     baci_data,
-    file.path(datadir, paste("standardized_baci_seafood_hs", HS_year, "_y", analysis_year, "_including_value.csv", sep = "")),
+    file.path(datadir, paste("standardized_baci_seafood_hs", a_HS_year, "_y", analysis_year, "_including_value.csv", sep = "")),
     row.names = FALSE
   )
 }
@@ -700,7 +687,7 @@ clean_pop <- clean_pop %>%
     TRUE ~ country_name
   )) %>%
   mutate(
-    iso3c = countrycode(country_name, "country.name", "iso3c")
+    iso3c = countrycode::countrycode(country_name, "country.name", "iso3c")
   ) %>%
   mutate(
     iso3c = case_when(
@@ -868,7 +855,7 @@ hs_clade_match <- data.frame(Code = character(),
                              classification_level = character(),
                              hs_version = character())
 
-for(i in c("96", "02", "07", "12", "17")){
+for(i in HS_year){
   HS_year_rep <- i
   
   hs_taxa_match_i <- read.csv(file.path(datadir, paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = "")))
