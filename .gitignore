@@ -22,5 +22,5 @@ renv/*
 requirements.lock
 requirements_old_local.txt
 
-
+*.html
 /.quarto/
