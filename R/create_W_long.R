@@ -1,4 +1,30 @@
+#' Create long-form W matrix by country in parallel. W is the estimates of 
+#' the proportion of a given imported product that converts to each other product
+#'
+#' Reformat each country's W matrix into a long data frame and bind them
+#' together in parallel.
+#'
+#' @param country_est A named list where each element has a matrix `W`
+#'   (rows = processed hs6, cols = original hs6) for that country.
+#' @param num_cores Integer number of parallel workers for the cluster.
+#'
+#' @return A data frame with columns:
+#'   `hs6_processed`, `hs6_original`, `exporter_iso3c`, `estimated_W`.
+#'
+#' @details Uses `foreach` + `doParallel` with `parallel::makeCluster(type = "FORK")`.
+#'   On Windows, use `"PSOCK"` instead of `"FORK"`.
+#'
+#' @importFrom parallel makeCluster stopCluster
+#' @importFrom doParallel registerDoParallel
+#' @importFrom foreach foreach %dopar%
+#' @importFrom tibble rownames_to_column
+#' @importFrom tidyr pivot_longer
+#' @importFrom dplyr mutate filter
+#' @importFrom stringr str_extract
+#' @importFrom magrittr %>%
+#'
 #' @export
+
 create_W_long <- function(country_est, num_cores) {
   # Creating reweighted W long that finds proportion of hs6 processed codes that
   # come from hs6 original codes outlines how much hs6 original code gets
