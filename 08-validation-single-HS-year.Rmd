@@ -1,26 +1,40 @@
 ---
-title: "08-validation-single-HS-year"
+title: "08-validation — single HS year"
 author: "Althea Marks"
-date: 
 output: html_document
+params:
+  hs_version: "HS12"
+  single_year: "2023"
 ---
+
+```{r instructions, eval=FALSE}
+# Run this in the console to render this document using different parameters.
+# Change output_file name to differenciate from default "08-validation-single-HS-year.html"
+rmarkdown::render(
+  "08-validation-single-HS-year.Rmd",
+  params = list(hs_version = "HS17", single_year = "2019"),
+  output_file = "08-validation-HS17-2019.html"
+)
+```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, 
                       fig.width = 6, fig.height = 4)
 ```
 
-```{r load packages}
+```{r load-packages}
 library(arrow)
 library(data.table)
 library(tidyverse)
 library(exploreARTIS)
 library(qs2)
+library(glue)
 ```
 
-```{r load data}
-hs_version <- "HS12"
-single_year <- "2017"
+```{r load-data}
+hs_version  <- params$hs_version
+single_year <- params$single_year
+artis_v <- "v2.0"
 
 inputs_dir <- file.path("/Users/theamarks/Documents/UW-SAFS/ARTIS/data/model_inputs_2.0_FAO")
 db_folder <- file.path("/Users/theamarks/Documents/UW-SAFS/ARTIS/data/outputs_2.0_FAO")
@@ -43,13 +57,19 @@ consump_data <- qs2::qd_read(consump_fp)
 
 # read in attribute tables
 prod <- fread(file.path(attribute_dir, "prod.csv"), data.table = FALSE)
-baci <- fread(file.path(attribute_dir, "baci.csv"), data.table = FALSE)
+prod <- prod %>%
+  filter(year == as.numeric(single_year))
+
+baci_fp <- glue("standardized_baci_seafood_{tolower(hs_version)}_y{single_year}.csv")
+baci <- fread(file.path(inputs_dir, baci_fp), data.table = FALSE)
 sciname <- fread(file.path(attribute_dir, "sciname.csv"), data.table = FALSE)
 code_max_resolved_taxa <- fread(file.path(inputs_dir, "code_max_resolved_taxa.csv"), data.table = FALSE)
 
 # Set parameters
 max_year <- max(trade_data$year)
 ```
+
+**`r hs_version` - `r single_year` - ARTIS `r artis_v`**
 
 ```{r restructure-data-for-comparison}
 # create table to compare with baci
@@ -80,9 +100,6 @@ foreign_consumption_totals <- consump_data %>%
 
 ```
 
-
-# QA testing
-
 ## Compare ARTIS trade with BACI
 
 When grouped by year, exporter, importer and HS code, ARTIS trade data should generally sum to BACI in terms of product weight. Volumes are expected to be slightly lower in ARTIS trade data than BACI due to small values dropped within the ARTIS model.
@@ -94,7 +111,8 @@ baci <- trade_hs_summary %>%
   select(hs_version, hs6) %>%
   distinct() %>%
   mutate(hs6 = as.numeric(hs6)) %>%
-  left_join(baci, by = c("hs_version", "hs6"))
+  left_join(baci %>% filter(year == as.numeric(single_year)), by = c("hs_version", "hs6"))
+  
 
 # Join BACI and ARTIS trade to calculate product volume total differences
 # by hs version, year, exporter, importer and hs6 code
@@ -102,11 +120,12 @@ baci_check <- trade_hs_summary %>%
   rename("artis_product_weight_t" = "product_weight_t") %>%
   mutate(hs6 = as.numeric(hs6)) %>%
   full_join(baci %>%
-              rename("baci_product_weight_t" = "product_weight_t"), 
+              rename("baci_product_weight_t" = "total_q"), 
             by = c("hs_version", "year", 
                          "exporter_iso3c", "importer_iso3c", "hs6")) %>% 
   mutate(diff = baci_product_weight_t - artis_product_weight_t) %>% 
-  arrange(desc(diff))
+  arrange(desc(diff)) %>%
+  filter(exporter_iso3c != "NEI")
 
 baci_check_na <- baci_check %>%
   filter(is.na(diff)) 
