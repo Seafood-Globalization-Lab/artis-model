@@ -192,7 +192,7 @@ on.exit(future::plan("sequential"), add = TRUE)
     cat(paste("country", "condition_number\n", sep=","))
     sink()
     
-    print(ls())
+    #print(ls())
     
     # Create function to mass balance an individual country,
     # then use mclapply to parallelize the function
