@@ -243,8 +243,7 @@ prod_data_sau <- standardize_countries(prod_data_sau, "FAO")
 prod_data_sau <- prod_data_sau %>% 
   group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, 
            country_name_en, gear, eez, sector, end_use) %>% 
-  summarise(quantity = sum(quantity)) %>%
-  ungroup()
+  summarise(quantity = sum(quantity), .groups = "drop") 
 
 write.csv(prod_data_sau, file.path(datadir, 'standardized_sau_prod_more_cols.csv'), 
           row.names = FALSE)
@@ -252,8 +251,7 @@ write.csv(prod_data_sau, file.path(datadir, 'standardized_sau_prod_more_cols.csv
 prod_data_sau <- prod_data_sau %>% 
     group_by(SciName,  year, taxa_source, habitat, prod_method, 
              country_iso3_alpha, country_name_en) %>% 
-    summarise(quantity = sum(quantity)) %>%
-    ungroup()
+    summarise(quantity = sum(quantity), .groups = "drop") 
 
 write.csv(prod_data_sau, file.path(datadir, 'standardized_sau_prod.csv'), row.names = FALSE)
 
@@ -323,7 +321,7 @@ if (test) {
 for(i in 1:length(HS_year)) {
   
   hs_version <- paste("HS", HS_year[i], sep = "")
-  print(hs_version)
+  message(glue("{hs_version} Matching taxa/products/conversion factors"))
   
 
   # Match HS codes to production taxa (can be FAO or SAU depending on which was used in clean_and_clasify_prod_dat function)
@@ -361,7 +359,7 @@ for(i in 1:length(HS_year)) {
     ungroup() %>%
     mutate(habitat_percent = 100 * habitat_count / total) %>%
     group_by(Code, habitat) %>%
-    summarize(habitat_percent = sum(habitat_percent, na.rm = TRUE)) %>%
+    summarize(habitat_percent = sum(habitat_percent, na.rm = TRUE), .groups = "keep") %>%
     pivot_wider(names_from = habitat, 
                 values_from = habitat_percent) %>%
     replace_na(list(marine = 0, inland = 0, diadromous = 0))
@@ -578,10 +576,11 @@ if (test) {
 for (i in 1:nrow(df_years)){
   a_HS_year <- df_years[i,]$HS_year
   analysis_year <- df_years[i,]$analysis_year
-  print(glue("HS{a_HS_year} {analysis_year}"))
   
   # Creating out folder if necessary
   if (!file.exists(file.path(datadir_raw, paste("filtered_BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))) {
+    
+    message(glue("Filter BACI HS{a_HS_year} {analysis_year}"))
     baci_data_i <- read.csv(file = file.path(tradedatadir, 
                                            paste("BACI_", "HS", a_HS_year, "_V", baci_version, sep = ""),
                                            paste("BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
@@ -715,7 +714,7 @@ std_pop <- std_pop %>%
     year,
     pop) %>%
   group_by(iso3c, year) %>%
-  summarise(pop = sum(pop))
+  summarise(pop = sum(pop), .groups = "drop")
 
 # FIXIT: Add tests here. Adds up to the global population - no addtions or removal. Raw file and group by year and summarize global population. 
 
@@ -800,13 +799,13 @@ taxa_metadata <- taxa %>%
               NA, "salmoniformes", "mytilida", NA, NA,    
               "decapoda", "cypriniformes", "perciformes", "gadiformes", "echinoida"), 
     
-    Class = c(NA, "actinopterygii", "actinopterygii", "actinopterygii", "actinopterygii",     
-              "chondrichthyes", "actinopterygii", "bivalvia", "actinopterygii", NA,    
-              "malacostraca", "actinopterygii", "actinopterygii", "actinopterygii", "echinoidea"),
+    Class = c(NA, "teleostei", "teleostei", "teleostei", "teleostei",     
+              "chondrichthyes", "teleostei", "bivalvia", "teleostei", NA,    
+              "malacostraca", "teleostei", "teleostei", "teleostei", "echinoidea"),
     
-    Superclass = c(NA, NA, NA, NA, NA,     
-                   NA, NA, NA, "actinopteri", NA,    
-                   NA, NA, NA, NA, NA),
+    Superclass = c(NA, "osteichthyes", "osteichthyes", "osteichthyes", "osteichthyes",     
+                   NA, "osteichthyes", NA, "osteichthyes", NA,    
+                   NA, "osteichthyes", "osteichthyes", "osteichthyes", NA),
     
     Phylum = c("arthropoda", "chordata", "chordata", "chordata", "chordata",     
                "chordata", "chordata", "mollusca", "chordata", NA,    

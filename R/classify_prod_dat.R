@@ -1,3 +1,28 @@
+#' Classify and clean production data (FAO or SAU) and attach taxonomy
+#'
+#' @description
+#' Ingests raw production data from **FAO** or **SAU**, performs
+#' harmonization/cleaning of scientific names, removes excluded groups,
+#' applies a curated set of synonym/normalization fixes, and joins
+#' hierarchical taxonomy from FishBase/SeaLifeBase. Returns:
+#' 1) a cleaned production time series (`prod_ts`) and
+#' 2) a de-duplicated taxonomy table aligned to the cleaned names
+#' (`prod_taxa_classification_clean`). If any cleaned `SciName` cannot be matched to taxonomy,
+#'   a warning is emitted via **cli**, a bulleted list is printed, and a CSV
+#'   `missing_scinames_YYYY-MM-DD_HHMM.csv` is written to `datadir`.
+#'
+#' @param datadir Character. Directory containing the raw data directory
+#' @param filename Character. File name of FAO production data .zip (e.g. "GlobalProduction_2025.1.0.zip")
+#' @param prod_data_source Character, one of \code{"FAO"} or \code{"SAU"}.
+#'   Controls which ingestion/cleaning branch is used. Default \code{"FAO"}.
+#' @param SAU_sci_2_common Character or \code{NA}. Path (relative to \code{datadir})
+#'   to the SAU scientific --> common name mapping CSV used only when
+#'   \code{prod_data_source == "SAU"}. Ignored for FAO. Default \code{NA}.
+#' @param fb_slb_dir Character. Directory containing FishBase/SeaLifeBase
+#'   taxonomy and synonym CSVs
+#'
+#' @return A length-2 list: prod_ts and prod_taxa_classification_clean
+#'
 #' @import dplyr
 #' @importFrom magrittr %>%
 #' @importFrom readxl read_excel
@@ -6,6 +31,7 @@
 #' @import cli
 #' @import data.table
 #' @export
+
 
 classify_prod_dat <- function(datadir, 
                               filename, 
@@ -284,12 +310,12 @@ classify_prod_dat <- function(datadir,
       # First do some cleaning of SciNames
       # List of fixes comes from finding SciNames that do not match to either the fishbase classification database or fishbase synonyms function in downstream code
       # Address non-scientific names
-      mutate(SciName = case_when(SciName == "marine finfishes not identified" ~ "actinopterygii", 
-                                 SciName == "marine fishes not identified" ~ "actinopterygii",
-                                 SciName == "marine groundfishes not identified" ~ "actinopterygii",
-                                 SciName == "marine pelagic fishes not identified" ~ "actinopterygii", 
+      mutate(SciName = case_when(SciName == "marine finfishes not identified" ~ "osteichthyes", 
+                                 SciName == "marine fishes not identified" ~ "osteichthyes",
+                                 SciName == "marine groundfishes not identified" ~ "osteichthyes",
+                                 SciName == "marine pelagic fishes not identified" ~ "osteichthyes", 
                                  SciName == "miscellaneous aquatic invertebrates" ~ "asteroidea", # assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum, ascidians would be omitted as chordata)
-                                 SciName == "miscellaneous diadromous fishes" ~ "actinopterygii",
+                                 SciName == "miscellaneous diadromous fishes" ~ "osteichthyes",
                                  SciName == "miscellaneous marine crustaceans" ~ "malacostraca", # assuming some sort of crab/lobster/shrimp/prawn/crayfish crustacean
                                  
                                  # Names not recognized by fish/sealifebase, just go up one (in some cases, down) one level in classification
@@ -363,7 +389,7 @@ classify_prod_dat <- function(datadir,
           TRUE ~ Family01
         ),
         Other01 = case_when(
-          SciName == 'actinopterygii' ~ 1,
+          SciName == 'osteichthyes' ~ 1,
           SciName == 'pleuronectoidei' ~ 1,
           SciName == 'mytilida' ~ 1, # Order of molluscs
           SciName == 'rhizostomeae' ~ 1, # order of jellyfish
@@ -704,6 +730,7 @@ classify_prod_dat <- function(datadir,
   prod_ts[prod_ts == ""] <- NA
 
   ################## Temp 2025-08 fix for symbol bug e.g. "perciformes/percoidei_marine_capture" 
+  # also added downstream to prod_taxa_classification_clean
   prod_ts <- prod_ts %>%
     mutate(SciName = case_when(
       # collapse perciformes/whatever into perciformeswhatever
@@ -744,7 +771,7 @@ classify_prod_dat <- function(datadir,
                  Family = NA,
                  Order = c("perciformes", "scorpaeniformes", NA, NA),
                  Infraclass = c(NA, NA, "batoidea",  "selachii"),
-                 Class = c("teleostei", "eleostei", "elasmobranchii", "elasmobranchii"),
+                 Class = c("teleostei", "teleostei", "elasmobranchii", "elasmobranchii"),
                  Superclass = NA,
                  Phylum = c("chordata", "chordata", "chordata", "chordata"),
                  Kingdom = c("animalia", "animalia", "animalia", "animalia"),
@@ -758,8 +785,9 @@ classify_prod_dat <- function(datadir,
       SciName == "sipunculus nudus" ~ "annelida",
       TRUE ~ Phylum
     )) %>%
+    # collapse perciformes/something into perciformessomething to prevent matching errors with symbol
+    # original fishbase syntax is retained in the taxa rank column. 
     mutate(SciName = case_when(
-      # collapse perciformes/whatever into perciformessomething
       str_detect(SciName, regex("^perciformes/", ignore_case = TRUE)) ~
       str_replace(SciName, "/", ""),
       TRUE ~ SciName)) %>%
