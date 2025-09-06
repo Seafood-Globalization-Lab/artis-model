@@ -25,10 +25,14 @@ library(knitr)
 library(kableExtra)
 library(readxl)
 library(gt)
+library(artis)
 library(glue)
 
 
 #### Directory setup #####
+
+# FIXIT - use setup script to streamline
+#source("00-local-machine-setup.R")
 
 # Newest data
 datadir_new <- file.path("~", "Documents", "UW-SAFS", "ARTIS", "data",
@@ -325,6 +329,44 @@ sciname_counts %>%
   )
 
 ```
+
+```{r sciname-diff-raw}
+#| include: TRUE
+#| results: 'asis'
+
+# get old production species - uncleaned
+raw_prod_old_fn <- glue("GlobalProduction_{data_v_old}.zip")
+raw_prod_old_sp <- artis::rebuild_fao_2023_dat(datadir = datadir_old, filename = raw_prod_old_fn) %>%
+  select(sciname = species_scientific_name, common_name = species_name_en) %>%
+  mutate(sciname = tolower(sciname),
+        common_name = tolower(common_name)) %>%
+  distinct()
+
+# get new production species - uncleaned
+raw_prod_new_fn <- glue("GlobalProduction_{data_v_new}.zip")
+raw_prod_new_sp <- artis::rebuild_fao_2023_dat(datadir = datadir_new, filename = raw_prod_new_fn) %>%
+  select(sciname = species_scientific_name, common_name = species_name_en) %>%
+  mutate(sciname = tolower(sciname),
+        common_name = tolower(common_name)) %>%
+  distinct()
+
+raw_prod_old_sp_only <- anti_join(raw_prod_old_sp, raw_prod_new_sp, by = "sciname") %>%
+  arrange(sciname)
+
+raw_prod_new_sp_only <- anti_join(raw_prod_new_sp, raw_prod_old_sp, by = "sciname") %>%
+  arrange(sciname)
+
+
+raw_prod_new_sp_only %>%
+  kable(
+    caption = "Species present in new production data only",
+    booktabs = TRUE,
+    col.names = c("Scientific Name", "Common Name")
+  ) %>%
+  kable_styling(font_size = 8)   # set size in points
+
+```
+
 
 ### Taxa ranks
 
