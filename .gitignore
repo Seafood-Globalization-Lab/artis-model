@@ -23,4 +23,5 @@ requirements.lock
 requirements_old_local.txt
 
 *.html
+*.pdf
 /.quarto/
