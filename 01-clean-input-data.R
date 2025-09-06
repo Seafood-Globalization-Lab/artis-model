@@ -639,6 +639,7 @@ for (i in 1:nrow(df_years)){
 # Clean FAO population data ------------------------------------------------
 pop_raw <- read.csv(file.path(datadir_raw, "Population_E_All_Data/Population_E_All_Data_NOFLAG.csv"))
 
+# Restructure FAO population data
 clean_pop <- pop_raw %>%
   # Total population all inclusive
   filter(Element == "Total Population - Both sexes") %>%
@@ -664,23 +665,31 @@ clean_pop <- pop_raw %>%
   # Convert population estimate from 1000 persons to raw pop count
   mutate(pop = 1000 * pop) %>%
   # Filter for years included in ARTIS
-  filter(year >= 1996 & year <= 2023) # FIXIT add upper year bounds dynamic
+  filter(year >= 1996 & year <= max_year) # FIXIT add upper year bounds dynamic
 
 Encoding(clean_pop$country_name) <- "latin1"
 
+# Clean FAO population data
 clean_pop <- clean_pop %>%
   # Note double counting occuring for China = China mainland + China Macao + China, Taiwan Province of + China Hong Kong
   filter(country_name != "China",
          country_name != "Yugoslav SFR",
          country_name != "Czechoslovakia",
          country_name != "Pacific Islands Trust Territory") %>%
+  filter(!is.na(pop)) %>%
+  # Remove USSR from data - dissolved in 1992 and not relevant to ARTIS
+  filter(country_name != "USSR") %>%
   mutate(country_name = case_when(
     country_name == "China, mainland" ~ "China",
     country_name == "China, Hong Kong SAR" ~ "China",
     country_name == "China, Macao SAR" ~ "China",
     country_name == "China, Taiwan Province of" ~ "Taiwan",
-    country_name == "Netherlands Antilles (former)" ~ "Netherlands",
+    # country dissolved in 2010 - pop data NA afterward, so existing data 
+    # into "Netherlands (Kingdom of the)" 
+    country_name == "Netherlands Antilles (former)" ~ "Netherlands (Kingdom of the)",
     country_name == "Türkiye" ~ "Turkey",
+    # combine Belgium and Luxembourg because of population data gaps
+    # among the three combinations. 
     country_name == "Belgium-Luxembourg" ~ "Belgium",
     country_name == "Luxembourg" ~ "Belgium",
     TRUE ~ country_name

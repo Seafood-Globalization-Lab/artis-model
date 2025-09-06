@@ -23,6 +23,8 @@ standardize_prod <- function(data, col_iso3, col_country_name) {
       .data[[col_iso3]] == "TCA" ~ "GBR", # Turks and Caicos
       .data[[col_iso3]] == "FLK" ~ "GBR", # Falkland Islands
       .data[[col_iso3]] == "IMN" ~ "GBR", # Isle of Man
+      .data[[col_iso3]] == "GGY" ~ "GBR", # the Bailiwick of Guernsey
+      .data[[col_iso3]] == "JEY" ~ "GBR", # Bailiwick of Jersey
       .data[[col_country_name]] == "Channel Islands" ~ "GBR", # Channel Islands does not have an ISO3 code
       # France's territories----------------------------------------------------
       .data[[col_iso3]] == "PYF" ~ "FRA", # French Polynesia
