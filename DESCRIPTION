@@ -37,17 +37,23 @@ Depends:
 Imports:
     aws.s3,
     cli,
+    aws.s3,
+    cli,
     countrycode,
     data.table,
     DBI,
     doParallel,
+    DBI,
+    doParallel,
     dplyr,
+    duckdb,
     foreach,
     future,
     future.apply,
     glue,
     magrittr,
     parallel,
+    qs2,
     qs2,
     readxl,
     reticulate,
@@ -58,11 +64,6 @@ Imports:
     DBI,
     duckdb
     utils
-Suggests: 
-    duckdb,
-    qs2,
-    DBI,
-    duckdb
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
