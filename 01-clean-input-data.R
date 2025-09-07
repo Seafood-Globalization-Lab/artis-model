@@ -5,6 +5,19 @@
 # Set directories and file naming variables
 rm(list=ls())
 
+#load packages
+library(artis)
+library(rfishbase)
+library(data.table)
+library(magrittr)
+library(glue)
+library(countrycode)
+library(stringr)
+library(dplyr)
+library(tidyr)
+
+
+
 # Local Machine Configuration setup
 source("00-local-machine-setup.R")
 

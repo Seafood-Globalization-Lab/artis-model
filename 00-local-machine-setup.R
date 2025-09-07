@@ -3,25 +3,10 @@
 # Sourced from scripts 01-clean-model-inputs and 02-artis-pipeline
 
 # R packages required ------------------------------------------------------
-library(artis)
 library(data.table)
-library(magrittr)
 library(glue)
-library(dplyr)
-library(stringr)
 library(tidyr)
-#library(Matrix)
-#library(parallel)
 library(reticulate)
-#library(slam)
-#library(tidyverse)
-#library(doParallel)
-#library(aws.s3)
-library(arrow)
-#library(countrycode)
-library(glue)
-#library(qs2)
-library(rfishbase)
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()
@@ -68,7 +53,7 @@ test_year <- c()
 
 # 02-artis-pipeline parameters ------------------------------------
 # set years to run - empty if all years [c()], [c(2017)] or [c(2017,2020)] for subset of years
-test_years <- c(2023) 
+test_years <- c(2022) 
 #test_years <- c(2017)
 #test_years <- c()
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"

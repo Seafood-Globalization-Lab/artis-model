@@ -9,6 +9,10 @@ rm(list=ls())
 # environmet model run on - ["aws"] of ["local"]
 run_env <- "local"
 
+# load packages
+library(glue)
+library(artis)
+
 # HS version to run in this pipeline script. 
 # artis-hpc/create-pipeline-versions.sh script automatically changes this line 
 # based on $HS_VERSIONS values set to submit multiple jobs to AWS Batch - 
