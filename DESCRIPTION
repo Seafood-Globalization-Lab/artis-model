@@ -35,24 +35,30 @@ BugReports:
 Depends: 
     R (>= 4.1.0)
 Imports:
+    aws.s3,
+    cli,
     countrycode,
     data.table,
+    DBI,
+    doParallel,
     dplyr,
+    duckdb,
+    foreach,
+    future,
+    future.apply,
     glue,
     magrittr,
-    Matrix,
     parallel,
-    doParallel,
-    foreach,
+    qs2,
     readxl,
     reticulate,
-    slam,
     stringr,
     tibble,
     tidyr,
     qs2,
     DBI,
     duckdb
+    utils
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2

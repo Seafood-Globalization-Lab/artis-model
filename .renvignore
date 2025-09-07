@@ -1,0 +1,17 @@
+# .renvignore
+
+# Ignore Quarto and R Markdown files
+[.]qmd$
+[.]Qmd$
+[.]rmd$
+[.]Rmd$
+
+
+# Ignore everything in these directories
+^inst/
+^AM_local/
+^demo/
+
+# Ignore root-level scripts starting with 03–07
+^(03|04|05|06|07).*\.R$
+
