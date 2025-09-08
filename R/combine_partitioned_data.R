@@ -12,7 +12,6 @@
 #' @param custom_timeseries Logical. If TRUE, adds "custom_ts" to output filename. FIXIT: add this functionality.
 #' @param verbose Logical. Print file names as they are added.
 #'
-#' @importFrom duckdb duckdb
 #' @importFrom DBI dbConnect dbExecute dbDisconnect dbExistsTable dbWriteTable
 #' @import glue
 #' @import qs2
