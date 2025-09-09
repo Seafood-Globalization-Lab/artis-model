@@ -177,7 +177,7 @@ if (nrow(no_solve_countries) > 0) {
       dev_mode = FALSE
     )
   }
-  message(glue("Finished HS{hs_verion_run} `get_country_solutions()` with cvxopt solver at {Sys.time()}"))
+  message(glue("Finished HS{hs_version_run} `get_country_solutions()` with cvxopt solver at {Sys.time()}"))
 }
 
 #-------------------------------------------------------------------------------
