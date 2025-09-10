@@ -4,6 +4,50 @@ All notable changes to **artis-model** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## \[2.0.0\] – 2025-09-08
+
+### Added
+
+-   **New FAO Global Fishery Production Data 1996-2023**
+    - Ingested new data from 2021 - 2023. This expands the ARTIS `trade` and `consumption` data table timeseries to 2023. 
+    - Version "2025.1.0" pulled 2025-08-08
+-   **New Fishbase and Sealifebase Data**
+    - Pulled new stable release of the data with `rfishbase` R package 
+    - Version `"24.07"` This is approximately the fishbase and sealifebase snapshot at 2025-07
+-   **New FAO Annual Population Data**
+    - Pulled 2025-08-25 (no obvious versioning)
+-   **New BACI International Bilateral Trade Data**
+    - Version: "v202501" pulled 2025-08-22
+-   **New EUMOFA Yearly Processing Data**
+    - Pulled 2025-09-02 (no obvious versioning)
+-   **Scripted Data Validation**
+    - Created `00-raw-data-assessment.qmd` to evaluate differences in raw data versions
+    - Created `07-post-processing-validation.Rmd` to interigate numerous ARTIS assumptions across the `trade` and `consumption` data tables using all data years. 
+    - Primarily used after a full ARTIS model run on AWS across all HS versions and years
+    - Created `08-validation-single-HS-year.Rmd` interigate numerous ARTIS assumptions across the `trade` and `consumption` data tables using a single HS version and year pair. 
+    - Primarily used after a local test run of ARTIS for a single HS version and year pair.
+
+
+### Changed
+
+-   **Fishmeal Bug Fix**
+    - A portion of of fishmeal was being quietly allocated to `"direct human consumption"` in line 317, 324, and 339 `calculate_consumption.R`
+-   **Fishbase "perciformes/*" bug** 
+    - Fix bug in reweight_X_long where "perciformes/*" sciname was not joining and introduced NAs
+-   **Parallelalize `get_country_solutions.R`** 
+    - No need to run in series, when you can run in parallel using the `future` and `future.apply` R packages 
+    - Speeds things up quite a bit. 
+    - `num_cores` arguement controls parallel worker allocation for solving country-level mass balance problems within each year `sequential mode`, `auto mode`, and `explicit cap`. 
+-   **Python package versions**
+    - Use a `requirements.lock` file instead of a more flexible `requirements.txt` file to build the local `venv` environment.
+-   **Write out R global env when running locally**
+    - Write out `.qs2` files right before `create_snet()` and `calculate_consumption()` in `get_snet()` function called within `02-artis-pipeline.R`.
+    - Pinpoint access into the model for improved local troubleshooting and development. 
+    - Easy to share. 
+
+
+
+
 ## \[1.1.0\] – 2025-08-13
 
 ### Added
