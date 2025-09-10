@@ -93,7 +93,7 @@ get_snet <- function(quadprog_dir,
     
     put_object(
       file = V2_long_fp,
-      object= V2_long_fp,
+      object = V2_long_fp,
       bucket = s3_bucket_name
     )
   }
@@ -134,7 +134,7 @@ get_snet <- function(quadprog_dir,
     
     if (run_env == "aws") {
       save_object(
-        baci_fp,
+        object = baci_fp,
         bucket = s3_bucket_name,
         file = baci_fp
       )

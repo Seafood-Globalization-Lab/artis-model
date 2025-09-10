@@ -1,7 +1,7 @@
 Package: artis
 Title: Aquatic Resource Trade in Species (ARTIS) Model
-Version: 1.1.0
-Date: 2024-05-08
+Version: 2.0.0
+Date: 2024-09-08
 Authors@R: c(
     person("Jessica", "Gephart", , "gephart@uw.edu", role = c("aut", "cre", "cph", "fnd")),
     person("Althea", "Marks", , "amarks1@uw.edu", role = "aut"),
@@ -10,7 +10,7 @@ Authors@R: c(
   )
 Description: ARTIS (Aquatic Resource Trade in Species) is a global model
     and database that estimates bilateral seafood trade flows at the
-    species level from 1994 to 2020. It integrates production data,
+    species level from 1994 to 2023. It integrates production data,
     detailed trade statistics, and biological characteristics of seafood
     products to reconstruct trade networks and infer domestic consumption.
     The model accounts for re-exports, product transformations (e.g.,
