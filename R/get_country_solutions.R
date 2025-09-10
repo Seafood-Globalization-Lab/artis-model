@@ -561,14 +561,11 @@ convert = TRUE)
       "s3_clear_prefix", "s3_list_keys"
     ))])
     
-    # Clear current analysis year and output directory before looping to the next analysis year
     rm(analysis_year)
     rm(hs_analysis_year_dir)
   }
   
 
   # Delete all model data from AWS server to free up storage space
-  # Delete all output data generated from AWS server to free up storage space
-  # Note: this will be downloaded in other functions if needed
   if (run_env == "aws") { unlink(datadir) }
 }
