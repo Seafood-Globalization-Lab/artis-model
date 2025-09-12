@@ -5,6 +5,12 @@ rm(list=ls())
 
 run_env <- "local"
 
+library(dplyr)
+library(magrittr)
+library(data.table)
+library(artis)
+library(stringr)
+
 # setup local model environment
 # directories included
 if(run_env == "local") {
