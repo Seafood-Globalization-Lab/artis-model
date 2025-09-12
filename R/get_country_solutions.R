@@ -550,20 +550,6 @@ convert = TRUE)
       )
     }
     
-    # End time 
-    solve_country_end <- Sys.time()
-    solve_country_time <- solve_country_end - solve_country_start
-    
-    # Output solve_country_time
-    sink(file.path(
-      hs_analysis_year_dir,
-      paste(file.date, "_time-file-solve-country_", analysis_year, "_HS",
-            HS_year_rep, ".txt", sep = "")))
-    print(solve_country_start)
-    print(solve_country_end)
-    print(solve_country_time)
-    sink()
-    
     # Delete all files created in the AWS worker node if on AWS to free up storage space
     if (run_env == "aws") { unlink(hs_analysis_year_dir) }
     
@@ -575,10 +561,14 @@ convert = TRUE)
       "s3_clear_prefix", "s3_list_keys"
     ))])
     
+    # Clear current analysis year and output directory before looping to the next analysis year
     rm(analysis_year)
     rm(hs_analysis_year_dir)
   }
   
+
   # Delete all model data from AWS server to free up storage space
+  # Delete all output data generated from AWS server to free up storage space
+  # Note: this will be downloaded in other functions if needed
   if (run_env == "aws") { unlink(datadir) }
 }
