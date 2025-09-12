@@ -33,11 +33,14 @@ library(exploreARTIS)
 
 ```{r load data}
 # Set database folder location
-db_folder <- "/Users/gephart/Library/CloudStorage/Dropbox/Research/ARTIS/ARITS_1.1.0_FAO_2025_08_02/"
+db_folder <- "/Users/gephart/Library/CloudStorage/Dropbox/Research/ARTIS/ARTIS_2.0_FAO_2025_09_09"
+
+db_date <- "2025-09-12"
+db_version <- "v2.0"
 
 # load ARTIS data set
 # point to the dataset folder
-artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_trade_v1.1.0_FAO_mid_2025-08-02.parquet"))
+artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", paste("ARTIS_", db_version, "_trade_FAO_mid_all_HS_yrs_", db_date, ".parquet", sep = "")))
 
 # custom timeseries filter - result "artis_ts_result" is NOT in-memory
 # this is a "Predicate Pushdown" or "On-disk filtering" method. 
@@ -48,7 +51,8 @@ artis_ts_result <- artis_ds %>%
     (hs_version == "HS96" & year <= 2003) |
       (hs_version == "HS02" & year >= 2004 & year <= 2009) |
       (hs_version == "HS07" & year >= 2010 & year <= 2012) |
-      (hs_version == "HS12" & year >= 2013 & year <= 2020)
+      (hs_version == "HS12" & year >= 2013 & year <= 2020) |
+      (hs_version == "HS17" & year >= 2021 & year <= 2023)
   ) # %>% Can add more data filtering
 
 # Bring the results into R memory by adding "collect()" at the end of the pipe
@@ -65,7 +69,7 @@ artis_hs_summary <- artis_hs_summary %>%
 
 # load consumption data set
 # # point to the dataset folder
-artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_consumption_v1.1.0_FAO_mid_2025-08-02.parquet"))
+artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", paste("ARTIS_", db_version, "_consumption_FAO_mid_all_HS_yrs_", db_date, ".parquet", sep = "")))
 
 # Summarize consumption file by source country
 artis_ts_result <- artis_ds %>%
@@ -73,7 +77,8 @@ artis_ts_result <- artis_ds %>%
     (hs_version == "HS96" & year <= 2003) |
       (hs_version == "HS02" & year >= 2004 & year <= 2009) |
       (hs_version == "HS07" & year >= 2010 & year <= 2012) |
-      (hs_version == "HS12" & year >= 2013 & year <= 2020)
+      (hs_version == "HS12" & year >= 2013 & year <= 2020) |
+      (hs_version == "HS17" & year >= 2021 & year <= 2023)
   ) %>%
   group_by(year, source_country_iso3c, sciname, habitat, method) %>%
   summarise(consumption_live_t = sum(consumption_live_t, na.rm = TRUE))
@@ -88,7 +93,8 @@ artis_ts_result <- artis_ds %>%
     (hs_version == "HS96" & year <= 2003) |
       (hs_version == "HS02" & year >= 2004 & year <= 2009) |
       (hs_version == "HS07" & year >= 2010 & year <= 2012) |
-      (hs_version == "HS12" & year >= 2013 & year <= 2020)
+      (hs_version == "HS12" & year >= 2013 & year <= 2020) |
+      (hs_version == "HS17" & year >= 2021 & year <= 2023)
   ) %>%
   group_by(year, consumer_iso3c, sciname, habitat, method, 
            consumption_source) %>%
@@ -106,7 +112,8 @@ artis_ts_result <- artis_ds %>%
     (hs_version == "HS96" & year <= 2003) |
       (hs_version == "HS02" & year >= 2004 & year <= 2009) |
       (hs_version == "HS07" & year >= 2010 & year <= 2012) |
-      (hs_version == "HS12" & year >= 2013 & year <= 2020)
+      (hs_version == "HS12" & year >= 2013 & year <= 2020) |
+      (hs_version == "HS17" & year >= 2021 & year <= 2023)
   ) %>%
   group_by(year, source_country_iso3c, sciname) %>%
   summarise(consumption_live_t = sum(consumption_live_t)) %>%
@@ -116,10 +123,10 @@ foreign_consumption_totals <- artis_ts_result %>%
   collect()
 
 # Load attribute tables
-prod <- fread(file.path(db_folder, "attribute-tables", "prod.csv"))
-baci <- fread(file.path(db_folder, "attribute-tables", "baci.csv")) 
-sciname <- fread(file.path(db_folder, "attribute-tables", "sciname_metadata.csv"))
-code_max_resolved_taxa <- fread(file.path(db_folder, "attribute-tables", "code_max_resolved_taxa.csv"))
+prod <- fread(file.path(db_folder, "attribute_tables", "prod.csv"))
+baci <- fread(file.path(db_folder, "attribute_tables", "baci.csv")) 
+sciname <- fread(file.path(db_folder, "attribute_tables", "sciname_metadata.csv"))
+code_max_resolved_taxa <- fread(file.path(db_folder, "attribute_tables", "code_max_resolved_taxa.csv"))
 
 # Set parameters
 max_year <- max(artis_ts_df$year)
@@ -146,6 +153,10 @@ baci_check <- artis_hs_summary %>%
   rename("artis_product_weight_t" = "product_weight_t") %>%
   mutate(hs6 = as.numeric(hs6)) %>%
   full_join(baci %>%
+              filter(exporter_iso3c != "NEI",
+                     # Temporarily remove Southern African Customs Union until
+                     # deciding what to do with it
+                     exporter_iso3c != "ZA1") %>%
               rename("baci_product_weight_t" = "product_weight_t"), 
             by = c("hs_version", "year", 
                          "exporter_iso3c", "importer_iso3c", "hs6")) %>% 
