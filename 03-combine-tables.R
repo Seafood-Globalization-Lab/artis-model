@@ -6,6 +6,10 @@ rm(list=ls())
 #-------------------------------------------------------------------------------
 run_env <- "local"
 
+library(artis)
+library(duckdb)
+
+
 if (run_env == "aws") {
   # High Performance Computing on AWS Setup
   source("00-aws-hpc-setup.R")

@@ -59,8 +59,15 @@ combine_partitioned_data <- function(
   }
   
   con <- dbConnect(duckdb())
-  dbExecute(con, "PRAGMA max_temp_directory_size='500GiB'")  # increase spill-to-disk limit
-  on.exit(dbDisconnect(con), add = TRUE)
+  on.exit(dbDisconnect(con, shutdown = TRUE), add = TRUE)
+
+  # Redirect DuckDB temp storage to final_outdir so .tmp does not run out of space
+  DBI::dbExecute(con, sprintf(
+    "PRAGMA temp_directory='%s'", normalizePath(final_outdir, winslash = "/")
+  ))
+
+  # Lift the internal guardrail
+  DBI::dbExecute(con, "PRAGMA max_temp_directory_size='1TiB'")
   
   for (f in df_files) {
     if (verbose) message(glue("Appending {which(f == df_files)}/{length(df_files)}: {f}"))

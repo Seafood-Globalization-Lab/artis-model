@@ -21,7 +21,7 @@ tradedatadir <- file.path(datadir_raw, "baci_raw")
 
 # Model output directory paths --------------------------------------------
 # Directory where ARTIS database will be generated
-outdir <- "~/Documents/UW-SAFS/ARTIS/data/outputs_2.0_FAO"
+outdir <- "~/Documents/UW-SAFS/ARTIS/data/outputs_2.0_FAO_2025-09-11"
 
 # Don't change this bit #############
 # Path for sub folder within outputs that will contain all country-level solutions
@@ -53,9 +53,7 @@ test_year <- c()
 
 # 02-artis-pipeline parameters ------------------------------------
 # set years to run - empty if all years [c()], [c(2017)] or [c(2017,2020)] for subset of years
-test_years <- c(2022) 
-#test_years <- c(2017)
-#test_years <- c()
+test_years <- c() 
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
 # Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
