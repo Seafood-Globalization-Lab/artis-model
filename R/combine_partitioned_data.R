@@ -58,16 +58,24 @@ combine_partitioned_data <- function(
     )
   }
   
-  con <- dbConnect(duckdb())
-  on.exit(dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  combine_ducks <- duckdb::duckdb(
+    dbdir = file.path(outdir, "combine.duckdb"),
+    # optional: avoid scanning env for extensions; keeps things tidy/reproducible
+    environment_scan = FALSE,
+    config = list(
+      temp_directory = normalizePath(outdir, winslash = "/"),
+      memory_limit = "12GB",              # ~60–75% of your 16 GB RAM
+      max_temp_directory_size = "1TiB"    # guardrail, not space reservation
+    )
+  )
 
-  # Redirect DuckDB temp storage to final_outdir so .tmp does not run out of space
-  DBI::dbExecute(con, sprintf(
-    "PRAGMA temp_directory='%s'", normalizePath(final_outdir, winslash = "/")
-  ))
+  con <- DBI::dbConnect(combine_ducks)
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
 
-  # Lift the internal guardrail
-  DBI::dbExecute(con, "PRAGMA max_temp_directory_size='1TiB'")
+  # (optional) verify
+  DBI::dbGetQuery(con, "PRAGMA memory_limit")
+  DBI::dbGetQuery(con, "PRAGMA temp_directory")
+
   
   for (f in df_files) {
     if (verbose) message(glue("Appending {which(f == df_files)}/{length(df_files)}: {f}"))
