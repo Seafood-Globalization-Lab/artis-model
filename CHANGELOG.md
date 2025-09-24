@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
     - No need to run in series, when you can run in parallel using the `future` and `future.apply` R packages 
     - Speeds things up quite a bit. 
     - `num_cores` arguement controls parallel worker allocation for solving country-level mass balance problems within each year `sequential mode`, `auto mode`, and `explicit cap`. 
+    - Required tryCatch around AWS s3 write out since 3 workers were accessing very similar file prefix on S3. S# has high read concurrencey, but much less for write concurencey. 
 -   **Python package versions**
     - Use a `requirements.lock` file instead of a more flexible `requirements.txt` file to build the local `venv` environment.
 -   **Write out R global env when running locally**
