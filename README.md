@@ -203,28 +203,30 @@ All work should be done in **feature branches** and integrated back into `develo
 
 ```mermaid
 gitGraph
-   commit id: "v1.0"
+   commit id: "Normal" tag: "v1.0"
    branch develop
-   commit
-   branch develop-ingest-new-data-v2
-   commit id: "clean FAO"
-   commit id: "resolve sciname"
    checkout develop
-   merge develop-ingest-new-data-v2 id: "merge cleaning script"
+   branch develop-feature-a
+   commit id: "added x"
+   commit id: "fixed y"
    checkout develop
-   commit id: "update README"
-   branch develop-fix-bug
-   commit
+   branch develop-feature-b
+   commit id: "cleaned z"
+   commit id: "updated w"
+   checkout develop-feature-a
+   commit id: "documentation"
    checkout develop
-   merge develop-fix-bug id: "merge fix-bug"
-   commit id: "add documentation"
-   checkout main
-   merge develop id: "v2.0 Release"
-   branch hot-fix
-   checkout hot-fix
-   commit id: "forgot this tiny thing"
-   checkout main
-   merge hot-fix id: "v2.0.1 Release"
+   merge develop-feature-a id: "merge reabsed feature-a"
+   checkout develop-feature-b
+   commit id: "document"
+   merge develop id: "bring in develop updates"
+   commit id: "added v"
+   checkout develop
+   merge develop-feature-b id: "merge reabsed feature-b"
+   checkout develop
+   branch develop-bug-fix
+   commit id: "bug-fix"
+   checkout develop
 ```
 
 ## GitFlow Git commands summary
