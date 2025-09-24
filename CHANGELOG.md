@@ -2,9 +2,9 @@
 
 All notable changes to **artis-model** are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Add most recent changes at the top, and retain all older text, this is a running/living document.
 
-## \[2.0.0\] – 2025-09-08
+## \[2.0.0\] – 2025-09-24
 
 ### Added
 
@@ -44,6 +44,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
     - Write out `.qs2` files right before `create_snet()` and `calculate_consumption()` in `get_snet()` function called within `02-artis-pipeline.R`.
     - Pinpoint access into the model for improved local troubleshooting and development. 
     - Easy to share. 
+-   **Additional country standardization cases**
+    - New `BACIv202501` data changed the handeling/grouping of country iso3c `"ZA1"` and `"ZAF"`.
+        - Previous BACI versions luped South Africa and Southern African Customs Union into `"ZAF"` (South Africa).
+        - `"ZA1"` includes: Botswana, Eswatini, Lesotho, Nambia, and South Africa.
+        - In `BACIv202501` data `"ZA1"` is used before 2000 only. 
+    - New FAO Population data introduced `NA`s because of extended timeseries values. 
+        - Filter out countries with population values of `NA` 
+        - Belgium and Luxemburg combined production under Belgium. 
 
 
 
