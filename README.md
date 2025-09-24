@@ -4,9 +4,21 @@ This repository contains the ARTIS model codebase. This is where the Seafood Glo
 
 ARTIS reconstructs global seafood supply chains by tracing trade flows and production data through a multi-stage allocation process. It enables detailed analysis of seafood consumption by country, species, and product form.
 
-## What’s New in v1.1.0
+## Table of Contents (Second-Level Headers)
 
-- Major overhaul of the consumption calculation workflow (see below for high-level summary)
+- [What’s New in v2.0](#whats-new-in-v20)
+- [Model Overview](#model-overview)
+- [How to Cite the ARTIS model (not the data)](#how-to-cite-the-artis-model-not-the-data)
+- [Run Modes](#run-modes)
+- [Local ARTIS Run Instructions](#local-artis-run-instructions)
+- [Development Workflow / Contributing](#development-workflow--contributing)
+- [GitFlow Git commands summary](#gitflow-git-commands-summary)
+- [System Requirements](#system-requirements)
+- [Model Visual Schematic](#model-visual-schematic)
+
+## What’s New in v2.0
+
+- Expanded data: ingested latest FAO production representing years 1996-2023, BACI v202501, Fishbase and Sealifebase 24.07 taxa information (see below for high-level summary).
 - For all changes see [CHANGELOG](./CHANGELOG.md) for details
 
 ### High‐Level Changes in `calculate_consumption.R`
@@ -56,7 +68,7 @@ ARTIS reconstructs seafood supply chains by:
 
 ## How to Cite the ARTIS model (not the data)
 
-> A formal dataset DOI will be posted here after the v1.1.0 release.  
+> A formal dataset DOI will be posted here after the v2.0 release.  
 > For now, cite the software as:
 
 ```
@@ -65,11 +77,11 @@ ARTIS input data and model. Knowledge Network for Biocomplexity. doi:10.5063/F18
 ```
 
 ```bibtex
-@software{artis-v1.1.0,
-  title        = {ARTIS Model (Aquatic Resource Trade In Species), v1.1.0},
+@software{artis-v2.0,
+  title        = {ARTIS Model (Aquatic Resource Trade In Species), v2.0},
   author       = {Gephart, Jessica and Agrawal Bejarano, Rahul and Marks, Althea and Gorospe, Kelvin},
   year         = {2025},
-  version      = {1.1.0},
+  version      = {2.0},
   url          = {https://github.com/Seafood-Globalization-Lab/artis-model},
   note         = {Accessed: yyyy-mm-XX},
   institution  = {University of Washington},
@@ -199,14 +211,23 @@ ARTIS input data and model. Knowledge Network for Biocomplexity. doi:10.5063/F18
 - Run code chunk by chunk OR render the entire report to generate summary stats and figures to ensure the quality and assumption of ARTIS.
 - *Note*: Rendering this file will take significant compute resources and may crash depending on your machine. 
 
-## Development Workflow
+OR 
+
+- Open `./08-validation-single-HS-year.Rmd`
+- Run code chunk by chunk OR render the entire report to generate summary stats and figures to ensure the quality and assumption of ARTIS for a single HS version / year pairing. Indented for local testing. 
+
+## Development Workflow / Contributing
+
+The `artis-model` repo follows a GitFlow style branching workflow described below.
 
 ### Branch Structure
 
-- `main`: Stable releases
-- `develop`: Ongoing development
-- Task branches: `develop-*` (short-lived, merged back to `develop`)
-- Hotfixes: branch from `main` for urgent fixes, merged back to `main`
+- `main`: Stable releases only (long-lived)
+- `develop`: Ongoing development integration (long-lived)
+- `develop-*` Feature branches created off of `develop`. Merged back to `develop` for stagging and testing (e.g., `develop-FAO-2025-data`)(short-lived)
+- Hotfixes: branch from `main` for urgent fixes, merged back to `main` (short-lived)
+
+All work should be done in **feature branches** and integrated back into `develop` using rebasing to maintain a linear history.
 
 ### Branch Workflow Diagram
 
@@ -235,6 +256,71 @@ gitGraph
    checkout main
    merge hot-fix id: "v2.0.1 Release"
 ```
+
+## GitFlow Git commands summary
+
+### Create Feature Branch
+
+Start from the latest `develop` branch
+
+```zsh
+# Make sure develop is up to date
+git checkout develop
+git pull origin develop
+
+# Create and switch to your new feature branch
+git checkout -b develop-<feature-name>
+```
+
+### Work on the Feature
+
+Commit your changes frequently with clear messages:
+
+```zsh
+git add <files>
+git commit -m "Fix: correct handling of missing common names in 01-clean-input-data so multiple names are concatinated into a single value"
+```
+
+Update your branch on GitHub:
+
+```zsh
+git fetch
+git rebase
+git push
+```
+
+### Rebase onto `develop` Before Integration/Pull Request
+
+Keep your branch up to date by rebasing against `develop`. This avoids merge commits and keeps a clean linear history. Rebasing takes all of your feature branch changes and replays/puts them onto the tip/end of the `develop` commit history. This will only effect your feature branch and will not change `develop` until you merge into `develop`.
+
+```zsh
+# Update your local copy of develop
+git checkout develop
+git pull origin develop
+
+# Rebase your feature branch onto develop version on GitHub (only effect feature branch)
+git checkout develop-<feature-name>
+git rebase origin develop
+# update your GitHub feature branch
+git push
+```
+
+If there are conflicts, resolve them, then continue:
+
+```zsh
+git add <conflicted-files>
+git rebase --continue
+```
+
+### Open a Pull Request to merge feature-branch into `develop`
+
+- on GitHub `artis-model` repo open the ["Pull Rquest" tab](https://github.com/Seafood-Globalization-Lab/artis-model/pulls) 
+- Click green "New pull request" button
+- Set `base:develop` 
+- Set `compare:develop-your-feature-branch`
+- Click green "Create pull request" button
+- Completely and acurately fill in pull request template in the description and ensure all requirements are met before creating the pull request. 
+- Assign a reviewer in the right side column and fill in any other relevant metadata about the PR and work. Remember that the person submitting the PR is responsible for testing and ensuring their changes run smoothly and do not introduce breaking changes. 
 
 ## System Requirements
 
