@@ -227,6 +227,11 @@ gitGraph
    branch develop-bug-fix
    commit id: "bug-fix"
    checkout develop
+   merge develop-bug-fix id: "merge reabsed bug fix"
+   checkout main
+   merge develop id: "v2.0 Release" tag: "v2.0 Release" type: NORMAL 
+   checkout develop
+   merge main id: "long-lived develop branch"
 ```
 
 ## GitFlow Git commands summary
