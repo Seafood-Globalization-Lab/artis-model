@@ -4,7 +4,7 @@ This repository contains the ARTIS model codebase. This is where the Seafood Glo
 
 ARTIS reconstructs global seafood supply chains by tracing trade flows and production data through a multi-stage allocation process. It enables detailed analysis of seafood consumption by country, species, and product form.
 
-## Table of Contents (Second-Level Headers)
+## Table of Contents
 
 - [What’s New in v2.0](#whats-new-in-v20)
 - [Model Overview](#model-overview)
@@ -20,36 +20,6 @@ ARTIS reconstructs global seafood supply chains by tracing trade flows and produ
 
 - Expanded data: ingested latest FAO production representing years 1996-2023, BACI v202501, Fishbase and Sealifebase 24.07 taxa information (see below for high-level summary).
 - For all changes see [CHANGELOG](./CHANGELOG.md) for details
-
-### High‐Level Changes in `calculate_consumption.R`
-
-- **Domestic Consumption (Stage 1)**  
-   - **Domestic Production → Domestic Exports → Domestic Consumption**  
-     1. Aggregate total production of each HS‐6 code (disaggregated from species using `X_long`).  
-     2. Subtract “domestic exports” (i.e., what leaves each country under `dom_source == "domestic"`).  
-     3. Warn if any country’s exports exceed production.  
-   - Result: a per‐country, per‐HS‐6 volume of product that remains for domestic consumption.  
-
-- **Foreign Consumption (Stage 2)**  
-   - **Unprocessed Imports → Processed Exports → Two‐Stage Allocation**  
-     1. **Reverse “processing”**: Using `reweight_W_long`, the code “unprocesses” the final‐product HS‐6 back to its original raw‐fish equivalents, creating a pool of what could be consumed or re‐exported.  
-     2. **Stage 1 (Import Retention)**: For each importer, estimate how much of the processed product they consume immediately (i.e., “fishmeal,” “other,” or “direct human consumption”). Any remainder becomes a re‐export candidate.  
-     3. **Stage 2 (Redistribution to Final Consumer)**: Take those re‐exports and allocate them to the next‐tier consumers based on trade proportions (`artis` → “foreign” flows).  
-     4. Throughout, apply the same Data‐Check logic: ensure that “foreign consumption + domestic consumption ≈ total production + error exports”.
-
-- **Per‐Capita Capping & Debug Mode**  
-   - After fully assembling **domestic + foreign consumption**, the function now:  
-     1. Joins in population data (`pop`) to calculate per‐capita seafood consumption for “direct human consumption.”  
-     2. Identifies outliers (e.g., any country > 100 kg/person) and proportionally “caps” their total consumption back down to the threshold.  
-     3. If `dev_mode = TRUE`, writes out a CSV of the largest consumption‐vs.‐production discrepancies so users can inspect and debug (as described under the manual’s “Data Quality & Diagnostics” section).
-
-- **Smaller, Faster I/O with `.qs` Files**  
-   - All intermediate tables (e.g., disaggregated species‐to‐HS volumes, processed/unprocessed flows, final consumption tables) are now serialized as `.qs` rather than RDS/CSV, dramatically reducing file size and read/write time.
-
-- **Improved Error‐Handling & Data Checks**  
-   - **Domestic Check**: Warn if any “domestic export” volume exceeds production (i.e., negative domestic consumption).  
-   - **Foreign Check**: Compare ARTIS’s reported “domestic export” volumes against the function’s computed values—warn if they diverge by more than 1 ton.  
-   - **NA/Negative Consumption**: Emit a clear warning if any final consumption records are NA or negative, matching the manual’s emphasis on internal consistency checks at each stage.
 
 ## Model Overview
 
