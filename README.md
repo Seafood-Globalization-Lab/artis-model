@@ -202,11 +202,11 @@ All work should be done in **feature branches** and integrated back into `develo
 ### Branch Workflow Diagram
 
 ```mermaid
-
 gitGraph
-   commit tag: "v1.0"
+   commit tag: "v1.1.0"
    branch develop
    checkout develop
+   commit id: " "
    branch develop-feature-a
    commit id: "added x"
    commit id: "fixed y"
@@ -230,7 +230,7 @@ gitGraph
    checkout develop
    merge develop-bug-fix id: "merge reabsed bug fix"
    checkout main
-   merge develop id: "Merge to release v2.0" tag: "v2.0 Release" type: NORMAL 
+   merge develop id: "Merge to release v2.0" tag: "v2.0" type: NORMAL 
    checkout develop
    merge main id: "long-lived develop branch"
 ```
