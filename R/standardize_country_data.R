@@ -11,10 +11,15 @@
 
 standardize_country_data <- function(){
   
+  corrections_df <- tibble::tibble(country_name = character(),
+                                  iso3c = character(), 
+                                  year = character(),
+                                  artis_iso3c = character(),
+                                  artis_country_name = character())
   
   # FUNCTION 1
   # 44 countries, 24 years of data baci data standardize_baci
-  standardize_baci <- tibble(input_iso3c = c("ASM","GUM","MNP","PRI","VIR",
+  standardize_baci <- tibble(iso3c = c("ASM","GUM","MNP","PRI","VIR",
                                              "AIA","BMU","IOT","VGB","CYM",
                                              "GIB","PCN","SHN","TCA","FLK",
                                              "IMN","PYF","MYT","NCL","SPM",
@@ -22,8 +27,9 @@ standardize_country_data <- function(){
                                              "REU","MAF","BLM","ATF","HKG",
                                              "MAC","ABW","ANT","BES","SXM",
                                              "CUW","COK","NIU","TKL","NFK",
-                                             "CXR","CCK","GRL","FRO"),
-                             output_iso3c = c("USA","USA","USA","USA","USA",
+                                             "CXR","CCK","GRL","FRO", "GGY",
+                                             "JEY"),
+                             artis_iso3c = c("USA","USA","USA","USA","USA",
                                               "GBR","GBR","GBR","GBR","GBR",
                                               "GBR","GBR","GBR","GBR","GBR",
                                               "GBR","FRA","FRA","FRA","FRA",
@@ -31,13 +37,14 @@ standardize_country_data <- function(){
                                               "FRA","FRA","FRA","FRA","CHN",
                                               "CHN","NLD","NLD","NLD","NLD",
                                               "NLD","NZL","NZL","NZL","AUS",
-                                              "AUS","AUS","DNK","DNK")) %>%
+                                              "AUS","AUS","DNK","DNK", "GBR",
+                                              "GBR")) %>%
     group_by(across()) %>%
     expand(year = 1996:2020)
   
   # standardize_baci function special cases
   standardize_baci_special_cases <- tibble(
-    input_country_name = c(
+    country_name = c(
       "Other Asia, nes",        # Taiwan (BACI name)
       "US Misc. Pacific Isds",  # NEI grouping
       NA_character_,            # Serbia and Montenegro (name fix only)
@@ -45,7 +52,7 @@ standardize_country_data <- function(){
       NA_character_,            # San Marino → NEI
       NA_character_             # Andorra → NEI
     ),
-    input_iso3c = c(
+    iso3c = c(
       NA_character_,  # Taiwan (matched on name)
       NA_character_,  # US Misc. Pacific Isds (matched on name)
       "SCG",          # Serbia and Montenegro (matched on ISO3)
@@ -53,7 +60,7 @@ standardize_country_data <- function(){
       "SMR",          # San Marino
       "AND"           # Andorra
     ),
-    output_iso3c = c(
+    artis_iso3c = c(
       "TWN",          # Taiwan
       "NEI",          # US Misc. Pacific Isds
       "SCG",          # Serbia and Montenegro
@@ -61,7 +68,7 @@ standardize_country_data <- function(){
       "NEI",          # San Marino
       "NEI"           # Andorra
     ),
-    output_country_name = c(
+    artis_country_name = c(
       "Taiwan Province of China",
       "Other nei",
       "Serbia and Montenegro",
@@ -73,7 +80,7 @@ standardize_country_data <- function(){
   
   # FUNCTION 2
   # 45 countries - standardize_prod script (FAO and SAU)
-  standardize_prod <- tibble(input_iso3c = c("ASM","GUM","MNP","PRI","VIR",
+  standardize_prod <- tibble(iso3c = c("ASM","GUM","MNP","PRI","VIR",
                                              "AIA","BMU","IOT","VBG","CYM",
                                              "GIB","PCN","SHN","TCA","FLK",
                                              "IMN","PYF","MYT","NCL","SPM",
@@ -82,7 +89,7 @@ standardize_country_data <- function(){
                                              "MAC","ABW","ANT","BES","SXM",
                                              "CUW","COK","NIU","TKL","NFK",
                                              "CXR","CCK","GRL","FRO","EAZ"),
-                             output_iso3c = c("USA","USA","USA","USA","USA",
+                             artis_iso3c = c("USA","USA","USA","USA","USA",
                                               "GBR","GBR","GBR","GBR","GBR",
                                               "GBR","GBR","GBR","GBR","GBR",
                                               "GBR","FRA","FRA","FRA","FRA",
@@ -91,31 +98,13 @@ standardize_country_data <- function(){
                                               "CHN","NLD","NLD","NLD","NLD",
                                               "NLD","NZL","NZL","NZL","AUS",
                                               "AUS","AUS","DNK","DNK","TZA")) %>%
-    group_by(input_iso3c, output_iso3c) %>%
+    group_by(iso3c, artis_iso3c) %>%
     expand(year = 1996:2020)
-  
-  iso_name_pairs <- tibble::tibble(
-    input_iso3c     = c("TLS", "SRB", "MNE", "SSD", "BWA", "LSO", "NAM", "SWZ", "NEI", "SCG", "SDN", "ZAF"),
-    col_country_name  = c(
-      "Timor Leste",          # TLS
-      "Serbia",               # SRB
-      "Montenegro",           # MNE
-      "South Sudan",          # SSD
-      "Botswana",             # BWA
-      "Lesotho",              # LSO
-      "Namibia",              # NAM
-      "Swaziland",            # SWZ
-      "Other nei",            # NEI
-      "Serbia and Montenegro",# SCG
-      "Sudan",                # SDN
-      "South Africa"          # ZAF
-    )
-  )
   
   # 2. Cross-join with years and apply all your historic overrides
   standardize_prod_special_cases <- tidyr::expand_grid(
     tibble(
-      input_iso3c    = c("TLS","SRB","MNE","SSD","BWA","LSO","NAM","SWZ","NEI","SCG","SDN","ZAF"),
+      iso3c    = c("TLS","SRB","MNE","SSD","BWA","LSO","NAM","SWZ","NEI","SCG","SDN","ZAF"),
       col_country_name = c(
         "Timor Leste","Serbia","Montenegro","South Sudan",
         "Botswana","Lesotho","Namibia","Swaziland",
@@ -125,37 +114,39 @@ standardize_country_data <- function(){
     year = 1996:2020
   ) %>%
     mutate(
-      output_iso3c = case_when(
-        input_iso3c == "TLS" & year < 2002                             ~ "IDN",
-        input_iso3c %in% c("SRB","MNE") & year < 2006                   ~ "SCG",
-        (input_iso3c == "SSD" | str_detect(col_country_name, "Sudan")) & year < 2012 ~ "SDN",
-        input_iso3c %in% c("BWA","LSO","NAM","SWZ") & year < 2000       ~ "ZAF",
+      artis_iso3c = case_when(
+        iso3c == "TLS" & year < 2002                             ~ "IDN",
+        iso3c %in% c("SRB","MNE") & year < 2006                   ~ "SCG",
+        (iso3c == "SSD" | str_detect(col_country_name, "Sudan")) & year < 2012 ~ "SDN",
+        # iso3c %in% c("BWA","LSO","NAM","SWZ") & year < 2000       ~ "ZAF",
         col_country_name == "Other nei"                                   ~ "NEI",
-        TRUE                                                               ~ input_iso3c
+        iso3c == "ZAF" & year >= 2000 ~ "ZAF",
+        TRUE                                                               ~ iso3c
       ),
-      output_country_name = case_when(
-        output_iso3c == "NEI"    ~ "Other nei",                   # never call countrycode()
-        output_iso3c == "SCG"    ~ col_country_name,              # legacy SCG names
+      artis_country_name = case_when(
+        artis_iso3c == "NEI"    ~ "Other nei",                   # never call countrycode()
+        artis_iso3c == "SCG"    ~ col_country_name,              # legacy SCG names
         TRUE                       ~ countrycode(
-          output_iso3c,
+          artis_iso3c,
           origin      = "iso3c",
           destination = "country.name",
           warn        = FALSE     # suppress any other warnings
         )
       ),
       # post‐tweaks:
-      output_country_name = case_when(
-        output_iso3c == "SDN" & year < 2012 ~ "Sudan (Former)",
-        output_iso3c == "ZAF" & year < 2000 ~ "So. African Customs Union",
-        TRUE                                  ~ output_country_name
+      artis_country_name = case_when(
+        artis_iso3c == "SDN" & year < 2012 ~ "Sudan (Former)",
+        artis_iso3c == "ZAF" & year < 2000 ~ "So. African Customs Union",
+        TRUE                                  ~ artis_country_name
       )
     ) %>%
-    filter(!output_iso3c %in% c("CSK","SUN","YUG")) %>%
-    select(input_iso3c, year, output_iso3c, output_country_name)
+    filter(!artis_iso3c %in% c("CSK","SUN","YUG")) %>%
+    select(iso3c, year, artis_iso3c, artis_country_name) %>%
+    filter(!(year < 2000 & artis_iso3c == "ZAF"))
   
   # FUNCTION 3
   # dwf (standardize_sau_eez function) normal cases
-  standardize_sau_eez <- tibble(input_iso3c = c("ASM","GUM","MNP","PRI","VIR",
+  standardize_sau_eez <- tibble(iso3c = c("ASM","GUM","MNP","PRI","VIR",
                                                 "AIA","BMU","IOT","VGB","CYM",
                                                 "GIB","PCN","SHN","TCA","FLK",
                                                 "IMN","SGS","PYF","MYT","NCL",
@@ -165,7 +156,7 @@ standardize_country_data <- function(){
                                                 "SXM","CUW","COK","NIU","TKL",
                                                 "NFK","CXR","CCK","HMD","GRL",
                                                 "FRO","EAZ","SJM","BVT"),
-                                output_iso3c = c("USA","USA","USA","USA","USA",
+                                artis_iso3c = c("USA","USA","USA","USA","USA",
                                                  "GBR","GBR","GBR","GBR","GBR",
                                                  "GBR","GBR","GBR","GBR","GBR",
                                                  "GBR","GBR","FRA","FRA","FRA",
@@ -180,7 +171,7 @@ standardize_country_data <- function(){
   
   # dwf special cases
   sau_eez_special_cases <- tibble(
-    input_country_name = c(
+    country_name = c(
       "Other Asia, nes",        # For Taiwan
       NA_character_,            # For Luxembourg
       NA_character_,            # For San Marino
@@ -189,7 +180,7 @@ standardize_country_data <- function(){
       "Channel Islands",        # For GBR grouping
       NA_character_             # For Serbia and Montenegro name fix
     ),
-    input_iso3c = c(
+    iso3c = c(
       NA_character_,  # "Other Asia, nes"
       "LUX",          # maps to BEL
       "SMR",          # maps to NEI
@@ -198,7 +189,7 @@ standardize_country_data <- function(){
       NA_character_,  # Channel Islands (no ISO3)
       "SCG"           # Serbia and Montenegro
     ),
-    output_iso3c = c(
+    artis_iso3c = c(
       "TWN",          # Taiwan
       "BEL",          # Luxembourg → Belgium
       "NEI",          # San Marino
@@ -207,7 +198,7 @@ standardize_country_data <- function(){
       "GBR",          # Channel Islands
       "SCG"           # Serbia and Montenegro
     ),
-    output_country_name = c(
+    artis_country_name = c(
       "Taiwan Province of China",
       "Belgium",
       "Other nei",
@@ -223,7 +214,7 @@ standardize_country_data <- function(){
   # FUNCTION 4
   # SAU production data additional cleaning cases
   sau_prod_additional_cases <- tibble(
-    input_country_name = c(
+    country_name = c(
       "Ascension Isl.",
       "Azores Isl.",
       "Bonaire",
@@ -237,7 +228,7 @@ standardize_country_data <- function(){
       "Unknown Fishing Country",
       "Channel Isl."
     ),
-    input_iso3c = c(
+    iso3c = c(
       "SHN",  # Ascension Isl. (will get standardized later)
       "PRT",  # Azores Islands part of Portugal
       "BES",  # Bonaire (will get standardized later)
@@ -251,7 +242,7 @@ standardize_country_data <- function(){
       "NEI",  # Unknown Fishing Country
       NA_character_  # Channel Isl. (no ISO3, will be handled in name mapping)
     ),
-    output_iso3c = c(
+    artis_iso3c = c(
       "GBR",  # Ascension Isl. → GBR (via SHN standardization)
       "PRT",  # Azores Isl. → PRT (no change)
       "NLD",  # Bonaire → NLD (via BES standardization)
@@ -265,7 +256,7 @@ standardize_country_data <- function(){
       "NEI",  # Unknown Fishing Country → NEI
       "GBR"   # Channel Isl. → GBR
     ),
-    output_country_name = c(
+    artis_country_name = c(
       "United Kingdom",
       "Portugal",
       "Netherlands",
@@ -304,18 +295,27 @@ standardize_country_data <- function(){
     bind_rows(prod_corrections) %>%
     bind_rows(sau_corrections) %>%
     bind_rows(sau_prod_corrections) %>%
-    distinct(input_iso3c, output_iso3c, year, input_country_name, output_country_name) %>%
+    distinct(iso3c, artis_iso3c, year, country_name, artis_country_name) %>%
     filter(!is.na(year))
   
   # Add in input country name column to dataset
-  input_countries <- tibble(input_country_name = c("Other nei"), input_iso3c = c(NA_character_),
-                            output_iso3c = c("NEI"), output_country_name = c(NA_character_)) %>%
+  input_countries <- tibble(country_name = c("Other nei"), iso3c = c(NA_character_),
+                            artis_iso3c = c("NEI"), artis_country_name = c(NA_character_)) %>%
     group_by(across()) %>%
     expand(year = 1996:2020)
   
+  south_africa_corrections <- tibble(country_name = c("Botswana", "Eswatini", "Namibia", "Lesotho"),
+         iso3c = c("BWA", "SWZ", "NAM", "LSO"),
+         artis_country_name = rep("So. African Customs Union", 4),
+         artis_iso3c = rep("ZA1", 4)
+         ) %>%
+    group_by(across()) %>%
+    expand(year = 1996:1999)
+  
   # Bind rows
-  output_data <- bind_rows(standardize_country_data, input_countries) %>%
-    distinct(input_iso3c, output_iso3c, year, input_country_name, output_country_name)
+  output_data <- bind_rows(standardize_country_data, input_countries, south_africa_corrections) %>%
+    distinct(iso3c, artis_iso3c, year, country_name, artis_country_name) %>%
+    select(country_name, iso3c, year, artis_country_name, artis_iso3c)
   
   return(output_data)
   
