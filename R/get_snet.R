@@ -57,7 +57,7 @@ get_snet <- function(quadprog_dir,
   V1_long <- data.frame(V1) %>%
     mutate(hs6 = colnames(V2)) %>% 
     pivot_longer(cols = -hs6, names_to = "SciName", values_to = "live_weight_cf") %>%
-    filter(live_weight_cf > 0) %>%
+    filter(live_weight_cf > 0) %>% ### BUG?? AM 2025-08-29 
     # Transform conversion factors to represent conversion from product to live
     mutate(live_weight_cf = 1/live_weight_cf)
   
@@ -93,7 +93,7 @@ get_snet <- function(quadprog_dir,
     
     put_object(
       file = V2_long_fp,
-      object= V2_long_fp,
+      object = V2_long_fp,
       bucket = s3_bucket_name
     )
   }
@@ -134,7 +134,7 @@ get_snet <- function(quadprog_dir,
     
     if (run_env == "aws") {
       save_object(
-        baci_fp,
+        object = baci_fp,
         bucket = s3_bucket_name,
         file = baci_fp
       )
@@ -154,7 +154,7 @@ get_snet <- function(quadprog_dir,
       select(importer_iso3c, exporter_iso3c, hs6, total_q)
     
     # Get country solutions ---------------------------------------------------------------
-    # read in all-country-est file in created in get_county_solutions.R for both solver output folers
+    # read in all-country-est file created in get_county_solutions.R for both solver output folers
     
     # build solver‐specific paths
     quad_hs_yr_dir <- file.path(quadprog_dir, hs_dir, analysis_year)
@@ -162,7 +162,7 @@ get_snet <- function(quadprog_dir,
     
     # pattern to match the combined all country RDS files
     rds_pattern <- paste0(
-      ".*_all-country-est_.*",        # any prefix + “_all-country-est_”
+      ".*_all-country-est_.*",     # any prefix + “_all-country-est_”
       analysis_year,               # “_<year>_”
       "_HS", HS_year_rep,          # “_HS<ver>”
       "\\.RDS$"
@@ -216,6 +216,8 @@ get_snet <- function(quadprog_dir,
     # Determine most specific clade of each HS code (but if clade is not reported
     # in production data (i.e., hs_taxa_match$SciName), return NA)
     # To match to clade, even if not reported in production data, set match_to_prod to FALSE
+
+    # FIXIT: AM 2025-08 Move to 01-clean-input-data.R 
     hs_clade_match <- match_hs_to_clade(
       hs_taxa_match = read.csv(
         file.path(datadir, paste0("hs-taxa-match_HS", HS_year_rep, ".csv"))) %>%
@@ -337,7 +339,7 @@ get_snet <- function(quadprog_dir,
                           "_", analysis_year, ".qs2"))
     
     # write out R environmental objects for validation and troubleshooting
-    if(analysis_year %in% c("1996", "2020")){
+    if(run_env != "aws"){
 
       workspace_fp <- file.path(hs_analysis_year_dir, 
         paste0(file.date, "_workspace_create_snet_", estimate_type, "_HS", HS_year_rep, 
@@ -385,7 +387,7 @@ get_snet <- function(quadprog_dir,
                                        analysis_year,"_HS", HS_year_rep, ".qs2"))
     
         # write out R environmental objects for validation and troubleshooting
-    if(analysis_year %in% c("1996", "2020")){
+    if(run_env != "aws"){
 
       workspace_fp <- file.path(hs_analysis_year_dir, 
         paste0(file.date, "_workspace_consumption_", estimate_type, "_HS", HS_year_rep, 

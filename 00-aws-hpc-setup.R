@@ -3,17 +3,17 @@
 # sourced from 02-artis-pipeline
 
 # R packages required ------------------------------------------------------
-library(data.table)
+#library(data.table)
 library(magrittr)
-library(Matrix)
-library(parallel)
+#library(Matrix)
+#library(parallel)
 library(reticulate)
-library(slam)
-library(tidyverse)
-library(doParallel)
+#library(slam)
+#library(tidyverse)
+#library(doParallel)
 library(aws.s3)
-library(glue)
-library(arrow) # parquet files
+library(glue) # needed
+#library(arrow) # parquet files
 # loading in ARTIS R package
 library(artis)
 
@@ -24,7 +24,7 @@ setwd('/usr/src/ARTIS')
 readRenviron(".Renviron")
 
 # ONLY UNCOMMENT IF YOU ARE RUNNING DOCKER ON A NEW MAC CHIP
-use_virtualenv("/usr/src/ARTIS/venv", required = TRUE)
+reticulate::use_virtualenv("/usr/src/ARTIS/venv", required = TRUE)
 
 # AWS variables -----------------------------------------------------------
 artis_bucket <- "s3://artis-s3-bucket/"
@@ -38,7 +38,7 @@ test_years <- c()
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
 # Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
-prod_data_type <- "SAU"
+prod_data_type <- "FAO"
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()

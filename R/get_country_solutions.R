@@ -1,4 +1,89 @@
+#' Solve country mass balance problems in parallel
+#'
+#' @param num_cores Integer. Controls parallel worker allocation for solving
+#'   country-level mass balance problems within each year.
+#'
+#'   - `num_cores = 1` → **sequential mode** (no parallelism; useful for debugging).
+#'   - `num_cores = 0` or `NULL` → **auto mode**: use all available cores minus one
+#'     (to leave one free for the OS), then cap by the number of countries
+#'     to analyze for that year.
+#'   - `num_cores >= 2` → **explicit cap**: request that many workers, but will
+#'     still be capped at the number of countries for that year.
+#'
+#'   In all cases, the number of workers is
+#'   `min(requested_cores, length(countries_to_analyze))`.
+#'
+#'   Parallelization is implemented via [future.apply::future_lapply()] with a
+#'   `multisession` backend (safe with reticulate).
+#' 
+#' @importFrom dplyr filter select mutate if_else group_by summarize
+#' @importFrom stringr str_detect str_replace
+#' @importFrom future plan
+#' @importFrom future.apply future_lapply
+#' @importFrom reticulate py_run_string
+#' @importFrom aws.s3 save_object put_object
+#' @importFrom utils read.csv write.csv
 #' @export
+#' 
+
+############# BEGIN PATCH: S3 retry helpers (no new packages required) #############
+is_retryable_s3 <- function(msg) {
+  grepl("HTTP (500|502|503|504)", msg, ignore.case = TRUE) ||
+    grepl("SlowDown|InternalError|RequestTimeout|temporarily unavailable|timeout|timed out",
+          msg, ignore.case = TRUE)
+}
+
+s3_put_retry <- function(file, object, bucket, region = NULL,
+                         multipart = FALSE, max_attempts = 8, base_sleep = 0.5) {
+  stopifnot(is.character(file), length(file) == 1L, file.exists(file))
+  delay <- base_sleep
+  for (i in seq_len(max_attempts)) {
+    ok <- tryCatch(
+      aws.s3::put_object(file = file, object = object, bucket = bucket,
+                         region = region, multipart = multipart),
+      error = identity
+    )
+    if (isTRUE(ok)) return(TRUE)
+
+    msg <- if (inherits(ok, "error")) conditionMessage(ok) else as.character(ok)
+    if (!is_retryable_s3(msg)) {
+      stop("S3 PUT failed (non-retryable): ", msg, "\nkey: ", object)
+    }
+    if (i < max_attempts) {
+      Sys.sleep(delay + runif(1, 0, 0.5))  # backoff + jitter
+      delay <- min(delay * 2, 8)
+    } else {
+      stop("S3 PUT failed after ", max_attempts, " attempts: ", object, "\nLast error: ", msg)
+    }
+  }
+}
+############# END PATCH: S3 retry helpers #############
+
+############# BEGIN PATCH: S3 list/clear helpers (TOP-LEVEL; not affected by rm()) #############
+s3_list_keys <- function(bucket, prefix, region) {
+  objs <- aws.s3::get_bucket(bucket = bucket, prefix = prefix, max = 10000L, region = region)
+  if (!length(objs)) return(character(0))
+  vapply(objs, function(x) if (!is.null(x$Key)) x$Key else NA_character_, character(1))
+}
+
+s3_clear_prefix <- function(bucket, prefix, region) {
+  # Clear exact prefix; also clear variant without leading slash if present
+  p1 <- prefix
+  p2 <- sub("^/+", "", prefix)
+  keys <- unique(c(s3_list_keys(bucket, p1, region), s3_list_keys(bucket, p2, region)))
+  if (!length(keys)) {
+    message("[clean] No existing objects under prefix: ", prefix)
+    return(invisible(0L))
+  }
+  message("[clean] Deleting ", length(keys), " objects under prefix: ", prefix)
+  # Intentionally no try/catch: fail fast on deletion error
+  for (k in keys) {
+    aws.s3::delete_object(object = k, bucket = bucket, region = region)
+  }
+  invisible(length(keys))
+}
+############# END PATCH: S3 list/clear helpers #############
+
 get_country_solutions <- function(datadir, 
                                   outdir, 
                                   hs_version = NA, 
@@ -41,11 +126,11 @@ get_country_solutions <- function(datadir,
   hs_dir <- setup_values[[23]]
   
   rm(setup_values)
-  
-  # Analysis documentation: Only need this to be outputted once for entire
-  # time series so save outside of analysis_year_loop.
-  # Output transform_to_qp_with_python function for documentation of the
-  # optimization parameters used to make country_est
+
+  # parallel plan (safe with reticulate)
+  on.exit(future::plan("sequential"), add = TRUE)
+
+  # Analysis documentation...
   sink(
     file.path(
       outdir, hs_dir,
@@ -57,13 +142,57 @@ get_country_solutions <- function(datadir,
   writeLines(readLines(con = file.path("R/transform_to_qp_with_python.R"),
                        warn = FALSE))
   sink()
-  
-  
+
   # Loop through all analysis years for a given HS version
   for (j in 1:nrow(analysis_years_rep)){
+    
     analysis_year <- analysis_years_rep$analysis_year[j]
-
     hs_analysis_year_dir <- file.path(outdir, hs_dir, analysis_year)
+
+    # ------------------------------------------------------------------------------------
+    # S3 RESUME CHECK: if combined file exists for this year, skip work for this year
+    # ------------------------------------------------------------------------------------
+    skip_this_year <- FALSE
+    if (run_env == "aws") {
+      prefix1 <- hs_analysis_year_dir
+      objs <- tryCatch(
+        aws.s3::get_bucket(bucket = s3_bucket_name,
+                           prefix = prefix1,
+                           max    = 10000L,
+                           region = s3_region),
+        error = function(e) NULL
+      )
+
+      if (is.null(objs) || !length(objs)) {
+        # Fallback without leading slash
+        prefix2 <- sub("^/+", "", hs_analysis_year_dir)
+        objs <- tryCatch(
+          aws.s3::get_bucket(bucket = s3_bucket_name,
+                             prefix = prefix2,
+                             max    = 10000L,
+                             region = s3_region),
+          error = function(e) NULL
+        )
+      }
+
+      if (!is.null(objs) && length(objs)) {
+        keys <- vapply(objs, function(x) if (!is.null(x$Key)) x$Key else NA_character_, character(1))
+        pat  <- paste0("_all-country-est_", analysis_year, "_HS", HS_year_rep, "\\.RDS$")
+        if (any(grepl(pat, keys))) {
+          message(sprintf("[resume] Skipping year %d (combined country estimate file already in S3)", analysis_year))
+          skip_this_year <- TRUE
+        }
+      }
+    }
+
+    if (skip_this_year) next
+
+    # ------------------------------------------------------------------------------------
+    # CLEAN SLATE ON S3: clear the entire analysis-year "folder" before solving
+    # ------------------------------------------------------------------------------------
+    if (run_env == "aws") {
+      s3_clear_prefix(bucket = s3_bucket_name, prefix = hs_analysis_year_dir, region = s3_region)
+    }
     
     #-----------------------------------------------------------------------------  
     # Step 4: Load trade (BACI) data and standardize countries between production and trade data
@@ -105,26 +234,25 @@ get_country_solutions <- function(datadir,
     
     # not directly used in the model - activate output with arguement dev_mode
     if(dev_mode == TRUE) {
-    
-      # SAVE FULL WORKSPACE
       workspace_image_fp <- file.path(
         hs_analysis_year_dir,
         paste(file.date,
               "_all-data-prior-to-solve-country_",
               analysis_year, "_HS", HS_year_rep, ".RData", sep = ""))
-      
       save.image(workspace_image_fp)
-    } # end of dev_mode if statement
+    }
 
-    
     # Clear workspace other than what"s needed for solve_qp
-    rm(list=ls()[!(ls() %in% c("prod_data_analysis_year", "baci_data_analysis_year",
-                               "coproduct_codes", "no_solve_countries",
-                               "solver_type", "analysis_setup", analysis_setup,
-                               "analysis_info", analysis_info))])
+    rm(list = ls()[!(ls() %in% c(
+      "prod_data_analysis_year", "baci_data_analysis_year",
+      "coproduct_codes", "no_solve_countries",
+      "solver_type", "analysis_setup", analysis_setup,
+      "analysis_info",  analysis_info,
+      # Keep S3 helpers so they survive to the next year iteration
+      "s3_clear_prefix", "s3_list_keys"
+    ))])
     
-    # Reticulate can create memory leakage, run gc() to correct for this
-    gc()
+    gc()  # reticulate can leak, run gc()
     
     # Time how long optimization takes
     solve_country_start <- Sys.time()
@@ -134,22 +262,16 @@ get_country_solutions <- function(datadir,
     if (nrow(no_solve_countries) == 0) {
       countries_to_analyze <- sort(unique(prod_data_analysis_year$country_iso3_alpha))
     } else {
-      
       countries_to_analyze <- no_solve_countries %>%
         filter(hs_version == paste("HS", HS_year_rep, sep="")) %>%
         filter(year == analysis_year)
-      
       countries_to_analyze <- countries_to_analyze$country_iso3
     }
     
     countries_to_analyze <- countries_to_analyze[!is.na(countries_to_analyze)]
     countries_to_analyze <- sort(countries_to_analyze, decreasing = TRUE)
 
-    # Skip finding countries for this year if
-    # there are no countries left to solve for this HS version and year
-    if (length(countries_to_analyze) == 0) {
-      next
-    }
+    if (length(countries_to_analyze) == 0) next
     
     # Sum production across countries and taxa_source
     prod_data_analysis_year <- prod_data_analysis_year %>%
@@ -162,16 +284,15 @@ get_country_solutions <- function(datadir,
     cat(paste("country", "condition_number\n", sep=","))
     sink()
     
-    print(ls())
-    
     # Create function to mass balance an individual country,
-    # then use mclapply to parallelize the function
+    # then use future_lapply to parallelize the function
     solve_country <- function(i, 
                               solver_to_use, 
                               run_env = "aws", 
                               s3_bucket_name = "", 
+                              s3_region = "",
                               dev_mode_logic = FALSE){
-      print(paste("start of ", i, " solution"), sep = "")
+      print(paste0("start of ", i, " solution (HS", HS_year_rep, " ", analysis_year, ")"))
       qp_inputs <- transform_to_qp_with_python(country_j = i, V1 = V1, V2 = V2, 
                                                baci_data_clean = baci_data_analysis_year, 
                                                prod_data_clean = prod_data_analysis_year, 
@@ -218,7 +339,7 @@ h = array(zeros(P.shape[0]))
 A = array(r.A,dtype=float)
 b = array(r.b,dtype=float).reshape((A.shape[0],))
 lb = array(zeros(P.shape[0]))
-ub = array(r.u,dtype=float).reshape((P.shape[0],))
+ub = array(r.u,dtype=float).reshape((P.shape[0]),)
 
 cond_num = linalg.cond(A)
 
@@ -229,65 +350,124 @@ convert = TRUE)
       # Convert to r object with as.numeric()
       qp_sol <- as.numeric(py$x)
 
-    if(length(qp_sol) > 0 )  {
+      ret <- list(country = i, ok = FALSE, fp = NA_character_, err = NULL)
+
+      if(length(qp_sol) > 0 )  {
+        if(dev_mode_logic == TRUE) {
+          # Write out raw output from solver for comparison
+          cond_num <- as.numeric(py$cond_num)
+          write.csv(qp_sol, file.path(hs_analysis_year_dir, paste(i, "_sol.csv", sep="")),
+                    row.names = FALSE)
+          sink(file = file.path(hs_analysis_year_dir, "condition_number.csv"),
+               append = TRUE)
+          cat(paste(i, ",", cond_num, "\n", sep=""))
+          sink()
+        }
       
-      # not directly used in model - output if needed with arguement dev_mode = TRUE
-      if(dev_mode_logic == TRUE) {
-        # Write out raw output from solver for comparison
-        cond_num <- as.numeric(py$cond_num)
-        write.csv(qp_sol, file.path(hs_analysis_year_dir, paste(i, "_sol.csv", sep="")),
-                  row.names = FALSE)
-        sink(file = file.path(hs_analysis_year_dir, "condition_number.csv"),
-             append = TRUE)
-        cat(paste(i, ",", cond_num, "\n", sep=""))
-        sink()
-      }
+        # Unstack solution
+        country_est_i <- unstack_qp_sol(qp_sol, qp_inputs)
+        country_est_file <- paste(file.date, "_country-est_", i, "_",
+                                  analysis_year, "_HS", HS_year_rep, ".RDS", sep = "")
       
-      # Unstack solution
-      country_est_i <- unstack_qp_sol(qp_sol, qp_inputs)
-      country_est_file <- paste(file.date, "_country-est_", i, "_",
-                                analysis_year, "_HS", HS_year_rep, ".RDS", sep = "")
+        # Save country_output one country at a time to avoid memory issues
+        country_est_fp <- file.path(hs_analysis_year_dir, country_est_file)
+        saveRDS(country_est_i, country_est_fp)
       
-      # Save country_output one country at a time to avoid memory issues
-      country_est_fp <- file.path(hs_analysis_year_dir, country_est_file)
-      saveRDS(country_est_i, country_est_fp)
-      
-      if (run_env == "aws") {
-        put_object(
-          file = country_est_fp,
-          object = country_est_fp,
-          bucket = s3_bucket_name
-        )
-      }
-    } # end of qp_sol  
+        if (run_env == "aws") {
+          Sys.sleep(runif(1, 0, 0.4))  # tiny de-sync of workers
+          upload_ok <- tryCatch({
+            s3_put_retry(
+              file   = country_est_fp,
+              object = country_est_fp,  # mirrored key
+              bucket = s3_bucket_name,
+              region = s3_region
+            )
+            TRUE
+          }, error = function(e) {
+            message("[upload-fail] ", i, " -> ", conditionMessage(e))
+            FALSE
+          })
+        } else {
+          upload_ok <- TRUE
+        }
+        ret <- list(country = i, ok = upload_ok, fp = country_est_fp, err = NULL)
+      } # end of qp_sol
+
       print(paste("end of ", i, " solution"))
 
-      
-      # Since all the outputs were assigned to the global environment,
-      # clear workspace before starting next country
-      rm(list=ls()[!(ls() %in% c("prod_data_analysis_year", "baci_data_analysis_year",
-                                 "coproduct_codes", "no_solve_countries",
-                                 "countries_to_analyze", "solver_type",
-                                 "analysis_setup", analysis_setup,
-                                 "analysis_info", analysis_info))])
-      
-      # Reticulate can create memory leakage, run gc()
+      # Clear local env in this worker, but keep 'ret' so we can return status
+      rm(list=ls()[!(ls() %in% c(
+        "prod_data_analysis_year", "baci_data_analysis_year",
+        "coproduct_codes", "no_solve_countries",
+        "countries_to_analyze", "solver_type",
+        "analysis_setup", analysis_setup,
+        "analysis_info",  analysis_info, "ret"))])
       gc()
-    }
+
+      ret
+    } # end of solve_country fun definition
     
     # explicitly set inside parent environment
     dev_mode_logic <- dev_mode
-    
+
+    #### Setup for for running `solve_country()` in parallel
+    reserve_for_os <- 1L
+    auto_max <- max(1L, as.integer(future::availableCores()) - reserve_for_os)
+
+    # Normalize user input
+    if (is.null(num_cores)) num_cores <- 0L
+    num_cores <- as.integer(num_cores)
+
+    if (num_cores == 1L) {
+      # Force sequential
+      if (!inherits(future::plan(), "sequential")) {
+        on.exit(future::plan("sequential"), add = TRUE)
+      }
+      future::plan("sequential")
+      workers_to_use <- 1L
+      message(sprintf(
+        "[parallel] Running sequentially (num_cores=%d, countries=%d)",
+        num_cores, length(countries_to_analyze)
+      ))
+    } else {
+      # Auto (0 or <0) or explicit (>=2)
+      requested <- if (num_cores <= 0L) auto_max else num_cores
+      workers_to_use <- min(requested, length(countries_to_analyze))
+      if (!inherits(future::plan(), "multisession")) {
+        on.exit(future::plan("sequential"), add = TRUE)
+      }
+      future::plan("multisession", workers = workers_to_use)
+      message(sprintf(
+        "[parallel] Running multisession with %d workers (requested=%d, auto_max=%d, countries=%d)",
+        workers_to_use, num_cores, auto_max, length(countries_to_analyze)
+      ))
+    }
+
     # Parallelize solution to country mass balance problems:
-    mclapply(countries_to_analyze,
-             solve_country,
-             solver_to_use = solver_type,
-             run_env = run_env,
-             s3_bucket_name = s3_bucket_name,
-             dev_mode_logic = dev_mode_logic,
-             mc.cores = num_cores,
-             mc.preschedule = FALSE
-             )
+    country_results <- future.apply::future_lapply(
+      countries_to_analyze,
+      solve_country,
+      solver_to_use  = solver_type,
+      run_env        = run_env,
+      s3_bucket_name = s3_bucket_name,
+      s3_region      = s3_region,
+      dev_mode_logic = dev_mode_logic,
+      future.seed    = TRUE
+    )
+
+    # Sequential re-upload of any failed items
+    if (run_env == "aws") {
+      failed <- vapply(country_results, function(x) is.list(x) && !isTRUE(x$ok), logical(1))
+      if (any(failed)) {
+        message("[upload-retry] Retrying ", sum(failed), " country uploads sequentially...")
+        for (x in country_results[failed]) {
+          fp <- x$fp
+          if (is.character(fp) && !is.na(fp) && file.exists(fp)) {
+            try(s3_put_retry(file = fp, object = fp, bucket = s3_bucket_name, region = s3_region), silent = TRUE)
+          }
+        }
+      }
+    }
 
     # Read in individual country solutions and combine into a list
     output_files <- list.files(hs_analysis_year_dir)
@@ -315,7 +495,6 @@ convert = TRUE)
       if (is.matrix(country_est[[i]]$X)) {
         colnames(country_est[[names(country_est)[i]]]$X) <- X_cols
         rownames(country_est[[names(country_est)[i]]]$X) <- paste(names(country_est)[i], X_rows,sep="_")
-        # For countries with no production (i.e., NA for X), insert matrix of zeroes
       } else {
         country_est[[i]]$X <- matrix(0, ncol = length(X_cols), nrow = length(X_rows))
         colnames(country_est[[names(country_est)[i]]]$X) <- X_cols
@@ -324,7 +503,6 @@ convert = TRUE)
       if (is.matrix(country_est[[i]]$W)){
         colnames(country_est[[names(country_est)[i]]]$W) <- paste(names(country_est)[i],W_cols,sep="_")
         rownames(country_est[[names(country_est)[i]]]$W) <- paste(names(country_est)[i],W_rows,sep="_")
-        # For countries with no production (i.e., NA for X), insert matrix of zero
       } else {
         country_est[[i]]$W <- matrix(0, ncol = length(W_cols), nrow = length(W_rows))
         colnames(country_est[[names(country_est)[i]]]$W) <- paste(names(country_est)[i],W_cols,sep="_")
@@ -332,36 +510,11 @@ convert = TRUE)
       }
     }
     
-    all_country_est_fp <- file.path(
-      hs_analysis_year_dir,
-      paste(file.date, "_all-country-est_", analysis_year, "_HS",
-            HS_year_rep, ".RDS", sep = "")
-      )
-    saveRDS(country_est, all_country_est_fp)
-    
-    if (run_env == "aws") {
-      put_object(
-        file = all_country_est_fp,
-        object = all_country_est_fp,
-        bucket = s3_bucket_name
-      )
-    }
-    
-    # End time 
-    solve_country_end <- Sys.time()
-    solve_country_time <- solve_country_end - solve_country_start
-    
-    # Output solve_country_time
-    sink(file.path(
-      hs_analysis_year_dir,
-      paste(file.date, "_time-file-solve-country_", analysis_year, "_HS",
-            HS_year_rep, ".txt", sep = "")))
-    print(solve_country_start)
-    print(solve_country_end)
-    print(solve_country_time)
-    sink()
-    
-    # Output list of countries that did not pass solve_qp
+    # save all country estimate file (after no country solutions in order for AWS S3 completion detection
+    # to pick up at the appropriate analysis year. Not all years will have a no-solve-countries write out 
+    # that so that file needs to be writen out before all-country-est. 
+
+        # Output list of countries that did not pass solve_qp
     no_sol_countries <- setdiff(unlist(countries_to_analyze), names(country_est))
     no_solve_qp_fp <- file.path(hs_analysis_year_dir,
                                 paste(file.date,
@@ -372,30 +525,47 @@ convert = TRUE)
     sink()
     
     if (run_env == "aws") {
-      put_object(
-        file = no_solve_qp_fp,
+      s3_put_retry(
+        file   = no_solve_qp_fp,
         object = no_solve_qp_fp,
-        bucket = s3_bucket_name
+        bucket = s3_bucket_name,
+        region = s3_region
+      )
+    }
+
+    all_country_est_fp <- file.path(
+      hs_analysis_year_dir,
+      paste(file.date, "_all-country-est_", analysis_year, "_HS",
+            HS_year_rep, ".RDS", sep = "")
+      )
+    saveRDS(country_est, all_country_est_fp)
+    
+    if (run_env == "aws") {
+      s3_put_retry(
+        file   = all_country_est_fp,
+        object = all_country_est_fp,
+        bucket = s3_bucket_name,
+        region = s3_region,
+        multipart = TRUE
       )
     }
     
     # Delete all files created in the AWS worker node if on AWS to free up storage space
-    # Note: All these files have been placed in the S3 bucket at this point.
-    #       We are just deleting the local copies on the AWS server
     if (run_env == "aws") { unlink(hs_analysis_year_dir) }
     
-    rm(list=ls()[!(ls() %in% c("analysis_setup", analysis_setup, "coproduct_codes",
-                               "no_solve_countries", "countries_to_analyze",
-                               "solver_type", "analysis_info", analysis_info))])
+    rm(list = ls()[!(ls() %in% c(
+      "analysis_setup", analysis_setup, "coproduct_codes",
+      "no_solve_countries", "countries_to_analyze",
+      "solver_type", "analysis_info", analysis_info,
+      # Keep S3 helpers available for the next loop iteration
+      "s3_clear_prefix", "s3_list_keys"
+    ))])
     
-    # Clear current analysis year and output directory before looping to the next analysis year
     rm(analysis_year)
     rm(hs_analysis_year_dir)
   }
   
+
   # Delete all model data from AWS server to free up storage space
-  # Delete all output data generated from AWS server to free up storage space
-  # Note: this will be downloaded in other functions if needed
   if (run_env == "aws") { unlink(datadir) }
 }
-

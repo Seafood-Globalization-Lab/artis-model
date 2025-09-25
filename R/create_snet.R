@@ -103,25 +103,25 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
   if (run_env == "aws") {
     
     put_object(
-      first_dom_exp_fp,
+      object = first_dom_exp_fp,
       bucket = s3_bucket_name,
       file = first_dom_exp_fp
     )
     
     put_object(
-      first_error_exp_fp,
+      object = first_error_exp_fp,
       bucket = s3_bucket_name,
       file = first_error_exp_fp
     )
     
     put_object(
-      first_foreign_exp_fp,
+      object = first_foreign_exp_fp,
       bucket = s3_bucket_name,
       file = first_foreign_exp_fp
     )
     
     put_object(
-      first_unresolved_foreign_exp_fp,
+      object = first_unresolved_foreign_exp_fp,
       bucket = s3_bucket_name,
       file = first_unresolved_foreign_exp_fp
     )
@@ -175,25 +175,25 @@ create_snet <- function(baci_data_analysis_year, export_source_weights,
   
   if (run_env == "aws") {
     put_object(
-      second_dom_exp_fp,
+      object = second_dom_exp_fp,
       bucket = s3_bucket_name,
       file = second_dom_exp_fp
     )
     
     put_object(
-      second_error_exp_fp,
+      object = second_error_exp_fp,
       bucket = s3_bucket_name,
       file = second_error_exp_fp
     )
     
     put_object(
-      second_foreign_exp_fp,
+      object = second_foreign_exp_fp,
       bucket = s3_bucket_name,
       file = second_foreign_exp_fp
     )
     
     put_object(
-      second_unresolved_foreign_exp_fp,
+      object = second_unresolved_foreign_exp_fp,
       bucket = s3_bucket_name,
       file = second_unresolved_foreign_exp_fp
     )

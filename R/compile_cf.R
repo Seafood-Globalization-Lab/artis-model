@@ -9,8 +9,9 @@ compile_cf <- function(conversion_factors, eumofa_data, hs_hs_match, hs_version,
                        fb_slb_dir = 'model_inputs_raw/fishbase_sealifebase'){
   
   # NOTE on warnings when creating hs_cf_full_match
-  # There were 50 or more warnings (use warnings() to see the first 50): In max(conversion_factor_full, na.rm = TRUE): no non-missing arguments to max; returning -Inf
-  # This warning appears whenever there are no values to consider when calculating max_cf_full = max(conversion_factor_full, na.rm = TRUE) and min(conversion_factor_full, na.rm = TRUE)
+  # There were 50 or more warnings (use warnings() to see the first 50): In max(conversion_factor_full, na.rm = TRUE): 
+  # no non-missing arguments to max; returning -Inf This warning appears whenever there are no values to consider when 
+  # calculating max_cf_full = max(conversion_factor_full, na.rm = TRUE) and min(conversion_factor_full, na.rm = TRUE)
   
   # Output depends on match_criteria:
   

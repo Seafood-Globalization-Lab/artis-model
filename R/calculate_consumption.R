@@ -314,14 +314,22 @@ calculate_consumption <- function(artis = s_net,
     select(year, hs_version, source_country_iso3c, exporter_iso3c,
            "consumer_iso3c" = "iso3c", consumption_source, hs6, 
            sciname, habitat, method, consumption_live_t) %>%
-    filter(consumption_live_t > 0.001)
+    filter(consumption_live_t > 0.001) %>%
+    mutate(end_use = case_when(
+      hs6 == 230120 ~ "fishmeal",
+      hs6 %in% c(30110, 30111, 30119) ~ "other",
+      TRUE ~ "direct human consumption")) 
   
   consumption_export_1 <- consumption_export_1 %>% 
     mutate(consumption_source = "foreign step 1") %>%
     select(year, hs_version, source_country_iso3c, exporter_iso3c, 
            "consumer_iso3c" = "importer_iso3c", 
            consumption_source, hs6, sciname, habitat, method, consumption_live_t) %>% 
-    filter(consumption_live_t > 0.001)
+    filter(consumption_live_t > 0.001) %>%
+    mutate(end_use = case_when(
+      hs6 == 230120 ~ "fishmeal",
+      hs6 %in% c(30110, 30111, 30119) ~ "other",
+      TRUE ~ "direct human consumption")) 
   
   consumption_export_2 <- consumption_export_2 %>%
     mutate(consumption_source = "foreign step 2") %>%
@@ -336,10 +344,6 @@ calculate_consumption <- function(artis = s_net,
     bind_rows(consumption_export_2)
   
   complete_consumption <- complete_consumption %>%
-    mutate(end_use = case_when(
-      hs6 == 230120 ~ "fishmeal",
-      hs6 %in% c(30110, 30111, 30119) ~ "other",
-      TRUE ~ "direct human consumption")) %>%
     left_join(code_max_resolved, by = c("hs_version", "hs6", "sciname")) %>%
     mutate(sciname_hs_modified = case_when(
       is.na(sciname_hs_modified) ~ sciname, 

@@ -9,11 +9,15 @@ rm(list=ls())
 # environmet model run on - ["aws"] of ["local"]
 run_env <- "local"
 
+# load packages
+library(glue)
+library(artis)
+
 # HS version to run in this pipeline script. 
 # artis-hpc/create-pipeline-versions.sh script automatically changes this line 
 # based on $HS_VERSIONS values set to submit multiple jobs to AWS Batch - 
 # Do not manually change for AWS. Change for local testing and limited runs 
-hs_version_run <- "12"
+hs_version_run <- "17"
 
 if (run_env == "aws") {
   # High Performance Computing on AWS Setup
@@ -39,7 +43,7 @@ if (run_env == "aws") {
 # if it already exists
 if(dir.exists(outdir)) {
   warning(glue::glue("`{outdir}/` folder already exists, all contents are being deleted to create an empty folder."))
-  unlink(outdir, recursive = TRUE)
+  #unlink(outdir, recursive = TRUE)
 }
 dir.create(outdir)
 
@@ -47,7 +51,7 @@ dir.create(outdir)
 # solver quadprog. Will delete folder if it already exists
 if (dir.exists(outdir_quadprog)) {
   warning("quadprog output folder already exists, all contents are being deleted to create an empty folder.")
-  unlink(outdir_quadprog, recursive = TRUE)
+  #unlink(outdir_quadprog, recursive = TRUE)
 }
 dir.create(outdir_quadprog)
 
@@ -55,7 +59,7 @@ dir.create(outdir_quadprog)
 # and passes them into the python quadprog solver. All solutions are saved in the
 # quadprog solver output folder.
 
-message("Starting `get_country_solutions()` with quadprog solver")
+message(glue("Starting HS{hs_version_run} `get_country_solutions()` with quadprog solver at {Sys.time()}"))
 
 if (run_env == "aws") {
   get_country_solutions(
@@ -79,20 +83,20 @@ if (run_env == "aws") {
     test_year = test_years,
     prod_type = prod_data_type,
     solver_type = "quadprog",
-    num_cores = 1,
+    num_cores = 0,
     run_env = "demo",
     dev_mode = FALSE
   )
 }
 
-message("Finished `get_country_solutions()` with quadprog solver")
+message(glue("Finished HS{hs_version_run} `get_country_solutions()` with quadprog solver at {Sys.time()}"))
 
 # Depending on the HS version and year, some mass balance problems were not
 # solved by the quadprog solver. This function goes through all years for a
 # specific HS version and finds all the countries where no solution was found by
 # the quadprog solver by year and HS version
 
-message("Starting `get_no_solve_countries()`")
+message(glue("Starting HS{hs_version_run} `get_no_solve_countries()` at {Sys.time()}"))
 if (run_env == "aws") {
   no_solve_countries <- get_no_solve_countries(
     snet_dir = outdir_quadprog,
@@ -132,7 +136,7 @@ if (run_env == "aws") {
 # solver quadprog. Will delete folder if it already exists
 if (dir.exists(outdir_cvxopt)) {
   warning("cvxopt output folder already exists, all contents are being deleted to create an empty folder.")
-  unlink(outdir_cvxopt, recursive = TRUE)
+  #unlink(outdir_cvxopt, recursive = TRUE)
 }
 dir.create(outdir_cvxopt)
 
@@ -140,7 +144,7 @@ dir.create(outdir_cvxopt)
 # that were not solved by the quadprog solver
 if (nrow(no_solve_countries) > 0) {
 
-  message("Starting `get_country_solutions()` with cvxopt solver")
+  message(glue("Starting HS{hs_version_run} `get_country_solutions()` with cvxopt solver at {Sys.time()}"))
   # Formats and prepares all inputs for the country-level mass balance problems,
   # and passes them into the python cvxopt solver. All solutions are saved in the
   # cvxopt solver output folder.
@@ -168,12 +172,12 @@ if (nrow(no_solve_countries) > 0) {
       prod_type = prod_data_type,
       solver_type = "cvxopt",
       no_solve_countries = no_solve_countries,
-      num_cores = 1,
+      num_cores = 0,
       run_env = "demo",
       dev_mode = FALSE
     )
   }
-  message("Finished `get_country_solutions()` with cvxopt solver")
+  message(glue("Finished HS{hs_version_run} `get_country_solutions()` with cvxopt solver at {Sys.time()}"))
 }
 
 #-------------------------------------------------------------------------------
@@ -184,14 +188,14 @@ if (nrow(no_solve_countries) > 0) {
 # if it already exists
 if(dir.exists(outdir_snet)) {
   warning("ARTIS snet output folder already exists, all contents are being deleted to create an empty folder.")
-  unlink(outdir_snet, recursive = TRUE)
+  #unlink(outdir_snet, recursive = TRUE)
 }
 dir.create(outdir_snet)
 
 # Takes all solutions of country mass balance problems and calculates ARTIS database
 # records, along with corresponding consumption records
 
-message("Starting `get_snet()`")
+message(glue("Starting HS{hs_version_run} `get_snet()` at {Sys.time()}"))
 
 if (run_env == "aws") {
   get_snet(
@@ -223,4 +227,4 @@ if (run_env == "aws") {
   )
 }
 
-message("Finished `get_snet()` and `02-artis-pipeline`")
+message(glue("Finished HS{hs_version_run} `get_snet()` and `02-artis-pipeline` at {Sys.time()}"))

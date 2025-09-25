@@ -19,4 +19,9 @@ grateful-report.html
 man/*
 dev/*
 renv/*
+requirements_old_local.txt
 
+*.html
+*.pdf
+/.quarto/
+README_files/*

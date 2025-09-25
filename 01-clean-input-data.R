@@ -1,29 +1,36 @@
 # Clean raw input data
 
-###############################################################################
+
+# Enviro Setup -----------------------------------------------------------
 # Set directories and file naming variables
 rm(list=ls())
+
+#load packages
+library(artis)
+library(rfishbase)
+library(data.table)
+library(magrittr)
+library(glue)
+library(countrycode)
+library(stringr)
+library(dplyr)
+library(tidyr)
+
+
 
 # Local Machine Configuration setup
 source("00-local-machine-setup.R")
 
-# Creating folder for clean data if necessary
-if (!dir.exists(datadir)) {
-  dir.create(datadir)
-} else {
-  warning(glue::glue("Directory datadir `{datadir}` already exists!"))
-}
-
-#-------------------------------------------------------------------------------
-# Load raw HS codes
+# Load raw HS codes ------------------------------------------------------
 hs_data_raw <- read.csv(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "character")
 
+# Get fishbase data ------------------------------------------------------
 # Generate new fishbase and sealifebase data files
 # Note: these do not need to be generated for each model run and can be done once per year/quarter
 # Directory Structure:
   # creates fishbase_sealifebase_[MOST RECENT DATE] within model_inputs_raw (ie. "model_inputs_raw/fishbase_sealifebase_[MOST_RECENT_DATE]")
 if(need_new_fb_slb == TRUE) {
-  collect_fb_slb_data(datadir_raw)
+  collect_fb_slb_data(parent_outdir = datadir_raw)
   message("New fishbase and sealifebase data files have been generated.")
 } else {
   message("Existing fishbase and sealifebase data files are being used; Not collecting new data.")
@@ -33,19 +40,26 @@ if(need_new_fb_slb == TRUE) {
 fb_slb_info <- get_most_recent_dir(datadir_raw, "fishbase_sealifebase")
 current_fb_slb_dir <- fb_slb_info$directory
 
-# Clean scientific names and add classification info to production data: choose FAO or SAU
-# NOTE: warning message about data_frame() being deprecated is fixed in the development version of rfishbase: run remotes::install_github("ropensci/rfishbase") to implement the fixed version
+
+# Clean FAO Production (taxa names and classification) ---------------------------
+
 prod_list <- classify_prod_dat(datadir = datadir_raw,
-                               filename = "GlobalProduction_2022.1.1.zip", 
-                               # "GlobalProduction_2023.1.1.zip"
+                               filename = "GlobalProduction_2025.1.0.zip", 
                                prod_data_source = "FAO",
                                fb_slb_dir = current_fb_slb_dir)
 
-# Reassign to separate objects:
+# Reassign list to separate objects:
 prod_data_raw <- prod_list[[1]] 
-prod_taxa_classification <- prod_list[[2]] %>%
+prod_taxa_classification <- prod_list[[2]]
+
+# remove large environmental object
+rm(prod_list)
+
+# Structure FAO prod taxa classification ---------------------------------
+prod_taxa_classification <- prod_taxa_classification %>%
+  # Manually assign missing habitat coding
   mutate(Fresh01 = case_when(
-    SciName == "neocaridina denticulata" ~ as.integer(1),
+    SciName %in% c("neocaridina denticulata", "caridina nilotica") ~ as.integer(1),
     TRUE ~ as.integer(Fresh01)
   )) %>%
   mutate(Saltwater01 = case_when(
@@ -53,16 +67,74 @@ prod_taxa_classification <- prod_list[[2]] %>%
     TRUE ~ as.integer(Saltwater01)
   ))
 
+## DATA CHECK: Verify that habitat information is complete before matching processes
+test_prod_taxa <- prod_taxa_classification %>% 
+  mutate(test = Fresh01 + Brack01 + Saltwater01) %>%
+  filter(test == 0) %>%
+  nrow()
+
+if(test_prod_taxa > 0){
+  warning(paste0(test_prod_taxa," Scinames are missing habitat information in prod_taxa_classification"))
+}
+
+# SAVE PRODUCTION Taxa OUTPUT:
+write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)
+
 # Get fishbase habitat data from prod_taxa_classification to standardize habitat info in prod_data
 prod_habitat <- prod_taxa_classification %>%
   select(SciName, Fresh01, Brack01, Saltwater01) %>%
   distinct()
 
+# ISSCAP Metadata ---------------------------------------------------------
+
+# used to create code_max_resolved which is used in ARTIS calculate_consumption
+
+#Create 1-to-1 matching for 
+isscaap_metadata <- prod_data_raw %>%
+  select(SciName, isscaap_group) %>%
+  distinct()
+
+multiple_isscaap <- isscaap_metadata %>% 
+  group_by(SciName) %>%
+  tally() %>%
+  filter(n>1) %>%
+  pull(SciName)
+
+isscaap_metadata <- isscaap_metadata %>%
+  mutate(isscaap_group = case_when(
+    SciName %in% multiple_isscaap ~ "Multiple ISSCAAP groups",
+    !(SciName %in% multiple_isscaap) ~ isscaap_group
+  )) %>%
+  distinct()
+
+# Add ISSCAAP groups for custom "unknown origin" scinames
+unknown_isscaap <- data.frame(sciname = c("arthropoda", "chondrichthyes", 
+                                  "engraulis", "actinopteri", "homarus",
+                                  "mytilinae", "clupea", "hippoglossinae", 
+                                  "scombrinae", "salmoninae", "animalia", 
+                                  "dissostichus", "cypriniformes", 
+                                  "micromesistius", "echinoida", "chordata"),
+                      isscaap_group = c("Multiple ISSCAAP groups", "Sharks, rays, chimaeras",
+                                        "Herrings, sardines, anchovies", "Multiple ISSCAAP groups",
+                                        "Lobsters, spiny-rock lobsters", "Mussels",
+                                        "Herrings, sardines, anchovies", "Flounders, halibuts, soles", 
+                                        "Multiple ISSCAAP groups", "Salmons, trouts, smelts", 
+                                        "Multiple ISSCAAP groups", "Miscellaneous demersal fishes", 
+                                        "Carps, barbels and other cyprinids", "Cods, hakes, haddocks",
+                                        "Sea-urchins and other echinoderms", "Multiple ISSCAAP groups"))
+
+isscaap_metadata <- isscaap_metadata %>%
+  bind_rows(unknown_isscaap)
+
+write.csv(isscaap_metadata, file.path(datadir, "isscaap_metadata.csv"), row.names = FALSE)
+
+
+# Structure FAO prod -----------------------------------------------------
 prod_data <- prod_data_raw %>%
-  filter(quantity > 0) %>%
-  filter(year > 1995)  %>% # Filter to 1996 and on to work with a smaller file
   # Remove columns not needed for any analysis
-  select(!c(any_of(c("alternate", "multiplier", "symbol", "symbol_identifier")), 
+  select(!c(any_of(c("alternate", "multiplier", "symbol", "symbol_identifier", 
+                    "country_iso3_numeric", "country_identifier", "production_identifier", 
+                    "sort", "unit_identifier")), # "species_identifier" still available here
             contains(c("_ar", "_cn", "_es", "_fr", "_ru")),
             CommonName)) %>%
   # Create new column that combines SciName with souce info (i.e., habitat + production method)
@@ -85,18 +157,15 @@ prod_data <- prod_data_raw %>%
   mutate(habitat = case_when(str_detect(SciName, pattern = " ") & fb_habitat != fao_habitat & fb_habitat %in% c("inland", "marine") ~ fb_habitat,
                                  TRUE ~ fao_habitat)) %>% # ELSE, use FAO's habitat designation, including for all non species-level data
   # UPDATE taxa source to match structure in get country solutions
-  mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_")) %>%
-  group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en) %>%
+  mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_")) 
+
+write.csv(prod_data, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
+
+prod_data <- prod_data %>% 
+  group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en, area.code) %>%
   summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
   ungroup()
 
-# Changing class name based on FAO 2022 species list
-# some sources call actinopterygii a class others call it a superclass (might need to change with osteichthyes instead)
-prod_taxa_classification <- prod_taxa_classification %>%
-  mutate(Class = case_when(
-    Class == 'actinopteri' ~ 'actinopterygii',
-    TRUE ~ Class
-  ))
 
 if (test) {
   
@@ -108,17 +177,22 @@ if (test) {
     filter(SciName %in% test_scinames)
 }
 
-# SAVE PRODUCTION OUTPUT:
-#write.csv(prod_data, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
-write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)
-
 prod_data <- standardize_countries(df = prod_data, 
                                    data_source = "FAO")
+# retain FAO area.code column
+write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod_more_cols.csv"), row.names = FALSE)
+
+# remove area.code column to format to prod version used in model
+prod_data <- prod_data %>% 
+  group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en) %>%
+  summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
+  ungroup()
+
 write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod.csv"), row.names = FALSE)
 
-rm(prod_list)
 
-# SAU data----------------------------------------------------------------------
+
+# Clean SAU Production (taxa names and classification) -------------------------
 prod_list_sau <- classify_prod_dat(datadir = datadir_raw,
                                    filename = 'SAU_Production_Data.csv',
                                    prod_data_source = 'SAU',
@@ -126,10 +200,9 @@ prod_list_sau <- classify_prod_dat(datadir = datadir_raw,
                                    fb_slb_dir = current_fb_slb_dir)
 
 prod_data_sau <- prod_list_sau[[1]] %>%
-  mutate(year = as.numeric(year)) %>%
-  mutate(quantity = as.numeric(quantity)) %>%
-  filter(quantity > 0) %>%
-  filter(year > 1995)
+  mutate(
+    year = as.numeric(year),
+    quantity = as.numeric(quantity))
 
 prod_data_sau <- prod_data_sau %>%
   mutate(habitat = "marine",
@@ -145,16 +218,13 @@ prod_data_sau <- prod_data_sau %>%
 
 rm(prod_list_sau)
 
-# FIXIT: check if this data gets read back in - may be able to remove if not
-# write.csv(prod_data_sau, file.path(datadir, "clean_sau_prod.csv"), 
-#           row.names = FALSE)
- write.csv(prod_classification_sau, file.path(datadir, "clean_sau_taxa.csv"), 
+write.csv(prod_classification_sau, file.path(datadir, "clean_sau_taxa.csv"), 
            row.names = FALSE)
 
 # initial country name cleaning and adding iso3c for SAU data
 prod_data_sau <- prod_data_sau %>%
   mutate(country_name_en = str_remove(country_name_en, ' \\(.+\\)$')) %>%
-  mutate(country_iso3_alpha = countrycode(country_name_en, origin = 'country.name', destination = 'iso3c')) %>%
+  mutate(country_iso3_alpha = countrycode::countrycode(country_name_en, origin = 'country.name', destination = 'iso3c')) %>%
   # Renaming for standardize countries function later
   mutate(country_name_en = case_when(
     country_name_en == 'Channel Isl.' ~ 'Channel Islands',
@@ -175,18 +245,18 @@ prod_data_sau <- prod_data_sau %>%
     country_name_en == 'Unknown Fishing Country' ~ 'NEI',
     TRUE ~ country_iso3_alpha
   )) %>%
-  mutate(country_iso3_numeric = countrycode(country_iso3_alpha, 
+  mutate(country_iso3_numeric = countrycode::countrycode(country_iso3_alpha, 
                                             origin = 'iso3c', 
                                             destination = 'iso3n'))
 
 # standardize countries for SAU production
 prod_data_sau <- standardize_countries(prod_data_sau, "FAO")
 
+# group by and summarize across more SAU production columns. 
 prod_data_sau <- prod_data_sau %>% 
   group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, 
            country_name_en, gear, eez, sector, end_use) %>% 
-  summarise(quantity = sum(quantity)) %>%
-  ungroup()
+  summarise(quantity = sum(quantity), .groups = "drop") 
 
 write.csv(prod_data_sau, file.path(datadir, 'standardized_sau_prod_more_cols.csv'), 
           row.names = FALSE)
@@ -194,11 +264,12 @@ write.csv(prod_data_sau, file.path(datadir, 'standardized_sau_prod_more_cols.csv
 prod_data_sau <- prod_data_sau %>% 
     group_by(SciName,  year, taxa_source, habitat, prod_method, 
              country_iso3_alpha, country_name_en) %>% 
-    summarise(quantity = sum(quantity)) %>%
-    ungroup()
+    summarise(quantity = sum(quantity), .groups = "drop") 
 
 write.csv(prod_data_sau, file.path(datadir, 'standardized_sau_prod.csv'), row.names = FALSE)
-  
+
+
+# Subsitute SAU marine prod into FAO prod --------------------------------
 if (running_sau) {
   # Combine SAU production data with FAO data
   prod_data <- prod_data %>%
@@ -232,12 +303,14 @@ sciname_habitat <- prod_taxa_classification %>%
                              Brack01 == 1 & Fresh01 == 0 & Saltwater01 == 0 ~ "marine",
                              TRUE ~ as.character(NA)))
 
-# Step 2: Create V1 and V2 for each HS version----------------------------------
+# Create V1 and V2 for each HS version ----------------------------------
 # Load and clean the conversion factor data and run the matching functions. 
 # This data will be used to create V1 and V2. 
-hs_data_clean <- clean_hs(hs_data_raw = read.csv(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "character"),
+hs_data_clean <- clean_hs(hs_data_raw = fread(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "character"),
                           fb_slb_dir = current_fb_slb_dir)
 
+
+# FMFO Species from SAU --------------------------------------------------
 # Getting list of fmfo species
 fmfo_species <- get_fmfo_species(
   sau_fp = file.path(datadir, 'standardized_sau_prod_more_cols.csv'),
@@ -248,6 +321,8 @@ fmfo_species <- get_fmfo_species(
 
 write.csv(fmfo_species, file.path(datadir_raw, 'fmfo_species_list.csv'), row.names = FALSE)
 
+# Get HS years for data cleaning loops below
+HS_year <- unique(df_years$HS_year)
 
 if (test) {
   HS_year <- HS_year[HS_year %in% test_hs]
@@ -255,11 +330,13 @@ if (test) {
     filter(Code %in% test_codes)
 }
 
+# Loop HS versions through match funs and cf's --------------------------------
 for(i in 1:length(HS_year)) {
   
   hs_version <- paste("HS", HS_year[i], sep = "")
-  print(hs_version)
+  message(glue("{hs_version} Matching taxa/products/conversion factors"))
   
+
   # Match HS codes to production taxa (can be FAO or SAU depending on which was used in clean_and_clasify_prod_dat function)
   hs_taxa_match <- match_hs_to_taxa(hs_data_clean = hs_data_clean,
                                     prod_taxa_classification = prod_taxa_classification,
@@ -295,7 +372,7 @@ for(i in 1:length(HS_year)) {
     ungroup() %>%
     mutate(habitat_percent = 100 * habitat_count / total) %>%
     group_by(Code, habitat) %>%
-    summarize(habitat_percent = sum(habitat_percent, na.rm = TRUE)) %>%
+    summarize(habitat_percent = sum(habitat_percent, na.rm = TRUE), .groups = "keep") %>%
     pivot_wider(names_from = habitat, 
                 values_from = habitat_percent) %>%
     replace_na(list(marine = 0, inland = 0, diadromous = 0))
@@ -454,7 +531,7 @@ for(i in 1:length(HS_year)) {
   
   # Load and clean the live weight conversion factor data
   # These CF's convert from commodity to the live weight equivalent (min value is therefore 1, for whole fish)
-  set_match_criteria = "strict"
+  set_match_criteria = "strict" # FIXIT: AM 2025-08 this parameter can be moved to 00-local-setup.R
   hs_taxa_CF_match <- compile_cf(conversion_factors = read.csv(file.path(datadir_raw, "seafood_conversion_factors.csv"), stringsAsFactors = FALSE),
                                  eumofa_data = read.csv(file.path(datadir_raw, "EUMOFA_compiled.csv"), stringsAsFactors = FALSE),
                                  hs_hs_match,
@@ -462,6 +539,7 @@ for(i in 1:length(HS_year)) {
                                  match_criteria = set_match_criteria,
                                  fb_slb_dir = current_fb_slb_dir)
   
+  ##### Data Check ######
   # Check that everything in HS taxa match has a conversion factor value
   hs_taxa_matches <- hs_taxa_match %>%
     mutate(taxa_matches = paste(Code, SciName, sep = "_")) %>%
@@ -488,23 +566,15 @@ for(i in 1:length(HS_year)) {
   cf_csv_name <- paste("hs-taxa-CF_", set_match_criteria, "-match_", hs_version, ".csv", sep = "")
   write.csv(hs_taxa_CF_match, file.path(datadir, cf_csv_name), row.names = FALSE)
   
-} # end of for loop
+} # end loop - taxa and hs matching 
 
 
-##############################################################################
-# Step 3: Load trade (BACI) data, filter to just seafood products, and standardize countries between production and trade data
-###############################################################################
+# BACI filter and standardize --------------------------------------------
+
+# Load trade (BACI) data, filter to just seafood products, and standardize countries between production and trade data
 # Create data frame with all hs year and analysis year combinations
 
-# List of possible HS versions: HS96, HS02, HS12, HS17
-# No need to do HS92 when using BACI though as that data starts in 1996
-df_years <- data.frame(HS_year = c(rep("96", length(1996:2020)),
-                                   rep("02", length(2002:2020)),
-                                   rep("07", length(2007:2020)),
-                                   rep("12", length(2012:2020)),
-                                   rep("17", length(2017:2020))),
-                       analysis_year = c(1996:2020, 2002:2020, 2007:2020,
-                                         2012:2020, 2017:2020))
+# df_years dataframe contains all HS version and year pairs. Created in 00-local-machine-setup.R
 
 if (test) {
   df_years <- df_years %>%
@@ -512,21 +582,21 @@ if (test) {
            analysis_year == test_year)
 }
 
-###############################################################################
 # Load data file and filter for fish codes (i = exporter, j = importer, hs6 = HS code)
 # Note on warning message "Some values were not matched unambiguously: NULL" means all values were matched
 
-# Filter raw baci data
+#### Filter raw baci data #######
 for (i in 1:nrow(df_years)){
-  HS_year <- df_years[i,]$HS_year
+  a_HS_year <- df_years[i,]$HS_year
   analysis_year <- df_years[i,]$analysis_year
-  print(paste(HS_year, analysis_year))
   
   # Creating out folder if necessary
-  if (!file.exists(file.path(datadir_raw, paste("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))) {
+  if (!file.exists(file.path(datadir_raw, paste("filtered_BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))) {
+    
+    message(glue("Filter BACI HS{a_HS_year} {analysis_year}"))
     baci_data_i <- read.csv(file = file.path(tradedatadir, 
-                                           paste("BACI_", "HS", HS_year, "_V", baci_version, sep = ""),
-                                           paste("BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
+                                           paste("BACI_", "HS", a_HS_year, "_V", baci_version, sep = ""),
+                                           paste("BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
                           stringsAsFactors = FALSE)
     
     baci_data_i  <- baci_data_i  %>%
@@ -538,28 +608,28 @@ for (i in 1:nrow(df_years)){
       baci_data_i ,
       hs_codes = as.numeric(unique(hs_data_clean$Code)),
       baci_country_codes = read.csv(file.path(tradedatadir, 
-                                              paste("BACI_", "HS", HS_year, "_V", baci_version, sep = ""),
+                                              paste("BACI_", "HS", a_HS_year, "_V", baci_version, sep = ""),
                                               paste("country_codes_V", baci_version, ".csv", sep = "")))
     )
     
-    write.csv(baci_data_i, file.path(datadir_raw, paste("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
+    write.csv(baci_data_i, file.path(datadir_raw, paste("filtered_BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
               row.names = FALSE)
   } else {
-    print("Filtered BACI file already exists")
+    print(glue("Filtered BACI HS{a_HS_year} {analysis_year} file already exists. Skipping to next HS/year pair."))
     }
   } 
 
-# Standardize BACI data
+#### Standardize BACI data ####
 for (i in 1:nrow(df_years)){
-  HS_year <- df_years[i,]$HS_year
+  a_HS_year <- df_years[i,]$HS_year
   analysis_year <- df_years[i,]$analysis_year
-  print(paste(HS_year, analysis_year))
+  print(glue("standardize BACI {a_HS_year} {analysis_year}"))
   
-  baci_data <- read.csv(file.path(datadir_raw, paste("filtered_BACI_", "HS", HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))
+  baci_data <- read.csv(file.path(datadir_raw, paste("filtered_BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))
   
   baci_data <- baci_data %>%
     mutate(year = analysis_year,
-           hs_version = paste("HS", HS_year, sep = ""))
+           hs_version = paste("HS", a_HS_year, sep = ""))
   
   baci_data <- standardize_countries(baci_data, "BACI")
   
@@ -567,14 +637,14 @@ for (i in 1:nrow(df_years)){
   write.csv(
     baci_data %>%
       select(-c(total_v)),
-    file.path(datadir, paste("standardized_baci_seafood_hs", HS_year, "_y", analysis_year, ".csv", sep = "")),
+    file.path(datadir, paste("standardized_baci_seafood_hs", a_HS_year, "_y", analysis_year, ".csv", sep = "")),
     row.names = FALSE
   )
 
   # BACI output with total and unit value
   write.csv(
     baci_data,
-    file.path(datadir, paste("standardized_baci_seafood_hs", HS_year, "_y", analysis_year, "_including_value.csv", sep = "")),
+    file.path(datadir, paste("standardized_baci_seafood_hs", a_HS_year, "_y", analysis_year, "_including_value.csv", sep = "")),
     row.names = FALSE
   )
 }
@@ -582,11 +652,21 @@ for (i in 1:nrow(df_years)){
 # Clean FAO population data ------------------------------------------------
 pop_raw <- read.csv(file.path(datadir_raw, "Population_E_All_Data/Population_E_All_Data_NOFLAG.csv"))
 
+# Restructure FAO population data
 clean_pop <- pop_raw %>%
   # Total population all inclusive
   filter(Element == "Total Population - Both sexes") %>%
   # Remove Regional Summaries to avoid double counting
   filter(Area.Code < 1000) %>%
+  # Use area codes to correct names with special characters
+  mutate(Area = case_when(
+    Area.Code == 107 ~ "Cote d'Ivoire",
+    Area.Code == 223 ~ "Turkey",
+    Area.Code == 279 ~ "Curacao",
+    Area.Code == 182 ~ "Reunion",
+    Area.Code == 282 ~ "Saint Barthelemy",
+    TRUE ~ Area
+  )) %>%
   # Remove unnecessary columns
   select(-c("Area.Code", "Area.Code..M49.", "Item.Code", "Item", "Element.Code", "Element", "Unit")) %>%
   rename(country_name = Area) %>%
@@ -598,29 +678,37 @@ clean_pop <- pop_raw %>%
   # Convert population estimate from 1000 persons to raw pop count
   mutate(pop = 1000 * pop) %>%
   # Filter for years included in ARTIS
-  filter(year >= 1996 & year <= 2022)
+  filter(year >= 1996 & year <= max_year) # FIXIT add upper year bounds dynamic
 
 Encoding(clean_pop$country_name) <- "latin1"
 
+# Clean FAO population data
 clean_pop <- clean_pop %>%
   # Note double counting occuring for China = China mainland + China Macao + China, Taiwan Province of + China Hong Kong
   filter(country_name != "China",
          country_name != "Yugoslav SFR",
          country_name != "Czechoslovakia",
          country_name != "Pacific Islands Trust Territory") %>%
+  filter(!is.na(pop)) %>%
+  # Remove USSR from data - dissolved in 1992 and not relevant to ARTIS
+  filter(country_name != "USSR") %>%
   mutate(country_name = case_when(
     country_name == "China, mainland" ~ "China",
     country_name == "China, Hong Kong SAR" ~ "China",
     country_name == "China, Macao SAR" ~ "China",
     country_name == "China, Taiwan Province of" ~ "Taiwan",
-    country_name == "Netherlands Antilles (former)" ~ "Netherlands",
+    # country dissolved in 2010 - pop data NA afterward, so existing data 
+    # into "Netherlands (Kingdom of the)" 
+    country_name == "Netherlands Antilles (former)" ~ "Netherlands (Kingdom of the)",
     country_name == "Türkiye" ~ "Turkey",
+    # combine Belgium and Luxembourg because of population data gaps
+    # among the three combinations. 
     country_name == "Belgium-Luxembourg" ~ "Belgium",
     country_name == "Luxembourg" ~ "Belgium",
     TRUE ~ country_name
   )) %>%
   mutate(
-    iso3c = countrycode(country_name, "country.name", "iso3c")
+    iso3c = countrycode::countrycode(country_name, "country.name", "iso3c")
   ) %>%
   mutate(
     iso3c = case_when(
@@ -630,23 +718,292 @@ clean_pop <- clean_pop %>%
   )
 
 # Standardizing Countries
-clean_fao <- read.csv(file.path(datadir_raw, "standard_fao_countries.csv"))
-clean_pop <- clean_pop %>%
-  filter(year <= 2020) %>%
-  left_join(
-    clean_fao,
-    by = c("iso3c", "year")
-  ) %>%
-  select(-c(country_name, iso3c)) %>%
-  rename(iso3c = artis_iso3c, country_name = artis_country_name) %>%
+# clean_fao <- read.csv(file.path(datadir_raw, "standard_fao_countries.csv"))
+# clean_pop <- clean_pop %>%
+#   left_join(
+#     clean_fao,
+#     by = c("iso3c", "year")
+#   ) %>%
+#   select(-c(country_name, iso3c)) %>%
+#   rename(iso3c = artis_iso3c, country_name = artis_country_name) %>%
+#   group_by(iso3c, year) %>%
+#   summarize(pop = sum(pop, na.rm = TRUE))
+
+std_pop <- standardize_prod(clean_pop, "iso3c", "country_name")
+std_pop <- std_pop %>%
+  select(
+    iso3c = artis_iso3c, 
+    year,
+    pop) %>%
   group_by(iso3c, year) %>%
-  summarize(pop = sum(pop, na.rm = TRUE))
+  summarise(pop = sum(pop), .groups = "drop")
+
+# FIXIT: Add tests here. Adds up to the global population - no addtions or removal. Raw file and group by year and summarize global population. 
 
 if (test) {
-  clean_pop <- clean_pop %>%
+  std_pop <- std_pop %>%
     filter(year == test_year)
 }
 
-write.csv(clean_pop, file.path(datadir, "fao_annual_pop.csv"), row.names = FALSE)
+write.csv(std_pop, file.path(datadir, "fao_annual_pop.csv"), row.names = FALSE)
+
+################ Metadata tables
+
+# Load cleaned taxa details
+taxa <- fread(file.path(datadir, "clean_fao_taxa.csv")) %>%
+  rename(sciname = SciName, common_name = CommonName) %>%
+  distinct()
+
+# sciname_metadata --------------------------------------------------------
+
+# Create file for phylogenetic metadata
+# Create 1-to-1 matching for common names and taxa info
+taxa_metadata <- taxa %>%
+  mutate(common_name = case_when(
+    sciname =="alosa" ~ "shads nei", 
+    sciname == "asteroidea" ~ "starfishes nei", 
+    sciname == "branchiopoda" ~ "crustaceans nei", 
+    sciname == "carcharhiniformes" ~ "ground sharks nei", 
+    sciname == "clarias" ~ "catfishes nei", 
+    sciname == "clupeidae" ~ "sardines nei", 
+    sciname == "clupeiformes" ~ "clupeoids nei", 
+    sciname == "dentex tumifrons" ~ "yellowback seabream",
+    sciname == "epinephelus" ~ "groupers nei", 
+    sciname == "gadus macrocephalus" ~ "pacific cod", 
+    sciname == "gobiidae" ~ "gobies nei", 
+    sciname == "jasus edwardsii" ~ "red rock lobster", 
+    sciname == "lepidonotothen squamifrons" ~ "grey rockcod", 
+    sciname == "macrobrachium" ~ "river prawns nei", 
+    sciname == "merluccius" ~ "hakes nei", 
+    sciname == "mollusca" ~ "molluscs nei", 
+    sciname == "mullus" ~ "surmullets(=red mullets) nei", 
+    sciname == "myliobatidae" ~ "eagle and manta rays nei", 
+    sciname == "oreochromis" ~ "tilapias nei", 
+    sciname == "osteichthyes" ~ "fish nei", 
+    sciname == "palaemonidae" ~ "palaemonid shrimps nei", 
+    sciname == "parastacidae" ~ "crayfishes nei", 
+    sciname == "penaeidae" ~ "penaeid shrimps nei", 
+    sciname == "perciformes" ~ "tuna-like fishes nei", 
+    sciname == "planiliza haematocheilus" ~ "so-iny (redlip) mullet", 
+    sciname == "salmonidae" ~ "almonids nei", 
+    sciname == "sardinops sagax" ~ "south american pilchard", 
+    sciname == "sebastes" ~ "redfishes nei", 
+    sciname == "serrasalmidae" ~ "serrasalmids nei", 
+    sciname == "thunnus" ~ "tunas nei", 
+    sciname == "xiphopenaeus kroyeri" ~ "atlantic seabob", 
+    sciname == "bryzoa" ~ "bryzoa",
+    TRUE ~ common_name
+  )) %>%
+  distinct() %>%
+  bind_rows(data.frame(
+    sciname = c("arthropoda", "engraulis", "hippoglossinae", "scombrinae", "clupea",     
+                "chondrichthyes", "salmoninae", "mytilinae", "actinopteri", "animalia",    
+                "homarus", "cypriniformes", "dissostichus", "micromesistius", "echinoida"),
+    
+    common_name = c("arthropods", "anchovies", "flounders", "mackerels, tunas, and bonitos",
+                   "herrings", "sharks, skates, rays, and chimaeras", "salmons and trouts",
+                   "saltwater mussels", "ray-finned fish", "aquatic animals", "lobsters", 
+                   "carps, minnows, loaches, etc", "toothfish", "blue whitings", "sea urchins"),
+    
+    Genus = c(NA, "engraulis", NA, NA, "clupea",     
+              NA, NA, NA, NA, NA,    
+              "homarus", NA, "dissostichus", "micromesistius", NA),
+    
+    Subfamily = c(NA, "engraulinae", "hippoglossinae", "scombrinae", "clupeinae",     
+                  NA, "salmoninae", "mytilinae", NA, NA,    
+                  NA, NA, NA, NA, NA),
+    
+    Family = c(NA, "engraulidae", "pleuronectidae", "scombridae", "clupeidae",     
+               NA, "salmonidae", "mytilidae", NA, NA,    
+               "nephropidae", NA, "nototheniidae", "gadidae", NA), 
+    
+    Order = c(NA, "clupeiformes", "pleuronectiformes", "scombriformes", "	clupeiformes",     
+              NA, "salmoniformes", "mytilida", NA, NA,    
+              "decapoda", "cypriniformes", "perciformes", "gadiformes", "echinoida"), 
+    
+    Class = c(NA, "teleostei", "teleostei", "teleostei", "teleostei",     
+              "chondrichthyes", "teleostei", "bivalvia", "teleostei", NA,    
+              "malacostraca", "teleostei", "teleostei", "teleostei", "echinoidea"),
+    
+    Superclass = c(NA, "osteichthyes", "osteichthyes", "osteichthyes", "osteichthyes",     
+                   NA, "osteichthyes", NA, "osteichthyes", NA,    
+                   NA, "osteichthyes", "osteichthyes", "osteichthyes", NA),
+    
+    Phylum = c("arthropoda", "chordata", "chordata", "chordata", "chordata",     
+               "chordata", "chordata", "mollusca", "chordata", NA,    
+               "arthropoda", "chordata", "chordata", "chordata", "echinodermata"),
+    
+    Kingdom = c("animalia", "animalia", "animalia", "animalia", "animalia",     
+                "animalia", "animalia", "animalia", "animalia", "animalia",    
+                "animalia", "animalia", "animalia", "animalia", "animalia")
+  )) 
+ 
+
+taxa_metadata <- taxa_metadata %>%
+  left_join(isscaap_metadata, by = "sciname")
+
+if(running_sau){
+# Add missing scinames from SAU with sau_taxa 
+sau_taxa <- fread(file.path(datadir, "clean_sau_taxa.csv")) %>%
+  rename(sciname = SciName, common_name = CommonName) %>%
+  distinct() %>%
+  filter(!(sciname %in% taxa_metadata$sciname))
+  }
+
+taxa_metadata <- taxa_metadata %>%
+  #bind_rows(sau_taxa) %>%
+  distinct() %>%
+  ungroup() %>%
+  mutate(sum_na = rowSums(is.na(.))) %>%
+  group_by(sciname) %>%
+  slice_min(order_by = sum_na, n = 1, with_ties = FALSE) %>%
+  select(-sum_na)
+
+write.csv(taxa_metadata, file.path(outdir_attribute, "sciname_metadata.csv"), row.names = FALSE)
+
+# Code_max_resolved_taxa -------------------------------------------------
 
 
+hs_taxa_match <- data.frame(Code = integer(),
+                            SciName = character(),
+                            Match_category = character(),
+                            HS_version = character(),
+                            Description = character(),
+                            Modification = character())
+
+hs_clade_match <- data.frame(Code = character(),
+                             hs_clade = factor(),
+                             classification_level = character(),
+                             hs_version = character())
+
+for(i in HS_year){
+  HS_year_rep <- i
+  
+  hs_taxa_match_i <- read.csv(file.path(datadir, paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = "")))
+  hs_clade_match_i <- match_hs_to_clade(hs_taxa_match = hs_taxa_match_i,
+                                        prod_taxa_classification = taxa %>%
+                                          rename(CommonName = common_name, SciName = sciname),
+                                        match_to_prod = FALSE) 
+  
+  hs_clade_match_i <- hs_clade_match_i %>%
+    mutate(Code = as.character(Code)) %>% # pad HS codes with zeroes
+    mutate(
+      Code = if_else(
+        str_detect(Code, "^30"),
+        true = str_replace(Code, pattern = "^30", replacement = "030"),
+        if_else(
+          str_detect(Code, "^511"),
+          true = str_replace(Code, pattern = "^511", replacement = "0511"),
+          false = Code
+        )
+      )
+    ) %>%
+    mutate(hs_version = HS_year_rep)
+  
+  # Add SAU matches - running with just SAU ARTIS v1.1.0 - not two separate model_inputs/
+  # hs_taxa_match_sau_i <- read.csv(file.path("model_inputs_sau", paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = "")))
+  # 
+  # hs_clade_match_sau_i <- match_hs_to_clade(hs_taxa_match = hs_taxa_match_sau_i ,
+  #                                       prod_taxa_classification = taxa %>%
+  #                                         rename(CommonName = common_name, SciName = sciname),
+  #                                       match_to_prod = FALSE) %>% 
+  #   # pad HS codes with zeroes
+  #   mutate(Code = as.character(Code)) %>%
+  #   mutate(Code = if_else(str_detect(Code, "^30"), true = str_replace(Code, pattern = "^30", replacement = "030"),
+  #                         if_else(str_detect(Code, "^511"), true = str_replace(Code, pattern = "^511", replacement = "0511"),
+  #                                 false = Code))) %>%
+  #   mutate(hs_version = HS_year_rep) %>%
+  #   filter(!is.na(hs_clade))
+  # 
+  hs_clade_match <- hs_clade_match %>%
+    bind_rows(hs_clade_match_i) %>%
+   # bind_rows(hs_clade_match_sau_i) %>%
+    distinct()
+
+  hs_taxa_match <- hs_taxa_match %>%
+    bind_rows(hs_taxa_match_i) %>%
+   # bind_rows(hs_taxa_match_sau_i) %>%
+    distinct()
+}
+
+hs_clade_match <- hs_clade_match %>%
+  rename("hs6" = "Code")
+
+hs_clade_match <- hs_clade_match %>%
+  mutate(hs6 = as.integer(hs6),
+         hs_version = as.integer(hs_version)) %>%
+  rename("code_taxa_level" = "classification_level")
+
+prod_taxa_classification <- taxa_metadata %>%
+  select(-common_name) %>%
+  unique() %>% 
+  mutate(
+    prod_taxa_level = case_when(
+      (str_count(sciname, pattern = " ") == 1) ~ "Species", 
+      sciname == Genus ~ "Genus", 
+      sciname == Subfamily ~ "Subfamily", 
+      sciname == Family ~ "Family", 
+      sciname == Order ~ "Order", 
+      sciname == Class ~ "Class", 
+      sciname == Superclass ~ "Superclass", 
+      sciname == Phylum ~ "Phylum", 
+      sciname == Kingdom ~ "Kingdom"
+    )
+  ) %>%
+  select(sciname, prod_taxa_level) %>%
+  bind_rows(data.frame(
+    sciname = c("animalia", "osteichthyes", "actinopteri"),
+    prod_taxa_level = c("Kingdom", "Superclass", "Class")
+  )) %>%
+  distinct()
+
+code_max_resolved_taxa <- hs_taxa_match %>%
+  rename(hs6 = Code, sciname = SciName) %>%
+  left_join(hs_clade_match %>% 
+              mutate(hs_version = paste("HS", hs_version, sep="")),
+            by = c("hs6", "HS_version" = "hs_version")) %>%
+  left_join(prod_taxa_classification, by = c("sciname")) %>%
+  mutate(code_taxa_level_numeric = case_when(
+    code_taxa_level == "Species" ~ 1, 
+    code_taxa_level == "Genus" ~ 2,
+    code_taxa_level == "Subfamily" ~ 3,
+    code_taxa_level == "Family" ~ 4,
+    code_taxa_level == "Order" ~ 5, 
+    code_taxa_level == "Class" ~ 6, 
+    code_taxa_level == "Superclass" ~ 7,
+    code_taxa_level == "Phylum" ~ 8,
+    code_taxa_level == "Kingdom" ~ 9
+  )) %>%
+  mutate(prod_taxa_level_numeric = case_when(
+    prod_taxa_level == "Species" ~ 1, 
+    prod_taxa_level == "Genus" ~ 2,
+    prod_taxa_level == "Subfamily" ~ 3,
+    prod_taxa_level == "Family" ~ 4,
+    prod_taxa_level == "Order" ~ 5, 
+    prod_taxa_level == "Class" ~ 6,
+    prod_taxa_level == "Superclass" ~ 7,
+    code_taxa_level == "Phylum" ~ 8,
+    prod_taxa_level == "Kingdom" ~ 9
+  )) %>%
+  mutate(hs_clade = as.character(hs_clade)) %>%
+  # Find the most resolved name from production or trade hs codes? -AM
+  mutate(sciname_hs_modified = case_when(
+    prod_taxa_level_numeric < code_taxa_level_numeric ~ sciname, 
+    code_taxa_level_numeric < prod_taxa_level_numeric ~ hs_clade,
+    prod_taxa_level_numeric == code_taxa_level_numeric ~ sciname
+  )) %>%
+  mutate(sciname_hs_modified = ifelse(is.na(sciname_hs_modified), sciname, sciname_hs_modified)) %>%
+  # Leave chordata as original names
+  mutate(sciname_hs_modified = case_when(
+    sciname_hs_modified == "chordata" ~ sciname_hs_modified,
+    sciname_hs_modified != "chordata" ~ sciname_hs_modified
+  )) %>%
+  select("hs_version" = "HS_version", hs6, sciname, sciname_hs_modified, 
+         "match_category" = "Match_category", "description" = "Description",
+         "modification" ="Modification", hs_clade, code_taxa_level, prod_taxa_level,
+         code_taxa_level_numeric, prod_taxa_level_numeric) %>%
+  mutate(hs6 = as.character(hs6)) %>%
+  distinct()
+
+write.csv(code_max_resolved_taxa, file.path(datadir, "code_max_resolved_taxa.csv"), row.names = FALSE)
+  

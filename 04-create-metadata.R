@@ -5,6 +5,12 @@ rm(list=ls())
 
 run_env <- "local"
 
+library(dplyr)
+library(magrittr)
+library(data.table)
+library(artis)
+library(stringr)
+
 # setup local model environment
 # directories included
 if(run_env == "local") {
@@ -22,7 +28,7 @@ if (!dir.exists(outdir_attribute)) { dir.create(outdir_attribute) }
 # Load production data
 prod <- fread(file.path(datadir, "clean_fao_prod.csv"))
 prod <- prod %>%
-  rename(sciname = SciName, common_name = CommonName,
+  rename(sciname = SciName,
          method = prod_method)
 
 # Load cleaned taxa details

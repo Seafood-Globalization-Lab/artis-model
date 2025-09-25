@@ -18,23 +18,29 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
   fmfo_species_list <- fmfo_species_list %>% 
     filter(SciName %in% prod_taxa_classification$SciName)
   
-  # FILTER OUT SPECIAL CASES:
-  # Assumption is that HS codes are grouped by broad commodity type at the 4-digit level (only one type of fish, crustaceans, molluscs, or crustaceans for a given 4 digit parent)
+
+# FILTER OUT SPECIAL CASES: ----------------------------------------------
+  # Assumption is that HS codes are grouped by broad commodity type at the 4-digit level 
+  # (only one type of fish, crustaceans, molluscs, or crustaceans for a given 4 digit parent)
   # Filter these codes out of because they: 
   # (1) are matched based on non-taxonomic info (e.g., ornamentals, fish oils, flours meals and pellets)
-  # (2) do not follow the matching logic code below which assumes that within a parent group taxa can be assigned to an HS code based on taxonomic info or NEC filtering (e.g., codes are matched based on broad commodity type such as heading 0511)
+  # (2) do not follow the matching logic code below which assumes that within a parent group taxa can be 
+  # assigned to an HS code based on taxonomic info or NEC filtering (e.g., codes are matched based on 
+  # broad commodity type such as heading 0511)
   # Note: see all_codes_arranged_for_matching_logic.xlsx for documentation on matching logic within parent groups
   parents_to_filter <- hs_data_version %>%
-    filter(str_detect(hs_data_version$Code, pattern = "^0511|^1504|^1605|^2301")) %>%     # 0511: Single code that contains all commodity types; 1504: Fish oils; 1605: Multiple commodity types; 2301: Flours, meals and pellets
+    filter(str_detect(hs_data_version$Code, pattern = "^0511|^1504|^1605|^2301")) %>%    # 0511: Single code that contains all commodity types; 1504: Fish oils; 1605: Multiple commodity types; 2301: Flours, meals and pellets
     pull(Code)
   
+  # FIXIT: Revist this hardcoded definition when ingesting HS22 - may change among HS versions
+  # Check that these special cases apply across all HS versions 
   special_cases <- c("030110", "030111", "030119",                                       # 0301: Ornamentals
-                       "030270", "030290", "030291", "030292", "030299",                   # 0302: Broad commodity types: Livers, shark fins, and fish fins
-                       "030380", "030390", "030391", "030392", "030399",                   # 0303: Broad commodity types: Livers, shark fins, and fish fins
-                       "030410", "030420", "030490",                                       # 0304: From earlier years when matching logic was completely different (no taxa info)
-                       "030510", "030520", "030530", "030571", "030572", "030579",         # 0305: Broad commodity types: Livers, shark fins, fish heads, fish offal, dried/salted fillets
-                       "160420", "160430", "160431", "160432",                             # 1604: Broad commodity types: Minced preparations, caviar and caviar substitutes
-                       "160590")                                                           # 1605: Single code matched to all aquatic invertebrates and molluscs (only found in older versions of HS codes)
+                       "030270", "030290", "030291", "030292", "030299",                 # 0302: Broad commodity types: Livers, shark fins, and fish fins
+                       "030380", "030390", "030391", "030392", "030399",                 # 0303: Broad commodity types: Livers, shark fins, and fish fins
+                       "030410", "030420", "030490",                                     # 0304: From earlier years when matching logic was completely different (no taxa info)
+                       "030510", "030520", "030530", "030571", "030572", "030579",       # 0305: Broad commodity types: Livers, shark fins, fish heads, fish offal, dried/salted fillets
+                       "160420", "160430", "160431", "160432",                           # 1604: Broad commodity types: Minced preparations, caviar and caviar substitutes
+                       "160590")                                                         # 1605: Single code matched to all aquatic invertebrates and molluscs (only found in older versions of HS codes)
                       
   codes_to_filter <- c(special_cases, parents_to_filter)
   
@@ -48,8 +54,8 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
   first_four_digits <- substr(hs_first_match$Code, 1, 4)
   HS_groups <- unique(first_four_digits)
   
-  ##############################################################################################
-  # FIRST OUTPUT LIST
+ 
+# First Output List ------------------------------------------------------
   # Note: Code is divided into first output, second output, and special output
   first_output_list = list()
   
@@ -63,16 +69,22 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
     hs_categories <- possible_hs_codes %>%
       select(Fishes, Crustaceans, Molluscs, Aquatic_invertebrates) %>%
       distinct() 
-    # ASSUMPTION IS THAT hs_categories WILL ALWAYS BE ONE ROW, i.e., one commodity type. If not, these should have been filtered as part of the special cases
+    # ASSUMPTION IS THAT hs_categories WILL ALWAYS BE ONE ROW, i.e., one commodity type. 
+    # If not, these should have been filtered as part of the special cases
+    # FIXIT: AM - add assumption test here
     
+
+    ### get_taxa_group #############
     # Create data frame (possible_prod_taxa) of possible taxa matches to hs_categories
-    # function get_taxa_group filters prod_taxa_classification based on whether category contains fish, molluscs, crustaceans, and/or aquatic invertebrates
+    # function get_taxa_group filters prod_taxa_classification based on whether category 
+    # contains fish, molluscs, crustaceans, and/or aquatic invertebrates
     possible_prod_taxa <- get_taxa_group(hs_code_row = hs_categories, 
                                                     prod_taxa_classification = prod_taxa_classification)
  
     if (nrow(possible_prod_taxa) > 0) { 
       # Add this conditional to allow code to run for subsets of prod_taxa_classification
-      # i.e., if trying to run match_hs_to_taxa for just sharks, this will result in possible_prod_taxa == 0 for any of the Mollusc, Crustacean, or Aquatic Invert Codes
+      # i.e., if trying to run match_hs_to_taxa for just sharks, 
+      # this will result in possible_prod_taxa == 0 for any of the Mollusc, Crustacean, or Aquatic Invert Codes
       
       # BASIC STRUCTURE OF MATCHING CODE 
       #if (parent_p %in% c("XXXXXX")){ # Next list of HS parents with similar matching logic  
@@ -97,14 +109,16 @@ match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_speci
         for (c in 1:length(possible_hs_codes$Code)){
           # NOTE: matching is done as literally as possible
           # Examples: anguilliformes doesn't match to 030192 because it's not exclusively made of just the one genus)
-          # oncorhynchus doesn't match to 030211 or 030213 because we assume that FAO data would be specific enough to match popular food fish in HS descriptions
+          # oncorhynchus doesn't match to 030211 or 030213 because we assume that FAO data would be specific 
+          # enough to match popular food fish in HS descriptions
           # thunnus doesn't match to 030194 or 030195 for the same reason
 
           match_code_output <- NULL # reset match_code output for each hs_codes_row_c
           hs_codes_row_c <- possible_hs_codes[c,]
           
-          
-          
+
+# Match by taxon ---------------------------------------------------------
+          ####### Match_by_taxon #############
           # MATCH TO SPECIES: extract species names in code_descript that match list of SciNames in possible_prod_taxa
           # Use function match_and_remove_by_classification.R to match to genera (next section) or any other taxonomic level besides species
           if (hs_codes_row_c$NEC == 0){ # if the code description calls for simple matching

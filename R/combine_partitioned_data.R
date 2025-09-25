@@ -12,7 +12,6 @@
 #' @param custom_timeseries Logical. If TRUE, adds "custom_ts" to output filename. FIXIT: add this functionality.
 #' @param verbose Logical. Print file names as they are added.
 #'
-#' @importFrom duckdb duckdb
 #' @importFrom DBI dbConnect dbExecute dbDisconnect dbExistsTable dbWriteTable
 #' @import glue
 #' @import qs2
@@ -59,9 +58,24 @@ combine_partitioned_data <- function(
     )
   }
   
-  con <- dbConnect(duckdb())
-  dbExecute(con, "PRAGMA max_temp_directory_size='500GiB'")  # increase spill-to-disk limit
-  on.exit(dbDisconnect(con), add = TRUE)
+  combine_ducks <- duckdb::duckdb(
+    dbdir = file.path(outdir, "combine.duckdb"),
+    # optional: avoid scanning env for extensions; keeps things tidy/reproducible
+    environment_scan = FALSE,
+    config = list(
+      temp_directory = normalizePath(outdir, winslash = "/"),
+      memory_limit = "12GB",              # ~60–75% of your 16 GB RAM
+      max_temp_directory_size = "1TiB"    # guardrail, not space reservation
+    )
+  )
+
+  con <- DBI::dbConnect(combine_ducks)
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+
+  # (optional) verify
+  DBI::dbGetQuery(con, "PRAGMA memory_limit")
+  DBI::dbGetQuery(con, "PRAGMA temp_directory")
+
   
   for (f in df_files) {
     if (verbose) message(glue("Appending {which(f == df_files)}/{length(df_files)}: {f}"))
