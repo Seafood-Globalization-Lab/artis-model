@@ -12,33 +12,33 @@
 standardize_country_data <- function(){
   
   corrections_df <- tibble::tibble(country_name = character(),
-                                  iso3c = character(), 
-                                  year = character(),
-                                  artis_iso3c = character(),
-                                  artis_country_name = character())
+                                   iso3c = character(), 
+                                   year = character(),
+                                   artis_iso3c = character(),
+                                   artis_country_name = character())
   
   # FUNCTION 1
   # 44 countries, 24 years of data baci data standardize_baci
   standardize_baci <- tibble(iso3c = c("ASM","GUM","MNP","PRI","VIR",
-                                             "AIA","BMU","IOT","VGB","CYM",
-                                             "GIB","PCN","SHN","TCA","FLK",
-                                             "IMN","PYF","MYT","NCL","SPM",
-                                             "WLF","GUF","GLP","MTQ","MCO",
-                                             "REU","MAF","BLM","ATF","HKG",
-                                             "MAC","ABW","ANT","BES","SXM",
-                                             "CUW","COK","NIU","TKL","NFK",
-                                             "CXR","CCK","GRL","FRO", "GGY",
-                                             "JEY"),
+                                       "AIA","BMU","IOT","VGB","CYM",
+                                       "GIB","PCN","SHN","TCA","FLK",
+                                       "IMN","PYF","MYT","NCL","SPM",
+                                       "WLF","GUF","GLP","MTQ","MCO",
+                                       "REU","MAF","BLM","ATF","HKG",
+                                       "MAC","ABW","ANT","BES","SXM",
+                                       "CUW","COK","NIU","TKL","NFK",
+                                       "CXR","CCK","GRL","FRO", "GGY",
+                                       "JEY"),
                              artis_iso3c = c("USA","USA","USA","USA","USA",
-                                              "GBR","GBR","GBR","GBR","GBR",
-                                              "GBR","GBR","GBR","GBR","GBR",
-                                              "GBR","FRA","FRA","FRA","FRA",
-                                              "FRA","FRA","FRA","FRA","FRA",
-                                              "FRA","FRA","FRA","FRA","CHN",
-                                              "CHN","NLD","NLD","NLD","NLD",
-                                              "NLD","NZL","NZL","NZL","AUS",
-                                              "AUS","AUS","DNK","DNK", "GBR",
-                                              "GBR")) %>%
+                                             "GBR","GBR","GBR","GBR","GBR",
+                                             "GBR","GBR","GBR","GBR","GBR",
+                                             "GBR","FRA","FRA","FRA","FRA",
+                                             "FRA","FRA","FRA","FRA","FRA",
+                                             "FRA","FRA","FRA","FRA","CHN",
+                                             "CHN","NLD","NLD","NLD","NLD",
+                                             "NLD","NZL","NZL","NZL","AUS",
+                                             "AUS","AUS","DNK","DNK", "GBR",
+                                             "GBR")) %>%
     group_by(across()) %>%
     expand(year = 1996:2020)
   
@@ -81,23 +81,23 @@ standardize_country_data <- function(){
   # FUNCTION 2
   # 45 countries - standardize_prod script (FAO and SAU)
   standardize_prod <- tibble(iso3c = c("ASM","GUM","MNP","PRI","VIR",
-                                             "AIA","BMU","IOT","VBG","CYM",
-                                             "GIB","PCN","SHN","TCA","FLK",
-                                             "IMN","PYF","MYT","NCL","SPM",
-                                             "WLF","GUF","GLP","MTQ","MCO",
-                                             "REU","MAF","BLM","ATF","HKG",
-                                             "MAC","ABW","ANT","BES","SXM",
-                                             "CUW","COK","NIU","TKL","NFK",
-                                             "CXR","CCK","GRL","FRO","EAZ"),
+                                       "AIA","BMU","IOT","VBG","CYM",
+                                       "GIB","PCN","SHN","TCA","FLK",
+                                       "IMN","PYF","MYT","NCL","SPM",
+                                       "WLF","GUF","GLP","MTQ","MCO",
+                                       "REU","MAF","BLM","ATF","HKG",
+                                       "MAC","ABW","ANT","BES","SXM",
+                                       "CUW","COK","NIU","TKL","NFK",
+                                       "CXR","CCK","GRL","FRO","EAZ"),
                              artis_iso3c = c("USA","USA","USA","USA","USA",
-                                              "GBR","GBR","GBR","GBR","GBR",
-                                              "GBR","GBR","GBR","GBR","GBR",
-                                              "GBR","FRA","FRA","FRA","FRA",
-                                              "FRA","FRA","FRA","FRA","FRA",
-                                              "FRA","FRA","FRA","FRA","CHN",
-                                              "CHN","NLD","NLD","NLD","NLD",
-                                              "NLD","NZL","NZL","NZL","AUS",
-                                              "AUS","AUS","DNK","DNK","TZA")) %>%
+                                             "GBR","GBR","GBR","GBR","GBR",
+                                             "GBR","GBR","GBR","GBR","GBR",
+                                             "GBR","FRA","FRA","FRA","FRA",
+                                             "FRA","FRA","FRA","FRA","FRA",
+                                             "FRA","FRA","FRA","FRA","CHN",
+                                             "CHN","NLD","NLD","NLD","NLD",
+                                             "NLD","NZL","NZL","NZL","AUS",
+                                             "AUS","AUS","DNK","DNK","TZA")) %>%
     group_by(iso3c, artis_iso3c) %>%
     expand(year = 1996:2020)
   
@@ -147,25 +147,25 @@ standardize_country_data <- function(){
   # FUNCTION 3
   # dwf (standardize_sau_eez function) normal cases
   standardize_sau_eez <- tibble(iso3c = c("ASM","GUM","MNP","PRI","VIR",
-                                                "AIA","BMU","IOT","VGB","CYM",
-                                                "GIB","PCN","SHN","TCA","FLK",
-                                                "IMN","SGS","PYF","MYT","NCL",
-                                                "SPM","WLF","GUF","GLP","MTQ",
-                                                "MCO","REU","MAF","BLM","ATF",
-                                                "HKG","MAC","ABW","ANT","BES",
-                                                "SXM","CUW","COK","NIU","TKL",
-                                                "NFK","CXR","CCK","HMD","GRL",
-                                                "FRO","EAZ","SJM","BVT"),
+                                          "AIA","BMU","IOT","VGB","CYM",
+                                          "GIB","PCN","SHN","TCA","FLK",
+                                          "IMN","SGS","PYF","MYT","NCL",
+                                          "SPM","WLF","GUF","GLP","MTQ",
+                                          "MCO","REU","MAF","BLM","ATF",
+                                          "HKG","MAC","ABW","ANT","BES",
+                                          "SXM","CUW","COK","NIU","TKL",
+                                          "NFK","CXR","CCK","HMD","GRL",
+                                          "FRO","EAZ","SJM","BVT"),
                                 artis_iso3c = c("USA","USA","USA","USA","USA",
-                                                 "GBR","GBR","GBR","GBR","GBR",
-                                                 "GBR","GBR","GBR","GBR","GBR",
-                                                 "GBR","GBR","FRA","FRA","FRA",
-                                                 "FRA","FRA","FRA","FRA","FRA",
-                                                 "FRA","FRA","FRA","FRA","FRA",
-                                                 "CHN","CHN","NLD","NLD","NLD",
-                                                 "NLD","NLD","NZL","NZL","NZL",
-                                                 "AUS","AUS","AUS","AUS","DNK",
-                                                 "DNK","TZA","NOR","NOR")) %>%
+                                                "GBR","GBR","GBR","GBR","GBR",
+                                                "GBR","GBR","GBR","GBR","GBR",
+                                                "GBR","GBR","FRA","FRA","FRA",
+                                                "FRA","FRA","FRA","FRA","FRA",
+                                                "FRA","FRA","FRA","FRA","FRA",
+                                                "CHN","CHN","NLD","NLD","NLD",
+                                                "NLD","NLD","NZL","NZL","NZL",
+                                                "AUS","AUS","AUS","AUS","DNK",
+                                                "DNK","TZA","NOR","NOR")) %>%
     group_by(across()) %>%
     expand(year = 1996:2020)
   
@@ -305,10 +305,10 @@ standardize_country_data <- function(){
     expand(year = 1996:2020)
   
   south_africa_corrections <- tibble(country_name = c("Botswana", "Eswatini", "Namibia", "Lesotho"),
-         iso3c = c("BWA", "SWZ", "NAM", "LSO"),
-         artis_country_name = rep("So. African Customs Union", 4),
-         artis_iso3c = rep("ZA1", 4)
-         ) %>%
+                                     iso3c = c("BWA", "SWZ", "NAM", "LSO"),
+                                     artis_country_name = rep("So. African Customs Union", 4),
+                                     artis_iso3c = rep("ZA1", 4)
+  ) %>%
     group_by(across()) %>%
     expand(year = 1996:1999)
   
