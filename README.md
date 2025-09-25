@@ -269,7 +269,7 @@ git push
 
 ### Rebase onto `develop` Before Integration/Pull Request
 
-Keep your branch up to date by rebasing against `develop`. This avoids merge commits and keeps a clean linear history. Rebasing takes all of your feature branch changes and replays/puts them onto the tip/end of the `develop` commit history. This will only effect your feature branch and will not change `develop` until you merge into `develop`.
+Keep your branch up to date by rebasing against `develop`. This avoids merge conflicts and keeps a clean linear history. Rebasing takes all of your feature branch changes and replays/puts them all onto the tip/end of the `develop` commit history. This will only effect your feature branch and will not change `develop` until you merge into `develop`.
 
 ```zsh
 # Update your local copy of develop
