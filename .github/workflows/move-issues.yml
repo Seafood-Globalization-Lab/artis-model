@@ -1,4 +1,4 @@
-name: Move linked issues through workflow
+name: Chagne status of PR linked issues
 
 on:
   pull_request:
@@ -21,20 +21,22 @@ jobs:
           github-token: ${{ secrets.ORG_PROJECTS_TOKEN }}
           script: |
             // === CONFIG ===
-            const orgLogin = "Seafood-Globalization-Lab"; // hardcoded org
+            const orgLogin = "Seafood-Globalization-Lab"; // org slug
             const projectNumber = 1;                      // from URL
             const fieldName = "Status";                   // field in Project
             const targetStatus = "🧪 QA / Staging";        // target option
             // ==============
 
             const prBody = context.payload.pull_request?.body || "";
-            const issueRefs = prBody.match(/#\d+/g) || [];
+            // Match "#123" or "repo#123" or "org/repo#123"
+            const issueRefs = prBody.match(/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)?#\d+/g) || [];
+
             if (issueRefs.length === 0) {
-              console.log("No linked issues found in PR body");
+              console.log("ℹ️ No linked issues found in PR body");
               return;
             }
 
-            // Get project and its fields at ORG level
+            // Get project and its fields
             const { organization } = await github.graphql(`
               query($org: String!, $number: Int!) {
                 organization(login: $org) {
@@ -55,35 +57,58 @@ jobs:
             `, { org: orgLogin, number: projectNumber });
 
             if (!organization || !organization.projectV2) {
-              throw new Error(`Project ${projectNumber} not found for org ${orgLogin}`);
+              throw new Error(`❌ Project ${projectNumber} not found for org ${orgLogin}`);
             }
 
             const project = organization.projectV2;
             const statusField = project.fields.nodes.find(f => f.name === fieldName);
-            if (!statusField) throw new Error(`Field '${fieldName}' not found`);
+            if (!statusField) throw new Error(`❌ Field '${fieldName}' not found`);
             const option = statusField.options.find(o => o.name === targetStatus);
-            if (!option) throw new Error(`Option '${targetStatus}' not found`);
+            if (!option) throw new Error(`❌ Option '${targetStatus}' not found`);
 
-            for (const issueRef of issueRefs) {
-              const issueNumber = parseInt(issueRef.replace("#",""));
-              console.log(`Moving issue #${issueNumber} → ${targetStatus}`);
+            // Process each ref
+            for (const ref of issueRefs) {
+              const match = ref.match(/^(?:(?<owner>[^/]+)\/(?<repo>[^#]+))?#(?<num>\d+)$/);
+              if (!match || !match.groups) {
+                console.log(`⚠️ Skipping invalid ref '${ref}'`);
+                continue;
+              }
 
-              // Get issue node ID
+              const owner = match.groups.owner || context.repo.owner;
+              const repo = match.groups.repo || context.repo.repo;
+              const issueNumber = parseInt(match.groups.num, 10);
+
+              if (isNaN(issueNumber)) {
+                console.log(`⚠️ Skipping invalid number in ref '${ref}'`);
+                continue;
+              }
+
+              // Fetch issue or PR
               const { repository } = await github.graphql(`
                 query($owner: String!, $repo: String!, $number: Int!) {
                   repository(owner: $owner, name: $repo) {
-                    issue(number: $number) { id }
+                    issueOrPullRequest(number: $number) {
+                      __typename
+                      ... on Issue { id }
+                    }
                   }
                 }
-              `, {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                number: issueNumber
-              });
+              `, { owner, repo, number: issueNumber });
 
-              const issueId = repository.issue.id;
+              if (!repository || !repository.issueOrPullRequest) {
+                console.log(`⚠️ ${owner}/${repo}#${issueNumber} not found, skipping`);
+                continue;
+              }
 
-              // Add to project
+              if (repository.issueOrPullRequest.__typename !== "Issue") {
+                console.log(`ℹ️ ${owner}/${repo}#${issueNumber} is a ${repository.issueOrPullRequest.__typename}, skipping`);
+                continue;
+              }
+
+              const issueId = repository.issueOrPullRequest.id;
+              console.log(`➡️ Processing ${owner}/${repo}#${issueNumber}`);
+
+              // Add to project (idempotent if already present)
               const addResp = await github.graphql(`
                 mutation($projectId: ID!, $contentId: ID!) {
                   addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
@@ -93,8 +118,9 @@ jobs:
               `, { projectId: project.id, contentId: issueId });
 
               const itemId = addResp.addProjectV2ItemById.item.id;
+              console.log(`   ↳ Added/reused project item ${itemId}`);
 
-              // Update Status
+              // Update Status field
               await github.graphql(`
                 mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
                   updateProjectV2ItemFieldValue(input: {
@@ -112,4 +138,6 @@ jobs:
                 fieldId: statusField.id,
                 optionId: option.id
               });
+
+              console.log(`   ✅ Moved ${owner}/${repo}#${issueNumber} → ${targetStatus}`);
             }
