@@ -28,7 +28,7 @@ Description: ARTIS (Aquatic Resource Trade in Species) is a global model
     allocate seafood trade and production data, and to compute consumption
     and trade-flow metrics.  Designed to support reproducible research and
     policy-relevant analysis of seafood systems.
-License: Apache License (>= 2.0)
+License: Apache License (>= 2.0) | file LICENSE
 URL: https://github.com/Seafood-Globalization-Lab/artis-model
 BugReports: 
     https://github.com/Seafood-Globalization-Lab/artis-model/issues
@@ -37,12 +37,8 @@ Depends:
 Imports:
     aws.s3,
     cli,
-    aws.s3,
-    cli,
     countrycode,
     data.table,
-    DBI,
-    doParallel,
     DBI,
     doParallel,
     dplyr,
@@ -53,14 +49,11 @@ Imports:
     magrittr,
     parallel,
     qs2,
-    qs2,
     readxl,
     reticulate,
     stringr,
     tibble,
     tidyr,
-    qs2,
-    DBI,
     utils
 Suggests: 
     duckdb,

@@ -16,4 +16,6 @@
 ^inst$
 ^qa$
 ^venv$
+^\.github$
+
 
