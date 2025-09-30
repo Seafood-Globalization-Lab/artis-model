@@ -290,7 +290,7 @@ git add <conflicted-files>
 git rebase --continue
 ```
 
-### Open a Pull Request to merge feature-branch into `develop`
+### Open a Pull Request (PR) to merge feature-branch into `develop`
 
 - on GitHub `artis-model` repo open the ["Pull Rquest" tab](https://github.com/Seafood-Globalization-Lab/artis-model/pulls) 
 - Click green "New pull request" button
@@ -299,6 +299,11 @@ git rebase --continue
 - Click green "Create pull request" button
 - Completely and acurately fill in pull request template in the description and ensure all requirements are met before creating the pull request. 
 - Assign a reviewer in the right side column and fill in any other relevant metadata about the PR and work. Remember that the person submitting the PR is responsible for testing and ensuring their changes run smoothly and do not introduce breaking changes. 
+
+### Github Automated Workflows (GitHub Actions)
+
+- Run `R-CMD-Check` on code integrated into `main` or `develop` branches via a PR. This ensures that the R `artis` package has correct documentation, declared dependencies, and build successfully.  
+- Change the status of issues linked in a PR to "QA / Staging". The issues can already be in the `ARTIS Maintence & Analysis` project or not, all will be added to the project and statuses updated. This helps keep the project clean and clearly identify what stage of development issues are in. 
 
 ## System Requirements
 
