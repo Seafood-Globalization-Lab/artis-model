@@ -3,7 +3,13 @@ name: Move linked issues through workflow
 on:
   pull_request:
     types: [closed]
-  workflow_dispatch:   # ✅ allows manual trigger from Actions tab
+  workflow_dispatch:   # allows manual run from Actions tab
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  projects: write   # ✅ required for Projects v2 at org-level
 
 jobs:
   move-to-qa:
@@ -16,9 +22,10 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             // === CONFIG ===
-            const projectNumber = 1;                // Seafood-Globalization-Lab Project #1
-            const fieldName = "Status";             // Project field name
-            const targetStatus = "🧪 QA / Staging"; // Staging status
+            const orgLogin = "Seafood-Globalization-Lab"; // hardcoded org
+            const projectNumber = 1;                      // from URL
+            const fieldName = "Status";                   // field in Project
+            const targetStatus = "🧪 QA / Staging";        // target option
             // ==============
 
             const prBody = context.payload.pull_request?.body || "";
@@ -28,9 +35,10 @@ jobs:
               return;
             }
 
+            // Get project and its fields at ORG level
             const { organization } = await github.graphql(`
-              query($login: String!, $number: Int!) {
-                organization(login: $login) {
+              query($org: String!, $number: Int!) {
+                organization(login: $org) {
                   projectV2(number: $number) {
                     id
                     fields(first: 50) {
@@ -45,19 +53,23 @@ jobs:
                   }
                 }
               }
-            `, {
-              login: context.repo.owner,
-              number: projectNumber
-            });
+            `, { org: orgLogin, number: projectNumber });
+
+            if (!organization || !organization.projectV2) {
+              throw new Error(`Project ${projectNumber} not found for org ${orgLogin}`);
+            }
 
             const project = organization.projectV2;
             const statusField = project.fields.nodes.find(f => f.name === fieldName);
+            if (!statusField) throw new Error(`Field '${fieldName}' not found`);
             const option = statusField.options.find(o => o.name === targetStatus);
+            if (!option) throw new Error(`Option '${targetStatus}' not found`);
 
             for (const issueRef of issueRefs) {
               const issueNumber = parseInt(issueRef.replace("#",""));
               console.log(`Moving issue #${issueNumber} → ${targetStatus}`);
 
+              // Get issue node ID
               const { repository } = await github.graphql(`
                 query($owner: String!, $repo: String!, $number: Int!) {
                   repository(owner: $owner, name: $repo) {
@@ -72,6 +84,7 @@ jobs:
 
               const issueId = repository.issue.id;
 
+              // Add to project
               const addResp = await github.graphql(`
                 mutation($projectId: ID!, $contentId: ID!) {
                   addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
@@ -82,6 +95,7 @@ jobs:
 
               const itemId = addResp.addProjectV2ItemById.item.id;
 
+              // Update Status
               await github.graphql(`
                 mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
                   updateProjectV2ItemFieldValue(input: {
