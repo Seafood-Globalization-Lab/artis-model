@@ -38,7 +38,7 @@ jobs:
       - uses: r-lib/actions/check-r-package@v2
         with:
           error-on: "error"      # only fail if there are actual errors
-          args: --no-manual    # optional: skip manual build to save time
+          args: "--no-manual"    # optional: skip manual build to save time
 
       - name: Show testthat output
         if: always()
