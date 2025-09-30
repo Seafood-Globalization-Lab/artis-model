@@ -61,7 +61,6 @@ Imports:
     tidyr,
     qs2,
     DBI,
-    duckdb
     utils
 Suggests: 
     duckdb,
