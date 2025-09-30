@@ -1,0 +1,102 @@
+name: Move linked issues through workflow
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:   # ✅ allows manual trigger from Actions tab
+
+jobs:
+  move-to-qa:
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'develop'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Move issues to 🧪 QA / Staging
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // === CONFIG ===
+            const projectNumber = 1;                // Seafood-Globalization-Lab Project #1
+            const fieldName = "Status";             // Project field name
+            const targetStatus = "🧪 QA / Staging"; // Staging status
+            // ==============
+
+            const prBody = context.payload.pull_request?.body || "";
+            const issueRefs = prBody.match(/#\d+/g) || [];
+            if (issueRefs.length === 0) {
+              console.log("No linked issues found in PR body");
+              return;
+            }
+
+            const { organization } = await github.graphql(`
+              query($login: String!, $number: Int!) {
+                organization(login: $login) {
+                  projectV2(number: $number) {
+                    id
+                    fields(first: 50) {
+                      nodes {
+                        ... on ProjectV2SingleSelectField {
+                          id
+                          name
+                          options { id name }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `, {
+              login: context.repo.owner,
+              number: projectNumber
+            });
+
+            const project = organization.projectV2;
+            const statusField = project.fields.nodes.find(f => f.name === fieldName);
+            const option = statusField.options.find(o => o.name === targetStatus);
+
+            for (const issueRef of issueRefs) {
+              const issueNumber = parseInt(issueRef.replace("#",""));
+              console.log(`Moving issue #${issueNumber} → ${targetStatus}`);
+
+              const { repository } = await github.graphql(`
+                query($owner: String!, $repo: String!, $number: Int!) {
+                  repository(owner: $owner, name: $repo) {
+                    issue(number: $number) { id }
+                  }
+                }
+              `, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                number: issueNumber
+              });
+
+              const issueId = repository.issue.id;
+
+              const addResp = await github.graphql(`
+                mutation($projectId: ID!, $contentId: ID!) {
+                  addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
+                    item { id }
+                  }
+                }
+              `, { projectId: project.id, contentId: issueId });
+
+              const itemId = addResp.addProjectV2ItemById.item.id;
+
+              await github.graphql(`
+                mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                  updateProjectV2ItemFieldValue(input: {
+                    projectId: $projectId,
+                    itemId: $itemId,
+                    fieldId: $fieldId,
+                    value: { singleSelectOptionId: $optionId }
+                  }) {
+                    projectV2Item { id }
+                  }
+                }
+              `, {
+                projectId: project.id,
+                itemId,
+                fieldId: statusField.id,
+                optionId: option.id
+              });
+            }
