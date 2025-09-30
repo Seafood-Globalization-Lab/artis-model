@@ -9,7 +9,6 @@ permissions:
   contents: read
   issues: write
   pull-requests: write
-  projects: write   # ✅ required for Projects v2 at org-level
 
 jobs:
   move-to-qa:
