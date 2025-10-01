@@ -40,7 +40,7 @@ standardize_country_data <- function(){
                                              "AUS","AUS","DNK","DNK", "GBR",
                                              "GBR")) %>%
     group_by(across()) %>%
-    expand(year = 1996:2020)
+    expand(year = 1996:2023)
   
   # standardize_baci function special cases
   standardize_baci_special_cases <- tibble(
@@ -99,7 +99,7 @@ standardize_country_data <- function(){
                                              "NLD","NZL","NZL","NZL","AUS",
                                              "AUS","AUS","DNK","DNK","TZA")) %>%
     group_by(iso3c, artis_iso3c) %>%
-    expand(year = 1996:2020)
+    expand(year = 1996:2023)
   
   # 2. Cross-join with years and apply all your historic overrides
   standardize_prod_special_cases <- tidyr::expand_grid(
@@ -111,7 +111,7 @@ standardize_country_data <- function(){
         "Other nei","Serbia and Montenegro","Sudan","South Africa"
       )
     ),
-    year = 1996:2020
+    year = 1996:2023
   ) %>%
     mutate(
       artis_iso3c = case_when(
@@ -167,7 +167,7 @@ standardize_country_data <- function(){
                                                 "AUS","AUS","AUS","AUS","DNK",
                                                 "DNK","TZA","NOR","NOR")) %>%
     group_by(across()) %>%
-    expand(year = 1996:2020)
+    expand(year = 1996:2023)
   
   # dwf special cases
   sau_eez_special_cases <- tibble(
@@ -209,7 +209,7 @@ standardize_country_data <- function(){
     )
   ) %>%
     group_by(across()) %>%
-    expand(year = 1996:2020)
+    expand(year = 1996:2023)
   
   # FUNCTION 4
   # SAU production data additional cleaning cases
@@ -272,7 +272,7 @@ standardize_country_data <- function(){
     )
   ) %>%
     group_by(across()) %>%
-    expand(year = 1996:2020)
+    expand(year = 1996:2023)
   
   # Combine dataframes
   # 1. functions with their easy cases and special cases
@@ -302,7 +302,7 @@ standardize_country_data <- function(){
   input_countries <- tibble(country_name = c("Other nei"), iso3c = c(NA_character_),
                             artis_iso3c = c("NEI"), artis_country_name = c(NA_character_)) %>%
     group_by(across()) %>%
-    expand(year = 1996:2020)
+    expand(year = 1996:2023)
   
   south_africa_corrections <- tibble(country_name = c("Botswana", "Eswatini", "Namibia", "Lesotho"),
                                      iso3c = c("BWA", "SWZ", "NAM", "LSO"),
@@ -316,6 +316,35 @@ standardize_country_data <- function(){
   output_data <- bind_rows(standardize_country_data, input_countries, south_africa_corrections) %>%
     distinct(iso3c, artis_iso3c, year, country_name, artis_country_name) %>%
     select(country_name, iso3c, year, artis_country_name, artis_iso3c)
+  
+  
+  # Fill in NAs
+  
+  output_data <- output_data %>%
+    mutate(artis_country_name = case_when(
+      is.na(artis_country_name) ~ countrycode(artis_iso3c, origin = "iso3c", destination = "country.name"),
+      TRUE ~ artis_country_name),
+      
+      country_name = case_when(
+        is.na(country_name) ~ countrycode(iso3c, origin = "iso3c", destination = "country.name"),
+        TRUE ~ country_name)
+    ) %>% 
+    mutate(artis_country_name = case_when(
+      artis_iso3c == "NEI" ~ "Other nei",
+      TRUE ~ artis_country_name
+    )) %>%
+    mutate(country_name = case_when(
+      iso3c == "ANT" ~ "Netherlands Antilles",
+      iso3c == "EAZ" ~ "Zanzibar",
+      iso3c == "SCG" ~ "Serbia and Montenegro",
+      iso3c == "NEI" ~ "Other nei",
+      TRUE ~ country_name
+    )) %>%
+    mutate(iso3c = case_when(
+      artis_iso3c == "NEI" ~ "NEI",
+      TRUE ~ iso3c
+    )) %>%
+    distinct()
   
   return(output_data)
   

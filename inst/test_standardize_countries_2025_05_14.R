@@ -15,12 +15,12 @@ source("./R/standardize_country_data.R")
 # Althea's read in files
 
 # # read in sau prod versions
-# prod_sau_clean <- data.table::fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs_sau/clean_sau_prod.csv")
-# prod_sau_std <- data.table::fread(file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_sau/standardized_sau_prod.csv"))
+# prod_sau_clean <- data.table::fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs_1.1.0_SAU/clean_sau_prod.csv")
+# prod_sau_std <- data.table::fread(file.path("~/Documents/UW-SAFS/ARTIS/data/model_inputs_1.1.0_SAU/standardized_sau_prod.csv"))
 
-# # read in fao prod versions
-# prod_fao_clean <- fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs/clean_fao_prod.csv")
-# prod_fao_std <- fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs/standardized_fao_prod.csv")
+# # # read in fao prod versions
+# prod_fao_clean <- fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs_1.1.0_FAO/clean_fao_prod.csv")
+# prod_fao_std <- fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs_1.1.0_FAO/standardized_fao_prod.csv")
 
 # Connor's read in files
 # read in sau prod versions
