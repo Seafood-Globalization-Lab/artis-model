@@ -1,12 +1,9 @@
-name: Change status of PR linked issues
+name: Change status of PR-linked issues (develop merges)
 
 on:
   pull_request:
-    branches:
-      - develop
-    types:
-      - closed
-  workflow_dispatch:   # allows manual run from Actions tab
+    branches: [develop]
+    types: [closed]
 
 permissions:
   contents: read
@@ -14,11 +11,11 @@ permissions:
   pull-requests: write
 
 jobs:
-  move-to-qa:
+  to-qa:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
-      - name: Move issues to 🧪 QA / Staging
+      - name: Set Project v2 Status to 🧪 QA / Staging for referenced issues
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.ORG_PROJECTS_TOKEN }}
@@ -26,53 +23,27 @@ jobs:
             // === CONFIG ===
             const orgLogin = "Seafood-Globalization-Lab"; // org slug
             const projectNumber = 1;                      // from URL
-            const fieldName = "Status";                   // field in Project
-            const targetStatus = "🧪 QA / Staging";        // target option (must match exactly)
-            // ==============
+            const fieldName = "Status";                   // single-select field name
+            const targetStatus = "🧪 QA / Staging";        // option text (must match exactly)
 
-            const prNumber = context.payload.pull_request.number;
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
+            // === INPUTS ===
+            const pr = context.payload.pull_request;
+            const repoOwner = context.repo.owner;
+            const repoName  = context.repo.repo;
+            const prNumber  = pr.number;
 
-            // Get linked issues from PR metadata (expanded with userLinkedOnly:false to include manually linked issues)
-            const prResp = await github.graphql(`
-              query($owner: String!, $repo: String!, $number: Int!) {
-                repository(owner: $owner, name: $repo) {
-                  pullRequest(number: $number) {
-                    closingIssuesReferences(first: 50, userLinkedOnly: false) {
-                      nodes {
-                        id
-                        number
-                        repository {
-                          name
-                          owner { login }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            `, { owner, repo, number: prNumber });
+            // GraphQL helper
+            const gq = (query, variables={}) => github.graphql(query, variables);
 
-            if (!prResp || !prResp.repository || !prResp.repository.pullRequest) {
-              console.log("No pull request metadata found in GraphQL response");
-              return;
-            }
-
-            const issues = prResp.repository.pullRequest.closingIssuesReferences?.nodes ?? [];
-            if (!issues || issues.length === 0) {
-              console.log("No linked issues found in PR metadata");
-              return;
-            }
-
-            // Get project and its fields (dynamic lookup of Status field + option id)
-            const projResp = await github.graphql(`
-              query($org: String!, $number: Int!) {
+            // 1) Resolve Project, Status field, and target option ID
+            const proj = await gq(`
+              query ($org: String!, $num: Int!) {
                 organization(login: $org) {
-                  projectV2(number: $number) {
+                  projectV2(number: $num) {
                     id
                     fields(first: 50) {
                       nodes {
+                        ... on ProjectV2FieldCommon { id name }
                         ... on ProjectV2SingleSelectField {
                           id
                           name
@@ -83,62 +54,165 @@ jobs:
                   }
                 }
               }
-            `, { org: orgLogin, number: projectNumber });
+            `, { org: orgLogin, num: projectNumber });
 
-            if (!projResp || !projResp.organization || !projResp.organization.projectV2) {
-              throw new Error(`Project ${projectNumber} not found for org ${orgLogin}`);
+            const project = proj.organization?.projectV2;
+            if (!project) {
+              core.setFailed(\`Project v2 #\${projectNumber} not found in org \${orgLogin}\`);
+              return;
+            }
+            const statusField = project.fields.nodes.find(f => f.name === fieldName && f.options);
+            if (!statusField) {
+              core.setFailed(\`Single-select field "\${fieldName}" not found on project.\`);
+              return;
+            }
+            const targetOption = statusField.options.find(o => o.name === targetStatus);
+            if (!targetOption) {
+              core.setFailed(\`Option "\${targetStatus}" not found in "\${fieldName}".\`);
+              return;
+            }
+            const projectId      = project.id;
+            const statusFieldId  = statusField.id;
+            const targetOptionId = targetOption.id;
+
+            // 2) Gather issue references from PR body + commit messages
+            const bodyText = pr.body || "";
+
+            // Fetch commit messages for this PR
+            const commits = await github.rest.pulls.listCommits({
+              owner: repoOwner,
+              repo: repoName,
+              pull_number: prNumber,
+              per_page: 250
+            });
+            const commitText = commits.data.map(c => c.commit.message).join("\n");
+
+            const text = bodyText + "\n" + commitText;
+
+            // Regex supports:
+            // - #123
+            // - owner/repo#123
+            // - URLs (optional), but we’ll stick to the two common syntaxes above
+            // Capture groups: (owner)? (repo)? number
+            const refs = new Set();
+            const plain = /(?:^|[\s,;()\[\]{}])(?:(?<own>[\w-]+)\/(?<rep>[\w.-]+))?#(?<num>\d+)\b/g;
+            let m;
+            while ((m = plain.exec(text)) !== null) {
+              const owner = m.groups.own || repoOwner;
+              const name  = m.groups.rep || repoName;
+              const num   = Number(m.groups.num);
+              refs.add(`${owner}/${name}#${num}`);
             }
 
-            const project = projResp.organization.projectV2;
-            const statusField = project.fields.nodes.find(f => f && f.name === fieldName);
-            if (!statusField) throw new Error(`Field '${fieldName}' not found`);
-            const option = (statusField.options || []).find(o => o && o.name === targetStatus);
-            if (!option) throw new Error(`Option '${targetStatus}' not found`);
+            const refsArr = Array.from(refs);
+            if (refsArr.length === 0) {
+              core.info("No issue references found in PR body/commits.");
+              return;
+            }
+            core.info(`Found references: ${refsArr.join(", ")}`);
 
-            // Process each linked issue
-            for (const issue of issues) {
-              const issueId = issue.id;
-              const issueNum = issue.number;
-              const issueOwner = issue.repository.owner.login;
-              const issueRepo = issue.repository.name;
+            // 3) Resolve each issue to a node ID via GraphQL
+            async function getIssueNode(owner, name, number) {
+              const q = `
+                query($owner: String!, $name: String!, $number: Int!) {
+                  repository(owner: $owner, name: $name) {
+                    issue(number: $number) { id number }
+                  }
+                }
+              `;
+              const r = await gq(q, { owner, name, number });
+              return r.repository?.issue?.id || null;
+            }
 
-              console.log(`Processing ${issueOwner}/${issueRepo}#${issueNum}`);
-
-              // Add to project (idempotent if already present)
-              const addResp = await github.graphql(`
+            // 4) Project item helpers
+            async function addItem(contentId) {
+              const r = await gq(`
                 mutation($projectId: ID!, $contentId: ID!) {
                   addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
                     item { id }
                   }
                 }
-              `, { projectId: project.id, contentId: issueId });
+              `, { projectId, contentId });
+              return r.addProjectV2ItemById.item.id;
+            }
 
-              const itemId = addResp?.addProjectV2ItemById?.item?.id;
-              if (!itemId) {
-                console.log(`Could not add or find project item for ${issueOwner}/${issueRepo}#${issueNum}`);
-                continue;
-              }
-
-              console.log(`Added or reused project item ${itemId}`);
-
-              // Update Status field
-              await github.graphql(`
-                mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+            async function updateStatus(itemId) {
+              await gq(`
+                mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optId: String!) {
                   updateProjectV2ItemFieldValue(input: {
-                    projectId: $projectId,
-                    itemId: $itemId,
-                    fieldId: $fieldId,
-                    value: { singleSelectOptionId: $optionId }
+                    projectId: $projectId
+                    itemId: $itemId
+                    fieldId: $fieldId
+                    value: { singleSelectOptionId: $optId }
                   }) {
                     projectV2Item { id }
                   }
                 }
-              `, {
-                projectId: project.id,
-                itemId,
-                fieldId: statusField.id,
-                optionId: option.id
-              });
-
-              console.log(`Moved ${issueOwner}/${issueRepo}#${issueNum} to status: ${targetStatus}`);
+              `, { projectId, itemId, fieldId: statusFieldId, optId: targetOptionId });
             }
+
+            async function findExistingItemId(issueNodeId) {
+              // Page through project items and match by content.id
+              let cursor = null;
+              for (let page = 0; page < 5; page++) {
+                const r = await gq(`
+                  query($projectId: ID!, $after: String) {
+                    node(id: $projectId) {
+                      ... on ProjectV2 {
+                        items(first: 100, after: $after) {
+                          pageInfo { hasNextPage endCursor }
+                          nodes { id content { ... on Issue { id } } }
+                        }
+                      }
+                    }
+                  }
+                `, { projectId, after: cursor });
+                const items = r.node.items;
+                const hit = items.nodes.find(n => n.content?.id === issueNodeId);
+                if (hit) return hit.id;
+                if (!items.pageInfo.hasNextPage) break;
+                cursor = items.pageInfo.endCursor;
+              }
+              return null;
+            }
+
+            // 5) Process each referenced issue
+            for (const ref of refsArr) {
+              const [full, owner, nameNum] = ref.match(/^([^/]+)\/(.+)$/) || [];
+              let ownerLogin, repoNameParsed, num;
+              if (full) {
+                // owner/repo#num
+                const match = nameNum.match(/^([^#]+)#(\d+)$/);
+                ownerLogin = owner;
+                repoNameParsed = match[1];
+                num = Number(match[2]);
+              } else {
+                // fallback (shouldn’t happen due to regex): same repo #num
+                ownerLogin = repoOwner;
+                repoNameParsed = repoName;
+                num = Number(ref.replace(/^#/, ""));
+              }
+
+              try {
+                const issueId = await getIssueNode(ownerLogin, repoNameParsed, num);
+                if (!issueId) {
+                  core.warning(`Could not resolve ${ownerLogin}/${repoNameParsed}#${num}`);
+                  continue;
+                }
+
+                let itemId = await findExistingItemId(issueId);
+                if (!itemId) {
+                  core.info(`Adding ${ownerLogin}/${repoNameParsed}#${num} to project…`);
+                  itemId = await addItem(issueId);
+                } else {
+                  core.info(`Already on project: ${ownerLogin}/${repoNameParsed}#${num}`);
+                }
+
+                core.info(`Setting Status → "${targetStatus}" for ${ownerLogin}/${repoNameParsed}#${num}`);
+                await updateStatus(itemId);
+              } catch (e) {
+                core.warning(`Failed on ${ref}: ${e.message}`);
+              }
+            }
+
+            core.info("Done");
