@@ -1,8 +1,11 @@
-name: Chagne status of PR linked issues
+name: Change status of PR linked issues
 
 on:
   pull_request:
-    types: [closed]
+    branches:
+      - develop
+    types: 
+      - closed
   workflow_dispatch:   # allows manual run from Actions tab
 
 permissions:
@@ -12,7 +15,7 @@ permissions:
 
 jobs:
   move-to-qa:
-    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'develop'
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Move issues to 🧪 QA / Staging
@@ -27,12 +30,33 @@ jobs:
             const targetStatus = "🧪 QA / Staging";        // target option
             // ==============
 
-            const prBody = context.payload.pull_request?.body || "";
-            // Match "#123" or "repo#123" or "org/repo#123"
-            const issueRefs = prBody.match(/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)?#\d+/g) || [];
+            const prNumber = context.payload.pull_request.number;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
 
-            if (issueRefs.length === 0) {
-              console.log("ℹ️ No linked issues found in PR body");
+            // Get linked issues from PR metadata
+            const { repository } = await github.graphql(`
+              query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    closingIssuesReferences(first: 50) {
+                      nodes {
+                        id
+                        number
+                        repository {
+                          name
+                          owner { login }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `, { owner, repo, number: prNumber });
+
+            const issues = repository.pullRequest.closingIssuesReferences.nodes;
+            if (!issues || issues.length === 0) {
+              console.log("ℹ️ No linked issues found in PR metadata");
               return;
             }
 
@@ -66,49 +90,16 @@ jobs:
             const option = statusField.options.find(o => o.name === targetStatus);
             if (!option) throw new Error(`❌ Option '${targetStatus}' not found`);
 
-            // Process each ref
-            for (const ref of issueRefs) {
-              const match = ref.match(/^(?:(?<owner>[^/]+)\/(?<repo>[^#]+))?#(?<num>\d+)$/);
-              if (!match || !match.groups) {
-                console.log(`⚠️ Skipping invalid ref '${ref}'`);
-                continue;
-              }
+            // Process each linked issue
+            for (const issue of issues) {
+              const issueId = issue.id;
+              const issueNum = issue.number;
+              const issueOwner = issue.repository.owner.login;
+              const issueRepo = issue.repository.name;
 
-              const owner = match.groups.owner || context.repo.owner;
-              const repo = match.groups.repo || context.repo.repo;
-              const issueNumber = parseInt(match.groups.num, 10);
+              console.log(`➡️ Processing ${issueOwner}/${issueRepo}#${issueNum}`);
 
-              if (isNaN(issueNumber)) {
-                console.log(`⚠️ Skipping invalid number in ref '${ref}'`);
-                continue;
-              }
-
-              // Fetch issue or PR
-              const { repository } = await github.graphql(`
-                query($owner: String!, $repo: String!, $number: Int!) {
-                  repository(owner: $owner, name: $repo) {
-                    issueOrPullRequest(number: $number) {
-                      __typename
-                      ... on Issue { id }
-                    }
-                  }
-                }
-              `, { owner, repo, number: issueNumber });
-
-              if (!repository || !repository.issueOrPullRequest) {
-                console.log(`⚠️ ${owner}/${repo}#${issueNumber} not found, skipping`);
-                continue;
-              }
-
-              if (repository.issueOrPullRequest.__typename !== "Issue") {
-                console.log(`ℹ️ ${owner}/${repo}#${issueNumber} is a ${repository.issueOrPullRequest.__typename}, skipping`);
-                continue;
-              }
-
-              const issueId = repository.issueOrPullRequest.id;
-              console.log(`➡️ Processing ${owner}/${repo}#${issueNumber}`);
-
-              // Add to project (idempotent if already present)
+              // Add to project (idempotent)
               const addResp = await github.graphql(`
                 mutation($projectId: ID!, $contentId: ID!) {
                   addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
@@ -139,5 +130,5 @@ jobs:
                 optionId: option.id
               });
 
-              console.log(`   ✅ Moved ${owner}/${repo}#${issueNumber} → ${targetStatus}`);
+              console.log(`   ✅ Moved ${issueOwner}/${issueRepo}#${issueNum} → ${targetStatus}`);
             }
