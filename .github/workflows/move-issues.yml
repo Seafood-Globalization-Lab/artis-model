@@ -1,53 +1,72 @@
-name: Move issues on develop merge
+name: Move PR linked issues on non-default branch merge
 
 on:
+  # Trigger this workflow only when a PR to the "develop" branch is closed
   pull_request:
     branches: [develop]
     types: [closed]
 
 permissions:
-  contents: read
-  issues: write
-  pull-requests: write
+  contents: read        # allows reading repo content
+  issues: write         # required to add/update issues on a project
+  pull-requests: write  # required to fetch PR body and commits
 
 jobs:
   move-to-qa:
+    # Only run if the PR was actually merged (not just closed without merging)
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
-      # 1) Harvest issue references from PR description
+      # Step 1: Harvest issue references from PR description text
+      # Uses nearform action to parse "#123" or "org/repo#123" references
       - name: Collect referenced issues
         id: collect
         uses: nearform-actions/github-action-check-linked-issues@v1
         with:
-          comment: false
-          loose-matching: true
+          comment: false          # don't post a comment on the PR
+          loose-matching: true    # allow matching issues even if branch != default
 
-      # 2) Update Project v2 "Status" for those issues
+      # Step 2: For each referenced issue, add/update it on the Project v2
+      # and set its "Status" field to specified existing project status value
       - name: Move issues to QA / Staging
         if: steps.collect.outputs.linked_issues_count != '0' && steps.collect.outputs.check_skipped != 'true'
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.ORG_PROJECTS_TOKEN }}
-          org: Seafood-Globalization-Lab
-          project: 1
-          field: Status
-          status: "🧪 QA / Staging"
+          # Required Org level PAT if the project is at the organization level.
+          # To create Org level PAT, user needs project write permissions within the org
+          # 1) In personal Github account settings menu, open "Developer settings"
+          # 2) Select "Personal access tokens/Fine-grained tokens"
+          # 3) Select "Generate new token" add descriptive title, Copy token value (it will disapear)
+          # 4) Navigate to the project Org settings page 
+          # 5) Under the "Security" section, select "Secrets and variables" and "Actions"
+          # 6) Select "New organization secret", paste token value, name it "ORG_PROJECTS_TOKEN",
+          # and set expiration to desired lenth of time. 
+          # 7) This will eventually expire and a new token value will need to be generated in the same 
+          # fashion to refresh the GHA access to the project. 
+          github-token: ${{ secrets.ORG_PROJECTS_TOKEN }}  # PAT with projects:write
+          org: Seafood-Globalization-Lab                  # org slug
+          project: 1                                      # project number (from URL)
+          field: Status                                   # field name to update
+          status: "🧪 QA / Staging"                       # target option name
           script: |
-            const orgLogin     = core.getInput("org");
-            const projectNumber= parseInt(core.getInput("project"), 10);
-            const fieldName    = core.getInput("field");
-            const targetStatus = core.getInput("status");
-            const refs         = JSON.parse(process.env.ISSUES_JSON || steps.collect.outputs.issues || "[]");
+            // === CONFIG INPUTS FROM 'with:' ===
+            const orgLogin      = core.getInput("org");
+            const projectNumber = parseInt(core.getInput("project"), 10);
+            const fieldName     = core.getInput("field");
+            const targetStatus  = core.getInput("status");
+
+            // Issue references captured by previous step
+            const refs = JSON.parse(process.env.ISSUES_JSON || steps.collect.outputs.issues || "[]");
 
             if (!refs.length) {
               core.info("No issues to move.");
               return;
             }
 
+            // Helper: GraphQL request wrapper
             const gq = (q, v) => github.graphql(q, v);
 
-            // 1) Get project + Status field + target option
+            // === Step A: Look up the project and the "Status" field ===
             const proj = await gq(`
               query($org: String!, $num: Int!) {
                 organization(login: $org) {
@@ -67,6 +86,7 @@ jobs:
             const project = proj.organization?.projectV2;
             if (!project) core.setFailed(`Project v2 #${projectNumber} not found in org ${orgLogin}`);
 
+            // Find the "Status" field and the correct option to set
             const statusField = project.fields.nodes.find(f => f.name === fieldName && f.options);
             if (!statusField) core.setFailed(`Single-select field "${fieldName}" not found`);
             const option = statusField.options.find(o => o.name === targetStatus);
@@ -76,33 +96,46 @@ jobs:
             const fieldId   = statusField.id;
             const optionId  = option.id;
 
-            // Helpers
+            // === Helper functions ===
+
+            // Get the GraphQL node ID of an issue given owner/repo/number
             async function getIssueNode(owner, repo, number) {
               const r = await gq(`
                 query($owner:String!,$name:String!,$number:Int!){
-                  repository(owner:$owner,name:$name){ issue(number:$number){ id number } }
+                  repository(owner:$owner,name:$name){
+                    issue(number:$number){ id number }
+                  }
                 }`, { owner, name: repo, number });
               return r.repository?.issue?.id || null;
             }
 
+            // Add an issue to the project by its node ID
             async function addItem(contentId) {
               const r = await gq(`
                 mutation($projectId:ID!,$contentId:ID!){
-                  addProjectV2ItemById(input:{projectId:$projectId, contentId:$contentId}){ item{ id } }
+                  addProjectV2ItemById(input:{projectId:$projectId, contentId:$contentId}) {
+                    item { id }
+                  }
                 }`, { projectId, contentId });
               return r.addProjectV2ItemById.item.id;
             }
 
+            // Update the "Status" field for a given project item ID
             async function updateStatus(itemId) {
               await gq(`
                 mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!,$optionId:String!){
                   updateProjectV2ItemFieldValue(input:{
-                    projectId:$projectId, itemId:$itemId, fieldId:$fieldId,
+                    projectId:$projectId,
+                    itemId:$itemId,
+                    fieldId:$fieldId,
                     value:{ singleSelectOptionId:$optionId }
-                  }){ projectV2Item{ id } }
+                  }) {
+                    projectV2Item { id }
+                  }
                 }`, { projectId, itemId, fieldId, optionId });
             }
 
+            // Find an existing project item for a given issue node ID (if already on project)
             async function findItemId(issueNodeId) {
               let cursor = null;
               for (let page=0; page<5; page++) {
@@ -126,9 +159,12 @@ jobs:
               return null;
             }
 
-            // Process each referenced issue
+            // === Step B: Process each referenced issue ===
             for (const ref of refs) {
-              // Normalize "org/repo#123", "repo#123", or "#123"
+              // Normalize reference formats:
+              // - "org/repo#123"
+              // - "repo#123"
+              // - "#123" (current repo)
               let owner = context.repo.owner;
               let repo  = context.repo.repo;
               let numStr = ref;
@@ -140,9 +176,11 @@ jobs:
               const num = Number(numStr);
 
               try {
+                // Resolve the issue to a node ID
                 const issueId = await getIssueNode(owner, repo, num);
                 if (!issueId) { core.warning(`Cannot resolve ${owner}/${repo}#${num}`); continue; }
 
+                // Check if already on the project
                 let itemId = await findItemId(issueId);
                 if (!itemId) {
                   core.info(`Adding ${owner}/${repo}#${num} to project…`);
@@ -151,6 +189,7 @@ jobs:
                   core.info(`Already on project: ${owner}/${repo}#${num}`);
                 }
 
+                // Update the Status field to the target option
                 core.info(`Setting Status → "${targetStatus}" for ${owner}/${repo}#${num}`);
                 await updateStatus(itemId);
               } catch (e) {
@@ -160,4 +199,5 @@ jobs:
 
             core.info("Done ✅")
         env:
+          # Pass through the issue references collected in step 1
           ISSUES_JSON: ${{ steps.collect.outputs.issues }}
