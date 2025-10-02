@@ -1,4 +1,4 @@
-name: Change status of PR-linked issues (develop merges)
+name: Move issues on develop merge
 
 on:
   pull_request:
@@ -11,44 +11,52 @@ permissions:
   pull-requests: write
 
 jobs:
-  to-qa:
+  move-to-qa:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
-      - name: Set Project v2 Status to 🧪 QA / Staging for referenced issues
+      # 1) Harvest issue references from PR description
+      - name: Collect referenced issues
+        id: collect
+        uses: nearform-actions/github-action-check-linked-issues@v1
+        with:
+          comment: false
+          loose-matching: true
+
+      # 2) Update Project v2 "Status" for those issues
+      - name: Move issues to QA / Staging
+        if: steps.collect.outputs.linked_issues_count != '0' && steps.collect.outputs.check_skipped != 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.ORG_PROJECTS_TOKEN }}
+          org: Seafood-Globalization-Lab
+          project: 1
+          field: Status
+          status: "🧪 QA / Staging"
           script: |
-            // === CONFIG ===
-            const orgLogin = "Seafood-Globalization-Lab"; // org slug
-            const projectNumber = 1;                      // from URL
-            const fieldName = "Status";                   // single-select field name
-            const targetStatus = "🧪 QA / Staging";        // option text (must match exactly)
+            const orgLogin     = core.getInput("org");
+            const projectNumber= parseInt(core.getInput("project"), 10);
+            const fieldName    = core.getInput("field");
+            const targetStatus = core.getInput("status");
+            const refs         = JSON.parse(process.env.ISSUES_JSON || steps.collect.outputs.issues || "[]");
 
-            // === INPUTS ===
-            const pr = context.payload.pull_request;
-            const repoOwner = context.repo.owner;
-            const repoName  = context.repo.repo;
-            const prNumber  = pr.number;
+            if (!refs.length) {
+              core.info("No issues to move.");
+              return;
+            }
 
-            // GraphQL helper
-            const gq = (query, variables={}) => github.graphql(query, variables);
+            const gq = (q, v) => github.graphql(q, v);
 
-            // 1) Resolve Project, Status field, and target option ID
+            // 1) Get project + Status field + target option
             const proj = await gq(`
-              query ($org: String!, $num: Int!) {
+              query($org: String!, $num: Int!) {
                 organization(login: $org) {
                   projectV2(number: $num) {
                     id
                     fields(first: 50) {
                       nodes {
                         ... on ProjectV2FieldCommon { id name }
-                        ... on ProjectV2SingleSelectField {
-                          id
-                          name
-                          options { id name }
-                        }
+                        ... on ProjectV2SingleSelectField { id name options { id name } }
                       }
                     }
                   }
@@ -57,116 +65,58 @@ jobs:
             `, { org: orgLogin, num: projectNumber });
 
             const project = proj.organization?.projectV2;
-            if (!project) {
-              core.setFailed(\`Project v2 #\${projectNumber} not found in org \${orgLogin}\`);
-              return;
-            }
+            if (!project) core.setFailed(`Project v2 #${projectNumber} not found in org ${orgLogin}`);
+
             const statusField = project.fields.nodes.find(f => f.name === fieldName && f.options);
-            if (!statusField) {
-              core.setFailed(\`Single-select field "\${fieldName}" not found on project.\`);
-              return;
-            }
-            const targetOption = statusField.options.find(o => o.name === targetStatus);
-            if (!targetOption) {
-              core.setFailed(\`Option "\${targetStatus}" not found in "\${fieldName}".\`);
-              return;
-            }
-            const projectId      = project.id;
-            const statusFieldId  = statusField.id;
-            const targetOptionId = targetOption.id;
+            if (!statusField) core.setFailed(`Single-select field "${fieldName}" not found`);
+            const option = statusField.options.find(o => o.name === targetStatus);
+            if (!option) core.setFailed(`Option "${targetStatus}" not found in "${fieldName}"`);
 
-            // 2) Gather issue references from PR body + commit messages
-            const bodyText = pr.body || "";
+            const projectId = project.id;
+            const fieldId   = statusField.id;
+            const optionId  = option.id;
 
-            // Fetch commit messages for this PR
-            const commits = await github.rest.pulls.listCommits({
-              owner: repoOwner,
-              repo: repoName,
-              pull_number: prNumber,
-              per_page: 250
-            });
-            const commitText = commits.data.map(c => c.commit.message).join("\n");
-
-            const text = bodyText + "\n" + commitText;
-
-            // Regex supports:
-            // - #123
-            // - owner/repo#123
-            // - URLs (optional), but we’ll stick to the two common syntaxes above
-            // Capture groups: (owner)? (repo)? number
-            const refs = new Set();
-            const plain = /(?:^|[\s,;()\[\]{}])(?:(?<own>[\w-]+)\/(?<rep>[\w.-]+))?#(?<num>\d+)\b/g;
-            let m;
-            while ((m = plain.exec(text)) !== null) {
-              const owner = m.groups.own || repoOwner;
-              const name  = m.groups.rep || repoName;
-              const num   = Number(m.groups.num);
-              refs.add(`${owner}/${name}#${num}`);
-            }
-
-            const refsArr = Array.from(refs);
-            if (refsArr.length === 0) {
-              core.info("No issue references found in PR body/commits.");
-              return;
-            }
-            core.info(`Found references: ${refsArr.join(", ")}`);
-
-            // 3) Resolve each issue to a node ID via GraphQL
-            async function getIssueNode(owner, name, number) {
-              const q = `
-                query($owner: String!, $name: String!, $number: Int!) {
-                  repository(owner: $owner, name: $name) {
-                    issue(number: $number) { id number }
-                  }
-                }
-              `;
-              const r = await gq(q, { owner, name, number });
+            // Helpers
+            async function getIssueNode(owner, repo, number) {
+              const r = await gq(`
+                query($owner:String!,$name:String!,$number:Int!){
+                  repository(owner:$owner,name:$name){ issue(number:$number){ id number } }
+                }`, { owner, name: repo, number });
               return r.repository?.issue?.id || null;
             }
 
-            // 4) Project item helpers
             async function addItem(contentId) {
               const r = await gq(`
-                mutation($projectId: ID!, $contentId: ID!) {
-                  addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
-                    item { id }
-                  }
-                }
-              `, { projectId, contentId });
+                mutation($projectId:ID!,$contentId:ID!){
+                  addProjectV2ItemById(input:{projectId:$projectId, contentId:$contentId}){ item{ id } }
+                }`, { projectId, contentId });
               return r.addProjectV2ItemById.item.id;
             }
 
             async function updateStatus(itemId) {
               await gq(`
-                mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optId: String!) {
-                  updateProjectV2ItemFieldValue(input: {
-                    projectId: $projectId
-                    itemId: $itemId
-                    fieldId: $fieldId
-                    value: { singleSelectOptionId: $optId }
-                  }) {
-                    projectV2Item { id }
-                  }
-                }
-              `, { projectId, itemId, fieldId: statusFieldId, optId: targetOptionId });
+                mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!,$optionId:String!){
+                  updateProjectV2ItemFieldValue(input:{
+                    projectId:$projectId, itemId:$itemId, fieldId:$fieldId,
+                    value:{ singleSelectOptionId:$optionId }
+                  }){ projectV2Item{ id } }
+                }`, { projectId, itemId, fieldId, optionId });
             }
 
-            async function findExistingItemId(issueNodeId) {
-              // Page through project items and match by content.id
+            async function findItemId(issueNodeId) {
               let cursor = null;
-              for (let page = 0; page < 5; page++) {
+              for (let page=0; page<5; page++) {
                 const r = await gq(`
-                  query($projectId: ID!, $after: String) {
-                    node(id: $projectId) {
+                  query($projectId:ID!,$after:String){
+                    node(id:$projectId){
                       ... on ProjectV2 {
-                        items(first: 100, after: $after) {
-                          pageInfo { hasNextPage endCursor }
-                          nodes { id content { ... on Issue { id } } }
+                        items(first:100, after:$after){
+                          pageInfo{ hasNextPage endCursor }
+                          nodes{ id content{ ... on Issue{ id } } }
                         }
                       }
                     }
-                  }
-                `, { projectId, after: cursor });
+                  }`, { projectId, after: cursor });
                 const items = r.node.items;
                 const hit = items.nodes.find(n => n.content?.id === issueNodeId);
                 if (hit) return hit.id;
@@ -176,43 +126,38 @@ jobs:
               return null;
             }
 
-            // 5) Process each referenced issue
-            for (const ref of refsArr) {
-              const [full, owner, nameNum] = ref.match(/^([^/]+)\/(.+)$/) || [];
-              let ownerLogin, repoNameParsed, num;
-              if (full) {
-                // owner/repo#num
-                const match = nameNum.match(/^([^#]+)#(\d+)$/);
-                ownerLogin = owner;
-                repoNameParsed = match[1];
-                num = Number(match[2]);
-              } else {
-                // fallback (shouldn’t happen due to regex): same repo #num
-                ownerLogin = repoOwner;
-                repoNameParsed = repoName;
-                num = Number(ref.replace(/^#/, ""));
-              }
+            // Process each referenced issue
+            for (const ref of refs) {
+              // Normalize "org/repo#123", "repo#123", or "#123"
+              let owner = context.repo.owner;
+              let repo  = context.repo.repo;
+              let numStr = ref;
+
+              const m1 = ref.match(/^([^/]+)\/([^#]+)#(\d+)$/);
+              const m2 = ref.match(/^([^#]+)#(\d+)$/);
+              if (m1) { owner = m1[1]; repo = m1[2]; numStr = m1[3]; }
+              else if (m2) { repo = m2[1]; numStr = m2[2]; }
+              const num = Number(numStr);
 
               try {
-                const issueId = await getIssueNode(ownerLogin, repoNameParsed, num);
-                if (!issueId) {
-                  core.warning(`Could not resolve ${ownerLogin}/${repoNameParsed}#${num}`);
-                  continue;
-                }
+                const issueId = await getIssueNode(owner, repo, num);
+                if (!issueId) { core.warning(`Cannot resolve ${owner}/${repo}#${num}`); continue; }
 
-                let itemId = await findExistingItemId(issueId);
+                let itemId = await findItemId(issueId);
                 if (!itemId) {
-                  core.info(`Adding ${ownerLogin}/${repoNameParsed}#${num} to project…`);
+                  core.info(`Adding ${owner}/${repo}#${num} to project…`);
                   itemId = await addItem(issueId);
                 } else {
-                  core.info(`Already on project: ${ownerLogin}/${repoNameParsed}#${num}`);
+                  core.info(`Already on project: ${owner}/${repo}#${num}`);
                 }
 
-                core.info(`Setting Status → "${targetStatus}" for ${ownerLogin}/${repoNameParsed}#${num}`);
+                core.info(`Setting Status → "${targetStatus}" for ${owner}/${repo}#${num}`);
                 await updateStatus(itemId);
               } catch (e) {
-                core.warning(`Failed on ${ref}: ${e.message}`);
+                core.warning(`Failed on ${owner}/${repo}#${num}: ${e.message}`);
               }
             }
 
-            core.info("Done");
+            core.info("Done ✅")
+        env:
+          ISSUES_JSON: ${{ steps.collect.outputs.issues }}
