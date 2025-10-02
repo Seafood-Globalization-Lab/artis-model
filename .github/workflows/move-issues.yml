@@ -1,4 +1,4 @@
-name: Move linked issues to QA on develop merge
+name: Move issues on develop merge
 
 on:
   pull_request:
