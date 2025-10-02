@@ -22,9 +22,19 @@ jobs:
       - name: Collect referenced issues
         id: collect
         uses: nearform-actions/github-action-check-linked-issues@v1
+        continue-on-error: true     # don’t fail job if no issues
         with:
           comment: false          # don't post a comment on the PR
           loose-matching: true    # allow matching issues even if branch != default
+
+      # New intermediate step: log a friendly message if no issues
+      - name: Check for linked issues
+        run: |
+          if [ "${{ steps.collect.outputs.linked_issues_count }}" = "0" ] || [ -z "${{ steps.collect.outputs.linked_issues_count }}" ]; then
+            echo "No issues to move."
+          else
+            echo "Found ${{ steps.collect.outputs.linked_issues_count }} linked issues."
+          fi
 
       # Step 2: For each referenced issue, add/update it on the Project v2
       # and set its "Status" field to specified existing project status value
