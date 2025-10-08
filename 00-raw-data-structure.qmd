@@ -1,0 +1,389 @@
+---
+title: "ARTIS Raw Data Structure Assessment"
+subtitle: "Phase 1: Schema and File Structure Changes"
+author: "Althea Marks"
+format:
+  pdf:
+    papersize: letter
+execute:
+  echo: false
+  include: false
+  message: false
+  warning: false
+---
+
+```{r setup}
+#### Libraries #####
+library(data.table)
+library(dplyr)
+library(readr)
+library(stringr)
+library(purrr)
+library(tidyr)
+library(knitr)
+library(kableExtra)
+library(readxl)
+library(glue)
+
+#### Directory setup #####
+# Newest data
+datadir_new <- file.path("~", "Documents", "UW-SAFS", "ARTIS", "data", "model_inputs_raw_2.0")
+# Previous data ingest
+datadir_old <- file.path("~", "Documents", "UW-SAFS", "ARTIS", "data", "model_inputs_raw_1.0_1.1.0")
+
+# Version identifiers for report
+artis_old <- "v1.0"
+artis_new <- "v2.0"
+data_v_old <- "2022.1.1"
+data_v_new <- "2025.1.0"
+```
+
+```{r data-source-inventory}
+# Define data source patterns and their assessment functions
+data_sources <- list(
+  fao_production = list(
+    pattern = regex("(global[\\s_-]*production)", ignore_case = TRUE),
+    key_files = c("Global_production_quantity.csv", "Global_production_quantity.xlsx"),
+    description = "FAO Global Production"
+  ),
+  baci = list(
+    pattern = regex("(baci)", ignore_case = TRUE),
+    key_files = c(),  # Will be detected automatically
+    description = "BACI Trade Data"
+  ),
+  hs_codes = list(
+    pattern = "ALL_HS_Codes.csv",
+    key_files = c("ALL_HS_Codes.csv"),
+    description = "HS Code Classifications"
+  )
+)
+
+# Function to scan and categorize files by data source
+assess_data_source <- function(datadir_new, datadir_old, source_config) {
+  # Get subdirectories
+  subdirs_new <- list.dirs(datadir_new, recursive = TRUE, full.names = TRUE)
+  subdirs_old <- list.dirs(datadir_old, recursive = TRUE, full.names = TRUE)
+  
+  if (is.character(source_config$pattern)) {
+    # Direct file matching (like ALL_HS_Codes.csv)
+    files_new <- list.files(datadir_new, pattern = source_config$pattern, 
+                           recursive = TRUE, full.names = TRUE)
+    files_old <- list.files(datadir_old, pattern = source_config$pattern, 
+                           recursive = TRUE, full.names = TRUE)
+  } else {
+    # Directory pattern matching
+    matching_dirs_new <- subdirs_new[str_detect(subdirs_new, source_config$pattern)]
+    matching_dirs_old <- subdirs_old[str_detect(subdirs_old, source_config$pattern)]
+    
+    files_new <- if(length(matching_dirs_new) > 0) {
+      list.files(matching_dirs_new, recursive = TRUE, full.names = TRUE)
+    } else { character(0) }
+    
+    files_old <- if(length(matching_dirs_old) > 0) {
+      list.files(matching_dirs_old, recursive = TRUE, full.names = TRUE)
+    } else { character(0) }
+  }
+  
+  list(
+    source = source_config$description,
+    files_new = files_new,
+    files_old = files_old,
+    dirs_new = if(exists("matching_dirs_new")) matching_dirs_new else character(0),
+    dirs_old = if(exists("matching_dirs_old")) matching_dirs_old else character(0)
+  )
+}
+
+# Assess all data sources
+source_assessments <- map(data_sources, ~assess_data_source(datadir_new, datadir_old, .x))
+names(source_assessments) <- names(data_sources)
+```
+
+```{r file-structure-comparison}
+# Universal file comparison function - ROBUST FIX
+create_file_comparison <- function(files_new, files_old, source_name) {
+  if(length(files_new) == 0 && length(files_old) == 0) {
+    return(tibble(
+      source = source_name,
+      files_std = character(0),
+      new = character(0),
+      old = character(0),
+      exists_in_old = logical(0),
+      exists_in_new = logical(0),
+      size_old_mb = numeric(0),
+      size_new_mb = numeric(0),
+      size_change_mb = numeric(0)
+    ))
+  }
+  
+  all_files <- tibble(
+    source = source_name,
+    full_path = c(files_new, files_old),
+    files = c(basename(files_new), basename(files_old)),
+    directory = c(rep("new", length(files_new)), rep("old", length(files_old)))
+  ) %>%
+    mutate(
+      files_std = files %>% 
+        str_remove("^filtered_") %>%
+        str_remove("_V\\d{6,7}[a-z]*") %>%
+        str_replace_all("\\.[a-zA-Z0-9]+$", "") %>%
+        str_replace_all("[^a-zA-Z0-9]", "_") %>%
+        str_to_lower()
+    )
+  
+  file_level_log <- all_files %>%
+    pivot_wider(
+      id_cols = c(source, files_std),
+      names_from = directory, 
+      values_from = full_path
+    ) %>%
+    mutate(
+      exists_in_old = !is.na(old),
+      exists_in_new = !is.na(new)
+    ) %>%
+    rowwise() %>%
+    mutate(
+      size_old_mb = if(exists_in_old && !is.na(old) && file.exists(old)) {
+        file.info(old)$size / 1e6
+      } else {
+        NA_real_
+      },
+      size_new_mb = if(exists_in_new && !is.na(new) && file.exists(new)) {
+        file.info(new)$size / 1e6
+      } else {
+        NA_real_
+      }
+    ) %>%
+    ungroup() %>%
+    mutate(
+      size_change_mb = size_new_mb - size_old_mb
+    )
+  
+  return(file_level_log)
+}
+```
+
+```{r schema-comparison}
+# Enhanced schema comparison function
+compare_schemas <- function(file_new, file_old, max_rows_sample = 1000) {
+  read_file_smart <- function(filepath, max_rows = max_rows_sample) {
+    ext <- tools::file_ext(filepath)
+    if(ext == "csv") {
+      # Sample first N rows for large files to check schema
+      if(file.info(filepath)$size > 50*1024*1024) { # If > 50MB
+        fread(filepath, nrows = max_rows)
+      } else {
+        fread(filepath)
+      }
+    } else if(ext %in% c("xlsx", "xls")) {
+      read_excel(filepath, n_max = max_rows)
+    } else {
+      return(NULL)
+    }
+  }
+  
+  tryCatch({
+    data_new <- read_file_smart(file_new)
+    data_old <- read_file_smart(file_old)
+    
+    if(is.null(data_new) || is.null(data_old)) {
+      return(NULL)
+    }
+    
+    list(
+      file_name_new = basename(file_new),
+      file_name_old = basename(file_old),
+      new_rows = nrow(data_new),
+      old_rows = nrow(data_old),
+      row_diff = nrow(data_new) - nrow(data_old),
+      row_diff_pct = round(((nrow(data_new) - nrow(data_old)) / nrow(data_old)) * 100, 2),
+      new_cols = ncol(data_new),
+      old_cols = ncol(data_old),
+      col_diff = ncol(data_new) - ncol(data_old),
+      new_col_names = list(colnames(data_new)),
+      old_col_names = list(colnames(data_old)),
+      added_cols = list(setdiff(colnames(data_new), colnames(data_old))),
+      removed_cols = list(setdiff(colnames(data_old), colnames(data_new))),
+      data_types_new = list(sapply(data_new, function(x) class(x)[1])),
+      data_types_old = list(sapply(data_old, function(x) class(x)[1]))
+    )
+  }, error = function(e) {
+    list(
+      file_name_new = basename(file_new),
+      file_name_old = basename(file_old),
+      error_msg = conditionMessage(e)
+    )
+  })
+}
+
+# Apply schema comparison to matching files
+comparable_files <- all_file_comparisons %>%
+  filter(exists_in_old & exists_in_new) %>%
+  filter(!is.na(new), !is.na(old))
+
+schema_comparisons <- comparable_files %>%
+  filter(nrow(.) > 0) %>%
+  rowwise() %>%
+  mutate(
+    schema_comparison = list(compare_schemas(new, old))
+  ) %>%
+  ungroup()
+
+if(nrow(schema_comparisons) > 0) {
+  schema_details <- schema_comparisons %>%
+    select(source, files_std, schema_comparison) %>%
+    unnest_wider(schema_comparison)
+} else {
+  schema_details <- tibble()
+}
+```
+
+# Executive Summary
+
+This Phase 1 assessment evaluates **structural changes** in raw data sources that could break the ARTIS cleaning pipeline. It focuses on detecting schema changes, file additions/removals, and data type modifications **before** applying any data cleaning logic.
+
+**Purpose**: Identify breaking changes that require updates to `01-clean-input-data.R` before proceeding with content-level analysis.
+
+**Data Version Comparison**:
+- Previous: ARTIS `r artis_old` (data version `r data_v_old`)
+- Current: ARTIS `r artis_new` (data version `r data_v_new`)
+
+# Data Source Inventory
+
+```{r source-summary}
+#| include: true
+#| results: asis
+
+source_summary <- map_dfr(source_assessments, ~tibble(
+  source = .x$source,
+  files_new_count = length(.x$files_new),
+  files_old_count = length(.x$files_old),
+  dirs_new_count = length(.x$dirs_new),
+  dirs_old_count = length(.x$dirs_old)
+))
+
+source_summary %>%
+  kbl(
+    col.names = c("Data Source", "Files (New)", "Files (Old)", "Dirs (New)", "Dirs (Old)"),
+    caption = "Raw data source inventory",
+    booktabs = TRUE
+  ) %>%
+  kable_styling(
+    full_width = TRUE,
+    latex_options = c("hold_position", "scale_down")
+  )
+```
+
+# File-Level Changes
+
+## New and Missing Files
+
+```{r file-changes-summary}
+#| include: true
+#| results: asis
+
+file_changes <- all_file_comparisons %>%
+  group_by(source) %>%
+  summarise(
+    total_files = n(),
+    files_added = sum(!exists_in_old, na.rm = TRUE),
+    files_removed = sum(!exists_in_new, na.rm = TRUE),
+    files_unchanged = sum(exists_in_old & exists_in_new, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+file_changes %>%
+  kbl(
+    col.names = c("Data Source", "Total Files", "Added", "Removed", "Unchanged"),
+    caption = "File-level changes by data source",
+    booktabs = TRUE
+  ) %>%
+  kable_styling(
+    full_width = TRUE,
+    latex_options = c("hold_position", "scale_down")
+  )
+```
+
+## File Size Changes
+
+```{r file-size-changes}
+#| include: true
+#| results: asis
+
+significant_size_changes <- all_file_comparisons %>%
+  filter(exists_in_old & exists_in_new) %>%
+  filter(!is.na(size_change_mb)) %>%
+  mutate(
+    size_change_pct = round((size_change_mb / size_old_mb) * 100, 1)
+  ) %>%
+  filter(abs(size_change_pct) > 10) %>% # Only show > 10% changes
+  arrange(desc(abs(size_change_pct)))
+
+if(nrow(significant_size_changes) > 0) {
+  significant_size_changes %>%
+    select(source, files_std, size_old_mb, size_new_mb, size_change_mb, size_change_pct) %>%
+    kbl(
+      col.names = c("Source", "File", "Old (MB)", "New (MB)", "Change (MB)", "Change (%)"),
+      caption = "Significant file size changes (>10%)",
+      booktabs = TRUE,
+      digits = 2
+    ) %>%
+    kable_styling(
+      full_width = TRUE,
+      latex_options = c("hold_position", "scale_down")
+    )
+}
+```
+
+# Schema-Level Changes
+
+## Row Count Changes
+
+```{r row-changes}
+#| include: true
+#| results: asis
+
+if(nrow(schema_details) > 0 && "row_diff_pct" %in% names(schema_details)) {
+  row_changes <- schema_details %>%
+    filter(!is.na(row_diff_pct)) %>%
+    filter(abs(row_diff_pct) > 5) %>% # Only show > 5% changes
+    select(source, file_name_new, old_rows, new_rows, row_diff, row_diff_pct) %>%
+    arrange(desc(abs(row_diff_pct)))
+  
+  if(nrow(row_changes) > 0) {
+    row_changes %>%
+      kbl(
+        col.names = c("Source", "File", "Old Rows", "New Rows", "Difference", "Change (%)"),
+        caption = "Significant row count changes (>5%)",
+        booktabs = TRUE
+      ) %>%
+      kable_styling(
+        full_width = TRUE,
+        latex_options = c("hold_position", "scale_down")
+      )
+  }
+}
+```
+
+## Column Schema Changes
+
+```{r column-changes}
+#| include: true
+#| results: asis
+
+if(nrow(schema_details) > 0) {
+  column_changes <- schema_details %>%
+    filter(!is.na(col_diff) & col_diff != 0) %>%
+    select(source, file_name_new, old_cols, new_cols, col_diff)
+  
+  if(nrow(column_changes) > 0) {
+    column_changes %>%
+      kbl(
+        col.names = c("Source", "File", "Old Columns", "New Columns", "Difference"),
+        caption = "Files with column count changes",
+        booktabs = TRUE
+      ) %>%
+      kable_styling(
+        full_width = TRUE,
+        latex_options = c("hold_position", "scale_down")
+      )
+  }
