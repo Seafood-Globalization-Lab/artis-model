@@ -1,4 +1,4 @@
-structure(list(country_name = c("Aruba", "Aruba", "Aruba", "Aruba", 
+country_corrections_test <- structure(list(country_name = c("Aruba", "Aruba", "Aruba", "Aruba", 
 "Aruba", "Aruba", "Aruba", "Aruba", "Aruba", "Aruba", "Aruba", 
 "Aruba", "Aruba", "Aruba", "Aruba", "Aruba", "Aruba", "Aruba", 
 "Aruba", "Aruba", "Aruba", "Aruba", "Aruba", "Aruba", "Aruba", 
