@@ -15,6 +15,7 @@ library(countrycode)
 library(stringr)
 library(dplyr)
 library(tidyr)
+library(cli)
 
 
 
@@ -24,26 +25,30 @@ source("00-local-machine-setup.R")
 # Load raw HS codes ------------------------------------------------------
 hs_data_raw <- read.csv(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "character")
 
-# Get fishbase data ------------------------------------------------------
-# Generate new fishbase and sealifebase data files
-# Note: these do not need to be generated for each model run and can be done if new data release is available.
-# Directory Structure:
-  # creates fishbase_sealifebase_[MOST RECENT DATE] within model_inputs_raw (ie. "model_inputs_raw/fishbase_sealifebase_[MOST_RECENT_DATE]")
+# Get fishbase and sealifebase data ------------------------------------------------------
+# Collect new fishbase and sealifebase data files
 if(need_new_fb_slb == TRUE) {
-  collect_fb_slb_data(parent_outdir = datadir_raw)
-  message("New fishbase and sealifebase data files have been generated.")
+  current_fb_slb_dir <- artis::collect_fb_slb_data(parent_outdir = datadir_raw)
+  message(glue("New fishbase and sealifebase data collected at {current_fb_slb_dir}"))
 } else {
-  message("Existing fishbase and sealifebase data files are being used; Not collecting new data.")
+  # Or use most recent existing fishbase and sealifebase data files
+  current_fb_slb_dir <- list.dirs(datadir_raw, full.names = TRUE, recursive = FALSE) %>%
+    stringr::str_subset("fishbase_sealifebase_") %>%
+    sort(decreasing = TRUE) %>%
+    .[1]
+  # Check if current_fb_slb_dir is valid
+  if (is.na(current_fb_slb_dir)) {
+    cli::cli_abort(c(
+      "x" = "No fishbase_sealifebase directory found in {datadir_raw}",
+      "i" = "Set {.code need_new_fb_slb = TRUE} to download new data",
+      "i" = "Or ensure a fishbase_sealifebase_* directory exists"
+    ))
+  }
 }
-
-# Find the most recent version of the fishbase and sealifebase data files needed
-fb_slb_info <- get_most_recent_dir(datadir_raw, "fishbase_sealifebase")
-current_fb_slb_dir <- fb_slb_info$directory
-
 
 # Clean FAO Production (taxa names and classification) ---------------------------
 
-prod_list <- classify_prod_dat(datadir = datadir_raw,
+prod_list <- artis::classify_prod_dat(datadir = datadir_raw,
                                filename = "GlobalProduction_2025.1.0.zip", 
                                prod_data_source = "FAO",
                                fb_slb_dir = current_fb_slb_dir)

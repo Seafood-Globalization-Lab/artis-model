@@ -6,13 +6,12 @@
 #' datasets for use in taxonomic classification workflows.
 #'
 #' @param parent_outdir Character string. Path to the parent directory where the 
-#'   timestamped fishbase_sealifebase_[DATE] folder will be created.
+#'   timestamped fishbase_sealifebase_[database snapshot release] folder will be created.
 #'
-#' @return NULL (invisible). Function is called for its side effects of creating
-#'   files in the output directory.
+#' @return Character string. Path to the created output directory containing
 #'   
 #' @details 
-#' The function creates the following files in a dated subdirectory:
+#' The function creates the following files in a versioned subdirectory:
 #' \itemize{
 #'   \item fb_taxa_info.csv, slb_taxa_info.csv - Taxonomic classification data
 #'   \item fb_synonyms_raw.csv, slb_synonyms_raw.csv - Raw synonym data
@@ -43,31 +42,31 @@ collect_fb_slb_data <- function(parent_outdir) {
   # Collecting fishbase and sealifebase taxonomic classification information
   # Contains:
     # Species Codes, Scientific Names, Genus, Subfamily, Family, Order, Class, SuperClass
-  fb_raw <- load_taxa(server = "fishbase") %>% distinct()
-  slb_raw <- load_taxa(server = "sealifebase") %>% distinct()
+  fb_raw <- load_taxa(server = "fishbase", version = "latest") %>% distinct()
+  slb_raw <- load_taxa(server = "sealifebase", version = "latest") %>% distinct()
   
   fwrite(fb_raw, file.path(outdir, "fb_taxa_info.csv"), row.names = FALSE)
   fwrite(slb_raw, file.path(outdir, "slb_taxa_info.csv"), row.names = FALSE)
   
   # Collecting fishbase and sealifebase synonym information (RAW FB SLB DATA)
-  fb_synonyms_raw <- fb_tbl("synonyms", server = "fishbase") %>% distinct()
-  slb_synonyms_raw <- fb_tbl("synonyms", server = "sealifebase") %>% distinct()
+  fb_synonyms_raw <- fb_tbl("synonyms", server = "fishbase", version = "latest") %>% distinct()
+  slb_synonyms_raw <- fb_tbl("synonyms", server = "sealifebase", version = "latest") %>% distinct()
   
   fwrite(fb_synonyms_raw, file.path(outdir, "fb_synonyms_raw.csv"), row.names = FALSE)
   fwrite(slb_synonyms_raw, file.path(outdir, "slb_synonyms_raw.csv"), row.names = FALSE)
   
   # Cleaning synonym information to use as translation tables
-  fb_synonyms_clean <- clean_fb_slb_synonyms(fb_synonyms_raw)
-  slb_synonyms_clean <- clean_fb_slb_synonyms(slb_synonyms_raw)
+  fb_synonyms_clean <- clean_fb_slb_synonyms(fb_synonyms_raw, version = "latest")
+  slb_synonyms_clean <- clean_fb_slb_synonyms(slb_synonyms_raw, version = "latest")
   
   fwrite(fb_synonyms_clean, file.path(outdir, "fb_synonyms_clean.csv"), row.names = FALSE)
   fwrite(slb_synonyms_clean, file.path(outdir, "slb_synonyms_clean.csv"), row.names = FALSE)
   
   # Get fishbase and sealifebase aquarium information
-  fb_species_raw <- fb_tbl("species", server = "fishbase") %>%
+  fb_species_raw <- fb_tbl("species", server = "fishbase", version = "latest") %>%
     mutate(Species = paste(Genus, Species)) %>%
     distinct()
-  slb_species_raw <- fb_tbl("species", server = "sealifebase") %>%
+  slb_species_raw <- fb_tbl("species", server = "sealifebase", version = "latest") %>%
     mutate(Species = paste(Genus, Species)) %>%
     distinct()
   
@@ -91,12 +90,12 @@ collect_fb_slb_data <- function(parent_outdir) {
   fwrite(slb_aquarium_clean, file.path(outdir, "slb_aquarium.csv"), row.names = FALSE)
   
   # Collect species common names and their scientific names
-  fb_common_raw <- fb_tbl("comnames", server = "fishbase")
+  fb_common_raw <- fb_tbl("comnames", server = "fishbase", version = "latest")
   # dev_mode 2025_08_14 - rfishbase error with GET query to remote slb common name table
-  #slb_common_raw <- fb_tbl("comnames", server = "sealifebase")
+  slb_common_raw <- fb_tbl("comnames", server = "sealifebase", version = "latest")
   # NOTE: slb common name table mannually downloaded from url provided in error
   # https://huggingface.co/datasets/cboettig/fishbase/resolve/main/data/slb/v24.07/parquet/comnames.parquet
-  slb_common_raw <- arrow::read_parquet(file.path(outdir, "comnames.parquet"))
+  #slb_common_raw <- arrow::read_parquet(file.path(outdir, "comnames.parquet"))
   
   fwrite(fb_common_raw, file.path(outdir, "fb_common_raw.csv"), row.names = FALSE)
   fwrite(slb_common_raw, file.path(outdir, "slb_common_raw.csv"), row.names = FALSE)
@@ -132,7 +131,10 @@ collect_fb_slb_data <- function(parent_outdir) {
     rename(SciName = Species, CommonName = ComName, spec_code = SpecCode) %>%
     distinct()
   
-  write.csv(fb_common_clean, file.path(outdir, "fb_common_to_sci.csv"), row.names = FALSE)
-  write.csv(slb_common_clean, file.path(outdir, "slb_common_to_sci.csv"), row.names = FALSE)
+  fwrite(fb_common_clean, file.path(outdir, "fb_common_to_sci.csv"), row.names = FALSE)
+  fwrite(slb_common_clean, file.path(outdir, "slb_common_to_sci.csv"), row.names = FALSE)
   
+  # Return output directory path
+  return(outdir)
+
 }
