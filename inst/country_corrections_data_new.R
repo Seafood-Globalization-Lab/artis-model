@@ -10,9 +10,6 @@
 # Refactored for maintainability
 
 standardize_country_data <- function(year_range = 1996:2023) {
-  
-  # Use the provided year range
-  YEAR_RANGE <- year_range
 
    # --- TERRITORY TO Sovergn COUNTRY MAPPINGS ---
 
@@ -79,8 +76,8 @@ standardize_country_data <- function(year_range = 1996:2023) {
     "BVT", "NOR",
     # Tanzania territory
     "EAZ", "TZA"
-  ) |>
-  expand_grid(year = YEAR_RANGE)
+  ) %>% 
+  expand_grid(year = year_range)
   
   # --- TIME-DEPENDENT CORRECTIONS ---
 
@@ -107,8 +104,105 @@ standardize_country_data <- function(year_range = 1996:2023) {
   "SWZ", "ZA1", 1996, 1999,
   "SWZ", "SWZ", 2000, 2023
 ) |>
-expand_grid(year = YEAR_RANGE) |>
+expand_grid(year = year_range) |>
 filter(year >= start_year & year <= end_year) |>
 select(-start_year, -end_year)
+  
+special_corrections <- tribble(
+  ~country_name,                     ~iso3c,    ~artis_iso3c,
+  # Taiwan variants
+  "Other Asia, nes",                 NA,        "TWN",
+  # Luxembourg to Belgium grouping
+  NA,                                "LUX",     "BEL",
+  # Small countries to NEI grouping
+  NA,                                "SMR",     "NEI",
+  NA,                                "AND",     "NEI", 
+  "US Misc. Pacific Isds",           NA,        "NEI",
+  "Channel Islands",                 NA,        "GBR",
+  "Channel Isl.",                    NA,        "GBR",
+  # Special NEI case
+  "Other nei",                       "NEI",     "NEI",
+  # SAU production specific corrections
+  "Ascension Isl.",                  "SHN",     "GBR",
+  "Azores Isl.",                     "PRT",     "PRT", 
+  "Bonaire",                         "BES",     "NLD",
+  "Brit. Indian Ocean Terr.",        "IOT",     "GBR",
+  "Madeira Isl.",                    "PRT",     "PRT",
+  "Micronesia",                      "FSM",     "FSM",
+  "Saba and Saint Eustaius",         "BES",     "NLD",
+  "St Martin",                       "MAF",     "FRA", 
+  "Tristan da Cunha Isl.",           "SHN",     "GBR",
+  "US Virgin Isl.",                  "VIR",     "USA",
+  "Unknown Fishing Country",         "NEI",     "NEI"
+) %>% 
+expand_grid(year = year_range)
+  
+  # --- COMBINE ALL CORRECTIONS ---
+  
+  all_corrections <- bind_rows(
+    # Standard territory mappings
+    territory_mappings,
+    # Time-dependent corrections  
+    time_dependent_corrections,
+    # Special corrections
+    special_corrections
+  ) %>% 
+  
+  # Fill in missing country names (preserve existing ones)
+  mutate(
+    country_name = case_when(
+      # Keep existing country_name values
+      !is.na(country_name) ~ country_name,
+      # Fill missing ones from iso3c
+      !is.na(iso3c) ~ countrycode::countrycode(iso3c, "iso3c", "country.name", warn = FALSE),
+      TRUE ~ country_name
+    )
+  ) %>% 
+  
+  # Generate artis_country_name (preserve any existing ones)
+  mutate(
+    artis_country_name = case_when(
+      # Special cases that don't use countrycode
+      artis_iso3c == "NEI" ~ "Other nei",
+      artis_iso3c == "SCG" ~ "Serbia and Montenegro",
+      artis_iso3c == "SDN" & year < 2012 ~ "Sudan (Former)",
+      artis_iso3c == "ZA1" ~ "So. African Customs Union",
+      # Use countrycode for standard mappings
+      TRUE ~ countrycode::countrycode(artis_iso3c, "iso3c", "country.name", warn = FALSE)
+    )
+  ) %>% 
+  
+  # Handle special country name cases (preserve original values)
+  mutate(
+    country_name = case_when(
+      iso3c == "ANT" ~ "Netherlands Antilles",
+      iso3c == "EAZ" ~ "Zanzibar", 
+      iso3c == "SCG" ~ "Serbia and Montenegro",
+      iso3c == "NEI" ~ "Other nei",
+      TRUE ~ country_name
+    ),
+    
+    # Handle NEI cases for iso3c (only when missing)
+    iso3c = case_when(
+      is.na(iso3c) & artis_iso3c == "NEI" ~ "NEI",
+      TRUE ~ iso3c
+    )
+  ) %>% 
+  
+  # Select and arrange columns to match original output
+  select(
+    country_name,
+    iso3c, 
+    year,
+    artis_country_name,
+    artis_iso3c
+  ) %>% 
+  
+  # Remove duplicates and filter out invalid rows
+  distinct() |>
+  filter(!is.na(year), !is.na(artis_iso3c)) |>
+  arrange(country_name, iso3c, year)
+  
+  return(all_corrections)
   
 }
