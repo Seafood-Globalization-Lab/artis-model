@@ -26,7 +26,7 @@ hs_data_raw <- read.csv(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses =
 
 # Get fishbase data ------------------------------------------------------
 # Generate new fishbase and sealifebase data files
-# Note: these do not need to be generated for each model run and can be done once per year/quarter
+# Note: these do not need to be generated for each model run and can be done if new data release is available.
 # Directory Structure:
   # creates fishbase_sealifebase_[MOST RECENT DATE] within model_inputs_raw (ie. "model_inputs_raw/fishbase_sealifebase_[MOST_RECENT_DATE]")
 if(need_new_fb_slb == TRUE) {

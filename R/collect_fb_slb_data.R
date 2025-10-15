@@ -1,9 +1,39 @@
+#' Collect FishBase and SeaLifeBase Data
+#'
+#' Downloads and processes taxonomic, synonym, species, and common name data from 
+#' FishBase and SeaLifeBase database snapshots maintained by rfishbase (https://github.com/ropensci/rfishbase). 
+#' Creates a timestamped directory with cleaned
+#' datasets for use in taxonomic classification workflows.
+#'
+#' @param parent_outdir Character string. Path to the parent directory where the 
+#'   timestamped fishbase_sealifebase_[DATE] folder will be created.
+#'
+#' @return NULL (invisible). Function is called for its side effects of creating
+#'   files in the output directory.
+#'   
+#' @details 
+#' The function creates the following files in a dated subdirectory:
+#' \itemize{
+#'   \item fb_taxa_info.csv, slb_taxa_info.csv - Taxonomic classification data
+#'   \item fb_synonyms_raw.csv, slb_synonyms_raw.csv - Raw synonym data
+#'   \item fb_synonyms_clean.csv, slb_synonyms_clean.csv - Cleaned synonym translation tables
+#'   \item fb_species_raw.csv, slb_species_raw.csv - Raw species information
+#'   \item fb_aquarium.csv, slb_aquarium.csv - Aquarium and habitat data
+#'   \item fb_common_raw.csv, slb_common_raw.csv - Raw common name data
+#'   \item fb_common_to_sci.csv, slb_common_to_sci.csv - Common to scientific name translations
+#' }
+#' 
+#' @note This function requires internet access to download data from FishBase 
+#'   and SeaLifeBase APIs. The SeaLifeBase common names table may require manual 
+#'   download if API access fails.
+#'
 #' @export
 collect_fb_slb_data <- function(parent_outdir) {
   
-  # Get today's date for record keeping
-  current_date <- gsub("-", "", Sys.Date())
-  outdir <- paste0("fishbase_sealifebase_", current_date)
+  # Label data folder with release version
+  # get value of most recent available release versions from rfishbase
+  release <- rfishbase::available_releases() %>% tail(n = 1)
+  outdir <- paste0("fishbase_sealifebase_", release)
   outdir <- file.path(parent_outdir, outdir)
   
   # Create directory if it does not exist

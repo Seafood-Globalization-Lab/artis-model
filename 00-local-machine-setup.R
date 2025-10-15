@@ -10,18 +10,18 @@ library(reticulate)
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()
-artis_version <- "v2.0"
+artis_version <- "v2.1.1"
 
 # Input data directory paths --------------------------------------------------
-datadir_raw <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data/model_inputs_raw_2.0"
+datadir_raw <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data/model_inputs_raw_2.1.1"
 # Directory for inputs to create the ARTIS database
-datadir <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_2.0_FAO"
+datadir <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_2.1.1_FAO"
 baci_version <- "202501"
 tradedatadir <- file.path(datadir_raw, "baci_raw") 
 
 # Model output directory paths --------------------------------------------
 # Directory where ARTIS database will be generated
-outdir <- "~/Documents/UW-SAFS/ARTIS/data/outputs_2.0_FAO_2025-09-11"
+outdir <- "~/Documents/UW-SAFS/ARTIS/data/outputs_2.1.1_FAO"
 
 # Don't change this bit #############
 # Path for sub folder within outputs that will contain all country-level solutions
@@ -44,7 +44,7 @@ outdir_sql <- file.path(outdir, "sql_database")
 # Model Mode for 01-clean-model-inputs - TRUE fo#r SAU; FALSE for FAO
 running_sau <- FALSE
 ## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
-need_new_fb_slb <- FALSE
+need_new_fb_slb <- TRUE
 
 
 # AM - I think this is leftover code - can set HS year and year for running tests
