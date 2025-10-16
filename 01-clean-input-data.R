@@ -115,49 +115,14 @@ prod_habitat <- prod_taxa_classification %>%
   select(SciName, Fresh01, Brack01, Saltwater01) %>%
   distinct()
 
-# ISSCAP Metadata ---------------------------------------------------------
+# Attribute Table - ISSCAAP ---------------------------------------------------------
 
 # used to create code_max_resolved which is used in ARTIS calculate_consumption
 
-#Create 1-to-1 matching for 
-isscaap_metadata <- prod_data_raw %>%
-  select(SciName, isscaap_group) %>%
-  distinct()
+# FIXIT: change output_dir to outdir_attribute when automated dir creation is in place
 
-multiple_isscaap <- isscaap_metadata %>% 
-  group_by(SciName) %>%
-  tally() %>%
-  filter(n>1) %>%
-  pull(SciName)
-
-isscaap_metadata <- isscaap_metadata %>%
-  mutate(isscaap_group = case_when(
-    SciName %in% multiple_isscaap ~ "Multiple ISSCAAP groups",
-    !(SciName %in% multiple_isscaap) ~ isscaap_group
-  )) %>%
-  distinct()
-
-# Add ISSCAAP groups for custom "unknown origin" scinames
-unknown_isscaap <- data.frame(sciname = c("arthropoda", "chondrichthyes", 
-                                  "engraulis", "actinopteri", "homarus",
-                                  "mytilinae", "clupea", "hippoglossinae", 
-                                  "scombrinae", "salmoninae", "animalia", 
-                                  "dissostichus", "cypriniformes", 
-                                  "micromesistius", "echinoida", "chordata"),
-                      isscaap_group = c("Multiple ISSCAAP groups", "Sharks, rays, chimaeras",
-                                        "Herrings, sardines, anchovies", "Multiple ISSCAAP groups",
-                                        "Lobsters, spiny-rock lobsters", "Mussels",
-                                        "Herrings, sardines, anchovies", "Flounders, halibuts, soles", 
-                                        "Multiple ISSCAAP groups", "Salmons, trouts, smelts", 
-                                        "Multiple ISSCAAP groups", "Miscellaneous demersal fishes", 
-                                        "Carps, barbels and other cyprinids", "Cods, hakes, haddocks",
-                                        "Sea-urchins and other echinoderms", "Multiple ISSCAAP groups"))
-
-isscaap_metadata <- isscaap_metadata %>%
-  bind_rows(unknown_isscaap)
-
-write.csv(isscaap_metadata, file.path(datadir, "isscaap_metadata.csv"), row.names = FALSE)
-
+build_attr_isscaap(prod_fao_raw = prod_data_raw,
+                    output_dir = datadir)
 
 # Structure FAO prod -----------------------------------------------------
 prod_data <- prod_data_raw %>%
