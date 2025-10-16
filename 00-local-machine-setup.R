@@ -61,9 +61,15 @@ test_years <- c()
 estimate_data_type <- "midpoint"
 # Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
 prod_data_type <- "FAO"
-dev_mode <- FALSE
 
 # hs_version_run is set in 02-artis-pipeline because of current `artis-hpc` setup
+
+# Development mode --------------------------------------------------------
+dev_mode <- TRUE
+
+if(dev_mode == TRUE){
+  library(devtools)
+}
 
 # Create HS version / year assignments -----------------------------------
 

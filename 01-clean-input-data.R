@@ -17,8 +17,6 @@ library(dplyr)
 library(tidyr)
 library(cli)
 
-
-
 # Local Machine Configuration setup
 source("00-local-machine-setup.R")
 
@@ -82,23 +80,31 @@ rm(prod_list, rebuilt_fao_prod)
 # Structure FAO prod taxa classification ---------------------------------
 prod_taxa_classification <- prod_taxa_classification %>%
   # Manually assign missing habitat coding
-  mutate(Fresh01 = case_when(
-    SciName %in% c("neocaridina denticulata", "caridina nilotica") ~ as.integer(1),
-    TRUE ~ as.integer(Fresh01)
-  )) %>%
-  mutate(Saltwater01 = case_when(
-    SciName == "anadara grandis" ~ as.integer(1),
-    TRUE ~ as.integer(Saltwater01)
+  mutate(
+    Fresh01 = case_when(
+      SciName %in% c("neocaridina denticulata", "caridina nilotica") ~
+        as.integer(1),
+      TRUE ~ as.integer(Fresh01)
+    )
+  ) %>%
+  mutate(
+    Saltwater01 = case_when(
+      SciName == "anadara grandis" ~ as.integer(1),
+      TRUE ~ as.integer(Saltwater01)
+    )
+  )
+
+# DATA CHECK: Verify that habitat information is complete
+missing_habitat_species <- prod_taxa_classification %>% 
+  mutate(habitat_sum = Fresh01 + Brack01 + Saltwater01) %>%
+  filter(habitat_sum == 0)
+
+if (nrow(missing_habitat_species) > 0) {
+  cli::cli_warn(c(
+    "!" = "{nrow(missing_habitat_species)} species missing habitat information",
+    "i" = "Species without habitat coding: {.val {missing_habitat_species$SciName}}",
+    "i" = "Check prod_taxa_classification for Fresh01, Brack01, and Saltwater01 columns"
   ))
-
-## DATA CHECK: Verify that habitat information is complete before matching processes
-test_prod_taxa <- prod_taxa_classification %>% 
-  mutate(test = Fresh01 + Brack01 + Saltwater01) %>%
-  filter(test == 0) %>%
-  nrow()
-
-if(test_prod_taxa > 0){
-  warning(paste0(test_prod_taxa," Scinames are missing habitat information in prod_taxa_classification"))
 }
 
 # SAVE PRODUCTION Taxa OUTPUT:
