@@ -26,7 +26,7 @@ source("00-local-machine-setup.R")
 hs_data_raw <- read.csv(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "character")
 
 # Get fishbase and sealifebase data ------------------------------------------------------
-# Collect new fishbase and sealifebase data files
+# Collect new fishbase and sealifebase data files with rfishbase package wrapped in artis::collect_fb_slb_data function
 if(need_new_fb_slb == TRUE) {
   current_fb_slb_dir <- artis::collect_fb_slb_data(parent_outdir = datadir_raw)
   message(glue("New fishbase and sealifebase data collected at {current_fb_slb_dir}"))
@@ -40,25 +40,44 @@ if(need_new_fb_slb == TRUE) {
   if (is.na(current_fb_slb_dir)) {
     cli::cli_abort(c(
       "x" = "No fishbase_sealifebase directory found in {datadir_raw}",
-      "i" = "Set {.code need_new_fb_slb = TRUE} to download new data",
-      "i" = "Or ensure a fishbase_sealifebase_* directory exists"
+      "i" = "Set {.code need_new_fb_slb = TRUE} in 00-local-machine-setup.R to download new data",
+      "i" = "OR ensure a fishbase_sealifebase_* directory exists"
     ))
   }
 }
 
+
+# Structure FAO Production into usable dataframe -------------------------------
+
+# Read in raw FAO production data files and restructure into standard format with
+# `rebuild_fao_[yyyy]_dat` function
+# Directly fed into the prod_df arguement of classify_prod_dat function to save memory.
+# Note: rebuild_fao_[yyyy]_dat function works for zipped and unzipped files
+# FAO files are not always consistent schemaq, so multiple version exist of the function
+# to account for these differences.
+
+rebuilt_fao_prod <- rebuild_fao_2023_dat(
+  datadir = datadir_raw,
+  filename = "GlobalProduction_2025.1.0.zip"
+) %>%
+  # only keep data from 1996 onward and where quantity > 0
+  filter(year >= 1996, quantity > 0)
+
 # Clean FAO Production (taxa names and classification) ---------------------------
 
-prod_list <- artis::classify_prod_dat(datadir = datadir_raw,
-                               filename = "GlobalProduction_2025.1.0.zip", 
-                               prod_data_source = "FAO",
-                               fb_slb_dir = current_fb_slb_dir)
+prod_list <- artis::classify_prod_dat(
+  datadir = datadir_raw,
+  prod_data_source = "FAO",
+  prod_df = rebuilt_fao_prod,
+  fb_slb_dir = current_fb_slb_dir
+)
 
 # Reassign list to separate objects:
 prod_data_raw <- prod_list[[1]] 
 prod_taxa_classification <- prod_list[[2]]
 
-# remove large environmental object
-rm(prod_list)
+# remove large less-clean environmental objects no longer needed
+rm(prod_list, rebuilt_fao_prod)
 
 # Structure FAO prod taxa classification ---------------------------------
 prod_taxa_classification <- prod_taxa_classification %>%
@@ -199,8 +218,12 @@ write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod.csv"), row
 
 # Clean SAU Production (taxa names and classification) -------------------------
 prod_list_sau <- classify_prod_dat(datadir = datadir_raw,
-                                   filename = 'SAU_Production_Data.csv',
                                    prod_data_source = 'SAU',
+                                   prod_df = fread(file.path(datadir, "SAU_Production_Data.csv"), 
+                                                    stringsAsFactors = FALSE, 
+                                                    header = TRUE, 
+                                                    sep=",", 
+                                                    data.table = FALSE),
                                    SAU_sci_2_common = "TaxonFunctionalCommercial_Clean.csv",
                                    fb_slb_dir = current_fb_slb_dir)
 

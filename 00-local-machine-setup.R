@@ -19,6 +19,9 @@ datadir <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_2.1.1_FAO"
 baci_version <- "202501"
 tradedatadir <- file.path(datadir_raw, "baci_raw") 
 
+# FIXIT - declare raw FAO prod file name here instead of in 01-clean-model-inputs.R? Would this work if swithc
+# to YAML config?
+
 # Model output directory paths --------------------------------------------
 # Directory where ARTIS database will be generated
 outdir <- "~/Documents/UW-SAFS/ARTIS/data/outputs_2.1.1_FAO"
@@ -44,7 +47,7 @@ outdir_sql <- file.path(outdir, "sql_database")
 # Model Mode for 01-clean-model-inputs - TRUE fo#r SAU; FALSE for FAO
 running_sau <- FALSE
 ## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
-need_new_fb_slb <- TRUE
+need_new_fb_slb <- FALSE
 
 
 # AM - I think this is leftover code - can set HS year and year for running tests
