@@ -5,13 +5,10 @@
 .DS_Store
 demo/outputs
 venv/
-model_inputs_raw/*
 baci_raw/*
-model_inputs_baci/*
-model_inputs/*
+model_inputs*
 outputs/*
 *.zip
-model_inputs_sau/*
 AM_local/*
 grateful-report.html
 .env
@@ -19,9 +16,11 @@ grateful-report.html
 man/*
 dev/*
 renv/*
+qa/*
+archive/*
 requirements_old_local.txt
-
 *.html
 *.pdf
+*.bib
 /.quarto/
 README_files/*
