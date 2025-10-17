@@ -20,10 +20,7 @@ library(cli)
 # Local Machine Configuration setup
 source("00-local-machine-setup.R")
 
-# Load raw HS codes ------------------------------------------------------
-hs_data_raw <- read.csv(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "character")
-
-# Get fishbase and sealifebase data ------------------------------------------------------
+# FishBase & SeaLifeDase Data ------------------------------------------------------
 # Collect new fishbase and sealifebase data files with rfishbase package wrapped in artis::collect_fb_slb_data function
 if(need_new_fb_slb == TRUE) {
   current_fb_slb_dir <- artis::collect_fb_slb_data(parent_outdir = datadir_raw)
@@ -41,11 +38,15 @@ if(need_new_fb_slb == TRUE) {
       "i" = "Set {.code need_new_fb_slb = TRUE} in 00-local-machine-setup.R to download new data",
       "i" = "OR ensure a fishbase_sealifebase_* directory exists"
     ))
+  } 
+  if (dir.exists(current_fb_slb_dir)) {
+    cli::cli_alert_success(c(
+      "v" = "Using existing FB and SLB data at {current_fb_slb_dir}"
+    ))
   }
 }
 
-
-# Structure FAO Production into usable dataframe -------------------------------
+# FAO Production Data -------------------------------
 
 # Read in raw FAO production data files and restructure into standard format with
 # `rebuild_fao_[yyyy]_dat` function
@@ -61,7 +62,7 @@ rebuilt_fao_prod <- rebuild_fao_2023_dat(
   # only keep data from 1996 onward and where quantity > 0
   filter(year >= 1996, quantity > 0)
 
-# Clean FAO Production (taxa names and classification) ---------------------------
+# FAO Clean Taxa and Classification ---------------------------
 
 prod_list <- artis::classify_prod_dat(
   datadir = datadir_raw,
@@ -70,14 +71,14 @@ prod_list <- artis::classify_prod_dat(
   fb_slb_dir = current_fb_slb_dir
 )
 
-# Reassign list to separate objects:
+# Reassign list to separate objects - basis of prod and taxa files
 prod_data_raw <- prod_list[[1]] 
 prod_taxa_classification <- prod_list[[2]]
 
 # remove large less-clean environmental objects no longer needed
 rm(prod_list, rebuilt_fao_prod)
 
-# Structure FAO prod taxa classification ---------------------------------
+## FAO Taxa Manual Habitat Adds ---------------------------------
 prod_taxa_classification <- prod_taxa_classification %>%
   # Manually assign missing habitat coding
   mutate(
@@ -94,13 +95,14 @@ prod_taxa_classification <- prod_taxa_classification %>%
     )
   )
 
-# DATA CHECK: Verify that habitat information is complete
+## DATA CHECK ---------------------------------
+# Verify habitat information is complete
 missing_habitat_species <- prod_taxa_classification %>% 
   mutate(habitat_sum = Fresh01 + Brack01 + Saltwater01) %>%
-  filter(habitat_sum == 0)
+  filter(habitat_sum == 0 | is.na(habitat_sum))
 
 if (nrow(missing_habitat_species) > 0) {
-  cli::cli_warn(c(
+  cli::cli_alert_warning(c(
     "!" = "{nrow(missing_habitat_species)} species missing habitat information",
     "i" = "Species without habitat coding: {.val {missing_habitat_species$SciName}}",
     "i" = "Check prod_taxa_classification for Fresh01, Brack01, and Saltwater01 columns"
@@ -110,35 +112,35 @@ if (nrow(missing_habitat_species) > 0) {
 # SAVE PRODUCTION Taxa OUTPUT:
 write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)
 
+# Attribute Table ISSCAAP ---------------------------------------------------------
+# used to create code_max_resolved which is used in ARTIS calculate_consumption
+
+# FIXIT: change output_dir to outdir_attribute when automated dir creation is in place
+build_attr_isscaap(prod_fao_raw = prod_data_raw, output_dir = datadir)
+
+# Structure FAO prod for ARTIS -----------------------------------------------------
+
 # Get fishbase habitat data from prod_taxa_classification to standardize habitat info in prod_data
 prod_habitat <- prod_taxa_classification %>%
   select(SciName, Fresh01, Brack01, Saltwater01) %>%
   distinct()
 
-# Attribute Table - ISSCAAP ---------------------------------------------------------
-
-# used to create code_max_resolved which is used in ARTIS calculate_consumption
-
-# FIXIT: change output_dir to outdir_attribute when automated dir creation is in place
-
-build_attr_isscaap(prod_fao_raw = prod_data_raw,
-                    output_dir = datadir)
-
-# Structure FAO prod -----------------------------------------------------
+# Filter down and restructure FAO production data for ARTIS
 prod_data <- prod_data_raw %>%
-  # Remove columns not needed for any analysis
+  # Remove columns not needed for running ARTIS
   select(!c(any_of(c("alternate", "multiplier", "symbol", "symbol_identifier", 
                     "country_iso3_numeric", "country_identifier", "production_identifier", 
                     "sort", "unit_identifier")), # "species_identifier" still available here
             contains(c("_ar", "_cn", "_es", "_fr", "_ru")),
             CommonName)) %>%
-  # Create new column that combines SciName with souce info (i.e., habitat + production method)
+  # clean up habitat and production method values
   mutate(fao_habitat = case_when(habitat == "Inland waters" ~ "inland",
                              habitat == "Marine areas" ~ "marine",
                              TRUE ~ habitat),
          prod_method = case_when(prod_method %in% c("FRESHWATER", "MARINE", "BRACKISHWATER") ~ "aquaculture",
                                  prod_method == "CAPTURE" ~ "capture",
                                  TRUE ~ prod_method)) %>%
+  # Create new column that combines SciName with souce info (i.e., habitat + production method)
   mutate(taxa_source = paste(str_replace(SciName, " ", "."), fao_habitat, prod_method, sep = "_")) %>%
   # Join fishbase habitat data to prod data and make new Fishbase habitat column to compare to FAO's habitat column 
   left_join(prod_habitat, by = "SciName") %>%
@@ -156,12 +158,14 @@ prod_data <- prod_data_raw %>%
 
 write.csv(prod_data, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
 
+# condense / aggregate data down to select columns
 prod_data <- prod_data %>% 
   group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en, area.code) %>%
   summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
   ungroup()
 
-
+## If Running Test ---------------------------------
+# `test <- TRUE` in 00-local-machine-setup.R config file
 if (test) {
   
   prod_data <- prod_data %>%
@@ -172,11 +176,15 @@ if (test) {
     filter(SciName %in% test_scinames)
 }
 
+# FAO Standardize Countries ------------------------------
 prod_data <- standardize_countries(df = prod_data, 
                                    data_source = "FAO")
+
+# Write Prod (more columns)
 # retain FAO area.code column
 write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod_more_cols.csv"), row.names = FALSE)
 
+# Write Prod (ARTIS)
 # remove area.code column to format to prod version used in model
 prod_data <- prod_data %>% 
   group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en) %>%
@@ -185,44 +193,54 @@ prod_data <- prod_data %>%
 
 write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod.csv"), row.names = FALSE)
 
-
-
-# Clean SAU Production (taxa names and classification) -------------------------
+# SAU Production Data -------------------------
+## SAU Clean Taxa and Classification ------------------------------
 prod_list_sau <- classify_prod_dat(datadir = datadir_raw,
                                    prod_data_source = 'SAU',
-                                   prod_df = fread(file.path(datadir, "SAU_Production_Data.csv"), 
+                                   prod_df = fread(file.path(datadir_raw, "SAU_Production_Data.csv"), 
                                                     stringsAsFactors = FALSE, 
                                                     header = TRUE, 
-                                                    sep=",", 
+                                                    sep = ",", 
                                                     data.table = FALSE),
                                    SAU_sci_2_common = "TaxonFunctionalCommercial_Clean.csv",
                                    fb_slb_dir = current_fb_slb_dir)
 
+# split list into two data objects: 1/2 production
 prod_data_sau <- prod_list_sau[[1]] %>%
   mutate(
     year = as.numeric(year),
     quantity = as.numeric(quantity))
 
+# Add habitat, prod_method, and taxa_source columns
 prod_data_sau <- prod_data_sau %>%
+  # All SAU data is marine capture
   mutate(habitat = "marine",
          prod_method = "capture") %>%
   mutate(taxa_source = paste(str_replace(SciName, " ", "."), 
                              habitat, prod_method, sep = "_"))
 
+# split list into two data objects: 2/2 taxa classification
 prod_classification_sau <- prod_list_sau[[2]]
 
 prod_data_sau <- prod_data_sau %>%
-  # Keep FAO format
+  # Add columns to adhear to FAO format
   mutate(Fresh01 = 0, Saltwater01 = 1, Brack01 = 0)
 
+# remove large object from environment memory
 rm(prod_list_sau)
 
+# Write Clean SAU Taxa 
 write.csv(prod_classification_sau, file.path(datadir, "clean_sau_taxa.csv"), 
            row.names = FALSE)
 
-# initial country name cleaning and adding iso3c for SAU data
+# SAU Standardize Countries --------------------------------------------------
+# This code will be represented in the new `standardize_countries()` and `standardize_country_data()` functions
+# Not completed yet. https://github.com/Seafood-Globalization-Lab/artis-model/issues/57
+
+# Pre Country Cleaning
 prod_data_sau <- prod_data_sau %>%
   mutate(country_name_en = str_remove(country_name_en, ' \\(.+\\)$')) %>%
+  # use countrycode package to translate names into iso3c codes
   mutate(country_iso3_alpha = countrycode::countrycode(country_name_en, origin = 'country.name', destination = 'iso3c')) %>%
   # Renaming for standardize countries function later
   mutate(country_name_en = case_when(
@@ -248,48 +266,56 @@ prod_data_sau <- prod_data_sau %>%
                                             origin = 'iso3c', 
                                             destination = 'iso3n'))
 
-# standardize countries for SAU production
+# standardize countries for SAU production (options are FAO or BACI, FAO correct for SAU)
 prod_data_sau <- standardize_countries(prod_data_sau, "FAO")
 
-# group by and summarize across more SAU production columns. 
+# condense / aggregate data down to select columns
 prod_data_sau <- prod_data_sau %>% 
   group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, 
            country_name_en, gear, eez, sector, end_use) %>% 
   summarise(quantity = sum(quantity), .groups = "drop") 
 
+# Write SAU Prod (more columns) 
 write.csv(prod_data_sau, file.path(datadir, 'standardized_sau_prod_more_cols.csv'), 
           row.names = FALSE)
 
+# condense / aggregate data down to select columns
 prod_data_sau <- prod_data_sau %>% 
     group_by(SciName,  year, taxa_source, habitat, prod_method, 
              country_iso3_alpha, country_name_en) %>% 
     summarise(quantity = sum(quantity), .groups = "drop") 
 
+# Write SAU Prod (ARTIS) 
 write.csv(prod_data_sau, file.path(datadir, 'standardized_sau_prod.csv'), row.names = FALSE)
 
-
-# Subsitute SAU marine prod into FAO prod --------------------------------
+# If Running SAU Model Mode -----------------------------------------------------
+## Replace FAO prod marine capture with SAU prod (Marine Capture) --------------------------------
 if (running_sau) {
-  # Combine SAU production data with FAO data
+  # Remove FAO production marine capture data - Add in SAU prod
   prod_data <- prod_data %>%
     filter(!(habitat == 'marine' & prod_method == 'capture')) %>%
     bind_rows(prod_data_sau)
   
+  # Write Combined Prod
   write.csv(prod_data, file.path(datadir, 'standardized_combined_prod.csv'),
             row.names = FALSE)
   
-  # combine prod taxa classification
+## Combine FAO and SAU Taxa --------------------------------
   prod_taxa_classification <- prod_taxa_classification %>%
     bind_rows(prod_classification_sau) %>%
     distinct() %>%
     filter(SciName %in% unique(prod_data$SciName))
   
+  # write combined clean taxa
   write.csv(prod_taxa_classification, 
             file.path(datadir, "clean_taxa_combined.csv"),
             row.names = FALSE)
-}
+} # End of if running_sau == TRUE
+
+
 # Make sure that prod taxa classification is classified to at least one of Species, Genus, Family, Other
 
+### Move this downstream?
 # Creating sciname habitat dataframe for habitat classification in hs taxa classification
 sciname_habitat <- prod_taxa_classification %>%
   select(SciName, Fresh01, Brack01, Saltwater01) %>%
@@ -305,9 +331,11 @@ sciname_habitat <- prod_taxa_classification %>%
 # Create V1 and V2 for each HS version ----------------------------------
 # Load and clean the conversion factor data and run the matching functions. 
 # This data will be used to create V1 and V2. 
-hs_data_clean <- clean_hs(hs_data_raw = fread(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "character"),
-                          fb_slb_dir = current_fb_slb_dir)
 
+hs_data_raw <- fread(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "character", data.table = FALSE)
+
+hs_data_clean <- clean_hs(hs_data_raw = hs_data_raw,
+                          fb_slb_dir = current_fb_slb_dir)
 
 # FMFO Species from SAU --------------------------------------------------
 # Getting list of fmfo species
@@ -329,13 +357,15 @@ if (test) {
     filter(Code %in% test_codes)
 }
 
-# Loop HS versions through match funs and cf's --------------------------------
+# Matching Funs and CFs (HS version loop) --------------------------------
+
 for(i in 1:length(HS_year)) {
   
+  # define HS version
   hs_version <- paste("HS", HS_year[i], sep = "")
   message(glue("{hs_version} Matching taxa/products/conversion factors"))
   
-
+  ## match_hs_to_taxa --------------------------------
   # Match HS codes to production taxa (can be FAO or SAU depending on which was used in clean_and_clasify_prod_dat function)
   hs_taxa_match <- match_hs_to_taxa(hs_data_clean = hs_data_clean,
                                     prod_taxa_classification = prod_taxa_classification,
@@ -349,6 +379,16 @@ for(i in 1:length(HS_year)) {
     print(unique(hs_taxa_match$SciName)[!unique(hs_taxa_match$SciName) %in% unique(prod_data$SciName)])
   }
   
+
+  missing_species <- unique(hs_taxa_match$SciName)[!unique(hs_taxa_match$SciName) %in% unique(prod_data$SciName)]
+
+if (length(missing_species) > 0) {
+  cli::cli_warn(c(
+    "!" = "{length(missing_species)} species in HS taxa match are not in production data",
+    "i" = "Missing species: {.val {missing_species}}",
+    "i" = "Check HS taxa matching process or production data completeness"
+  ))
+}
   # Merge on habitat information (found in clean_fao_prod) onto hs_taxa_match (primary)
   hs_taxa_match <- hs_taxa_match %>%
     left_join(sciname_habitat,
@@ -528,6 +568,7 @@ for(i in 1:length(HS_year)) {
   
   write.csv(hs_hs_output, file = file.path(datadir, hs_hs_match_file), row.names = FALSE)
   
+  ## compile_cf --------------------------------
   # Load and clean the live weight conversion factor data
   # These CF's convert from commodity to the live weight equivalent (min value is therefore 1, for whole fish)
   set_match_criteria = "strict" # FIXIT: AM 2025-08 this parameter can be moved to 00-local-setup.R
@@ -755,110 +796,15 @@ taxa <- fread(file.path(datadir, "clean_fao_taxa.csv")) %>%
 
 # sciname_metadata --------------------------------------------------------
 
-# Create file for phylogenetic metadata
-# Create 1-to-1 matching for common names and taxa info
-taxa_metadata <- taxa %>%
-  mutate(common_name = case_when(
-    sciname =="alosa" ~ "shads nei", 
-    sciname == "asteroidea" ~ "starfishes nei", 
-    sciname == "branchiopoda" ~ "crustaceans nei", 
-    sciname == "carcharhiniformes" ~ "ground sharks nei", 
-    sciname == "clarias" ~ "catfishes nei", 
-    sciname == "clupeidae" ~ "sardines nei", 
-    sciname == "clupeiformes" ~ "clupeoids nei", 
-    sciname == "dentex tumifrons" ~ "yellowback seabream",
-    sciname == "epinephelus" ~ "groupers nei", 
-    sciname == "gadus macrocephalus" ~ "pacific cod", 
-    sciname == "gobiidae" ~ "gobies nei", 
-    sciname == "jasus edwardsii" ~ "red rock lobster", 
-    sciname == "lepidonotothen squamifrons" ~ "grey rockcod", 
-    sciname == "macrobrachium" ~ "river prawns nei", 
-    sciname == "merluccius" ~ "hakes nei", 
-    sciname == "mollusca" ~ "molluscs nei", 
-    sciname == "mullus" ~ "surmullets(=red mullets) nei", 
-    sciname == "myliobatidae" ~ "eagle and manta rays nei", 
-    sciname == "oreochromis" ~ "tilapias nei", 
-    sciname == "osteichthyes" ~ "fish nei", 
-    sciname == "palaemonidae" ~ "palaemonid shrimps nei", 
-    sciname == "parastacidae" ~ "crayfishes nei", 
-    sciname == "penaeidae" ~ "penaeid shrimps nei", 
-    sciname == "perciformes" ~ "tuna-like fishes nei", 
-    sciname == "planiliza haematocheilus" ~ "so-iny (redlip) mullet", 
-    sciname == "salmonidae" ~ "almonids nei", 
-    sciname == "sardinops sagax" ~ "south american pilchard", 
-    sciname == "sebastes" ~ "redfishes nei", 
-    sciname == "serrasalmidae" ~ "serrasalmids nei", 
-    sciname == "thunnus" ~ "tunas nei", 
-    sciname == "xiphopenaeus kroyeri" ~ "atlantic seabob", 
-    sciname == "bryzoa" ~ "bryzoa",
-    TRUE ~ common_name
-  )) %>%
-  distinct() %>%
-  bind_rows(data.frame(
-    sciname = c("arthropoda", "engraulis", "hippoglossinae", "scombrinae", "clupea",     
-                "chondrichthyes", "salmoninae", "mytilinae", "actinopteri", "animalia",    
-                "homarus", "cypriniformes", "dissostichus", "micromesistius", "echinoida"),
-    
-    common_name = c("arthropods", "anchovies", "flounders", "mackerels, tunas, and bonitos",
-                   "herrings", "sharks, skates, rays, and chimaeras", "salmons and trouts",
-                   "saltwater mussels", "ray-finned fish", "aquatic animals", "lobsters", 
-                   "carps, minnows, loaches, etc", "toothfish", "blue whitings", "sea urchins"),
-    
-    Genus = c(NA, "engraulis", NA, NA, "clupea",     
-              NA, NA, NA, NA, NA,    
-              "homarus", NA, "dissostichus", "micromesistius", NA),
-    
-    Subfamily = c(NA, "engraulinae", "hippoglossinae", "scombrinae", "clupeinae",     
-                  NA, "salmoninae", "mytilinae", NA, NA,    
-                  NA, NA, NA, NA, NA),
-    
-    Family = c(NA, "engraulidae", "pleuronectidae", "scombridae", "clupeidae",     
-               NA, "salmonidae", "mytilidae", NA, NA,    
-               "nephropidae", NA, "nototheniidae", "gadidae", NA), 
-    
-    Order = c(NA, "clupeiformes", "pleuronectiformes", "scombriformes", "	clupeiformes",     
-              NA, "salmoniformes", "mytilida", NA, NA,    
-              "decapoda", "cypriniformes", "perciformes", "gadiformes", "echinoida"), 
-    
-    Class = c(NA, "teleostei", "teleostei", "teleostei", "teleostei",     
-              "chondrichthyes", "teleostei", "bivalvia", "teleostei", NA,    
-              "malacostraca", "teleostei", "teleostei", "teleostei", "echinoidea"),
-    
-    Superclass = c(NA, "osteichthyes", "osteichthyes", "osteichthyes", "osteichthyes",     
-                   NA, "osteichthyes", NA, "osteichthyes", NA,    
-                   NA, "osteichthyes", "osteichthyes", "osteichthyes", NA),
-    
-    Phylum = c("arthropoda", "chordata", "chordata", "chordata", "chordata",     
-               "chordata", "chordata", "mollusca", "chordata", NA,    
-               "arthropoda", "chordata", "chordata", "chordata", "echinodermata"),
-    
-    Kingdom = c("animalia", "animalia", "animalia", "animalia", "animalia",     
-                "animalia", "animalia", "animalia", "animalia", "animalia",    
-                "animalia", "animalia", "animalia", "animalia", "animalia")
-  )) 
- 
-
-taxa_metadata <- taxa_metadata %>%
-  left_join(isscaap_metadata, by = "sciname")
-
-if(running_sau){
-# Add missing scinames from SAU with sau_taxa 
-sau_taxa <- fread(file.path(datadir, "clean_sau_taxa.csv")) %>%
-  rename(sciname = SciName, common_name = CommonName) %>%
-  distinct() %>%
-  filter(!(sciname %in% taxa_metadata$sciname))
-  }
-
-taxa_metadata <- taxa_metadata %>%
-  #bind_rows(sau_taxa) %>%
-  distinct() %>%
-  ungroup() %>%
-  mutate(sum_na = rowSums(is.na(.))) %>%
-  group_by(sciname) %>%
-  slice_min(order_by = sum_na, n = 1, with_ties = FALSE) %>%
-  select(-sum_na)
-
-write.csv(taxa_metadata, file.path(outdir_attribute, "sciname_metadata.csv"), row.names = FALSE)
+build_attr_sciname(
+  taxa_data = fread(file.path(datadir, "clean_fao_taxa.csv"), data.table = FALSE) %>%
+    rename(sciname = SciName, common_name = CommonName) %>%
+    distinct(),
+  isscaap_attribute = fread(file.path(datadir, "isscaap_attribute.csv"), data.table = FALSE),
+  running_sau = running_sau,
+  sau_taxa_data = if(running_sau) prod_data_sau else NULL,
+  output_dir = datadir
+)
 
 # Code_max_resolved_taxa -------------------------------------------------
 

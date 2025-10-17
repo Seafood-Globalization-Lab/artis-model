@@ -44,8 +44,8 @@ outdir_attribute <- file.path(outdir, "attribute_tables")
 outdir_sql <- file.path(outdir, "sql_database")
 
 # 01-clean-model-inputs parameters --------------------------------
-# Model Mode for 01-clean-model-inputs - TRUE fo#r SAU; FALSE for FAO
-running_sau <- FALSE
+# Model Mode for 01-clean-model-inputs - TRUE for SAU; FALSE for FAO
+running_sau <- TRUE
 ## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
 need_new_fb_slb <- FALSE
 
@@ -60,7 +60,7 @@ test_years <- c()
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
 # Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
-prod_data_type <- "FAO"
+prod_data_type <- "SAU"
 
 # hs_version_run is set in 02-artis-pipeline because of current `artis-hpc` setup
 
