@@ -1,11 +1,12 @@
 # Clean raw input data
 
 
-# Enviro Setup -----------------------------------------------------------
-# Set directories and file naming variables
+# Setup -----------------------------------------------------------
+
+# Clear environment 
 rm(list=ls())
 
-#load packages
+# load packages
 library(artis)
 library(rfishbase)
 library(data.table)
@@ -17,7 +18,7 @@ library(dplyr)
 library(tidyr)
 library(cli)
 
-# Local Machine Configuration setup
+# Run Local Machine Configuration (directory paths, parameters)
 source("00-local-machine-setup.R")
 
 # FishBase & SeaLifeDase Data ------------------------------------------------------
@@ -34,15 +35,15 @@ if(need_new_fb_slb == TRUE) {
   # Check if current_fb_slb_dir is valid
   if (is.na(current_fb_slb_dir)) {
     cli::cli_abort(c(
-      "x" = "No fishbase_sealifebase directory found in {datadir_raw}",
+      "x" = "No fishbase_sealifebase directory found in {.file {datadir_raw}}",
       "i" = "Set {.code need_new_fb_slb = TRUE} in 00-local-machine-setup.R to download new data",
       "i" = "OR ensure a fishbase_sealifebase_* directory exists"
     ))
   } 
   if (dir.exists(current_fb_slb_dir)) {
-    cli::cli_alert_success(c(
-      "v" = "Using existing FB and SLB data at {current_fb_slb_dir}"
-    ))
+    cli::cli_alert_success(
+      "Using existing FB and SLB data at {.file model_inputs_raw_{artis_version}/{basename(current_fb_slb_dir)}/}"
+    )
   }
 }
 
@@ -112,12 +113,6 @@ if (nrow(missing_habitat_species) > 0) {
 # SAVE PRODUCTION Taxa OUTPUT:
 write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)
 
-# Attribute Table ISSCAAP ---------------------------------------------------------
-# used to create code_max_resolved which is used in ARTIS calculate_consumption
-
-# FIXIT: change output_dir to outdir_attribute when automated dir creation is in place
-build_attr_isscaap(prod_fao_raw = prod_data_raw, output_dir = datadir)
-
 # Structure FAO prod for ARTIS -----------------------------------------------------
 
 # Get fishbase habitat data from prod_taxa_classification to standardize habitat info in prod_data
@@ -158,7 +153,13 @@ prod_data <- prod_data_raw %>%
 
 write.csv(prod_data, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
 
-# condense / aggregate data down to select columns
+## Attribute Table ISSCAAP ---------------------------------------------------------
+# used to create code_max_resolved which is used in ARTIS calculate_consumption
+# requires prod_data with isscaap_group column
+
+build_attr_isscaap(prod_fao = prod_data, output_dir = outdir_attribute)
+
+## Aggregate data down to ARTIS columns ----------------
 prod_data <- prod_data %>% 
   group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en, area.code) %>%
   summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
@@ -196,7 +197,7 @@ write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod.csv"), row
 # SAU Production Data -------------------------
 ## SAU Clean Taxa and Classification ------------------------------
 prod_list_sau <- classify_prod_dat(datadir = datadir_raw,
-                                   prod_data_source = 'SAU',
+                                   prod_data_source = "SAU", # Don't change for FAO model run
                                    prod_df = fread(file.path(datadir_raw, "SAU_Production_Data.csv"), 
                                                     stringsAsFactors = FALSE, 
                                                     header = TRUE, 
@@ -313,9 +314,11 @@ if (running_sau) {
 } # End of if running_sau == TRUE
 
 
-# Make sure that prod taxa classification is classified to at least one of Species, Genus, Family, Other
+# Prep for Matching and CF Funs ------------------------------------------
 
-### Move this downstream?
+## Create Habitat Info --------------------------------
+# FIXIT: Add test Make sure that prod taxa classification is classified to at least one of Species, Genus, Family, Other
+# FIXIT: Can this be added to sciname table? This habitat info isn't saved out anywhere else currently.
 # Creating sciname habitat dataframe for habitat classification in hs taxa classification
 sciname_habitat <- prod_taxa_classification %>%
   select(SciName, Fresh01, Brack01, Saltwater01) %>%
@@ -328,7 +331,7 @@ sciname_habitat <- prod_taxa_classification %>%
                              Brack01 == 1 & Fresh01 == 0 & Saltwater01 == 0 ~ "marine",
                              TRUE ~ as.character(NA)))
 
-# Create V1 and V2 for each HS version ----------------------------------
+## Clean HS codes and descriptions --------------------------------
 # Load and clean the conversion factor data and run the matching functions. 
 # This data will be used to create V1 and V2. 
 
@@ -337,7 +340,7 @@ hs_data_raw <- fread(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "c
 hs_data_clean <- clean_hs(hs_data_raw = hs_data_raw,
                           fb_slb_dir = current_fb_slb_dir)
 
-# FMFO Species from SAU --------------------------------------------------
+## FMFO Species from SAU --------------------------------------------------
 # Getting list of fmfo species
 fmfo_species <- get_fmfo_species(
   sau_fp = file.path(datadir, 'standardized_sau_prod_more_cols.csv'),
@@ -346,7 +349,7 @@ fmfo_species <- get_fmfo_species(
   fishmeal_primary_threshold = 75
 )
 
-write.csv(fmfo_species, file.path(datadir_raw, 'fmfo_species_list.csv'), row.names = FALSE)
+write.csv(fmfo_species, file.path(datadir, 'fmfo_species_list.csv'), row.names = FALSE)
 
 # Get HS years for data cleaning loops below
 HS_year <- unique(df_years$HS_year)
@@ -363,7 +366,7 @@ for(i in 1:length(HS_year)) {
   
   # define HS version
   hs_version <- paste("HS", HS_year[i], sep = "")
-  message(glue("{hs_version} Matching taxa/products/conversion factors"))
+  cli_alert_info("{.field {hs_version}} Matching taxa/products/conversion factors")
   
   ## match_hs_to_taxa --------------------------------
   # Match HS codes to production taxa (can be FAO or SAU depending on which was used in clean_and_clasify_prod_dat function)
@@ -373,157 +376,29 @@ for(i in 1:length(HS_year)) {
                                     fmfo_species_list = fmfo_species,
                                     hs_version = hs_version)
   
+  ### DATA CHECK ---------------------------------
   # Check that all species in hs taxa match are in the production data
-  if (sum(!(unique(hs_taxa_match$SciName) %in% unique(prod_data$SciName))) > 0) {
-    warning("Not all scinames in hs_taxa match are in production data")
-    print(unique(hs_taxa_match$SciName)[!unique(hs_taxa_match$SciName) %in% unique(prod_data$SciName)])
-  }
-  
-
   missing_species <- unique(hs_taxa_match$SciName)[!unique(hs_taxa_match$SciName) %in% unique(prod_data$SciName)]
 
-if (length(missing_species) > 0) {
-  cli::cli_warn(c(
-    "!" = "{length(missing_species)} species in HS taxa match are not in production data",
-    "i" = "Missing species: {.val {missing_species}}",
-    "i" = "Check HS taxa matching process or production data completeness"
-  ))
-}
-  # Merge on habitat information (found in clean_fao_prod) onto hs_taxa_match (primary)
-  hs_taxa_match <- hs_taxa_match %>%
-    left_join(sciname_habitat,
-              by = c("SciName"))
-  
-  # Filter down to species level taxa matches (NOT SPECIES GROUPS) (secondary)
-  tmp <- hs_taxa_match %>%
-    distinct() %>%
-    filter(str_detect(SciName, " "))
-  
-  # Calculate percent marine and inland by Code (secondary)
-  # There shouldn't be any NAs in habitat information
-  tmp <- tmp %>%
-    group_by(Code, habitat) %>%
-    tally() %>%
-    rename(habitat_count = n) %>%
-    ungroup() %>%
-    group_by(Code) %>%
-    mutate(total = sum(habitat_count)) %>%
-    ungroup() %>%
-    mutate(habitat_percent = 100 * habitat_count / total) %>%
-    group_by(Code, habitat) %>%
-    summarize(habitat_percent = sum(habitat_percent, na.rm = TRUE), .groups = "keep") %>%
-    pivot_wider(names_from = habitat, 
-                values_from = habitat_percent) %>%
-    replace_na(list(marine = 0, inland = 0, diadromous = 0))
-  
-  # Classify Codes to accept habitats where at least one true species matched with that habitat  (secondary)
-  
-  habitat_threshold <- 0 
-  tmp <- tmp %>%
-    mutate(habitat_classification = "") %>%
-    # if there are any species of a habitat add this habitat to the code's habitat classification
-    mutate(habitat_classification = case_when(
-      inland > habitat_threshold ~ paste(habitat_classification, "inland", sep = "."),
-      TRUE ~ habitat_classification
-    )) %>%
-    mutate(habitat_classification = case_when(
-      marine > habitat_threshold ~ paste(habitat_classification, "marine", sep = "."),
-      TRUE ~ habitat_classification
-    )) %>%
-    mutate(habitat_classification = case_when(
-      diadromous > habitat_threshold ~ paste(habitat_classification, "diadromous", sep = "."),
-      TRUE ~ habitat_classification
-    )) %>%
-    # cleaning up initial "." at the beginning of the habitat classification string
-    mutate(habitat_classification = substr(habitat_classification, 2, str_length(habitat_classification)))
-  
-  # Merge code-habitat classifications
-  hs_taxa_match <- hs_taxa_match %>%
-    left_join(tmp %>%
-                select(Code, habitat_classification),
-              by = c("Code")) %>%
-    mutate(habitat_test = case_when(
-      str_detect(habitat_classification, habitat) ~ 1,
-      habitat == "diadromous" ~ 1,
-      str_detect(SciName, " ") == 0 ~ 1,
-      TRUE ~ 0
-    )) %>%
-    # Use code habitat designations to remove genus and higher level matches where habitat doesnt match the code habitat (primary)
-    filter(habitat_test == 1) %>%
-    select(-c(Fresh01, Brack01, Saltwater01))
-  
-  diadromous_codes <- hs_taxa_match %>%
-    filter(habitat_classification == "diadromous") %>%
-    filter(habitat != "diadromous")
-  
-  if (nrow(diadromous_codes) > 0) {
-    warning("Non diadromous species going into diadromous only codes")
+  if (length(missing_species) > 0) {
+    cli::cli_warn(c(
+      "!" = "{length(missing_species)} species in HS taxa match are not in production data",
+      "i" = "Missing species: {.val {missing_species}}",
+      "i" = "Check HS taxa matching process or production data completeness"
+    ))
   }
   
-  marine_codes <- hs_taxa_match %>%
-    filter(habitat_classification == "marine") %>%
-    filter(habitat != "marine" & habitat != "diadromous")
-  
-  if (nrow(marine_codes) > 0) {
-    warning("Non marine or diadromous species going into marine codes")
-  }
-  
-  inland_codes <- hs_taxa_match %>%
-    filter(habitat_classification == "inland") %>%
-    filter(habitat != "inland" & habitat != "diadromous")
-  
-  if (nrow(inland_codes) > 0) {
-    warning("Non inland or diadromous species going into marine codes")
-  }
-  
-  # Check: All sciname-habitat combinations have been matched to at least one code
-  taxa_habitat_prod <- sciname_habitat %>%
-    mutate(taxa_habitat = paste(SciName, habitat, sep = "_")) %>%
-    filter(str_detect(SciName, " "))
-  
-  hs_taxa_habitat_check <- hs_taxa_match %>%
-    mutate(taxa_habitat = paste(SciName, habitat, sep = "_")) %>%
-    filter(str_detect(SciName, " "))
-  
-  if (sum(!(unique(taxa_habitat_prod$taxa_habitat) %in% unique(hs_taxa_habitat_check$taxa_habitat)))) {
-    warning("NOT ALL SciName habitat combinations match to an HS code")
-    print("Missing SciName habitat combos")
-    print(unique(taxa_habitat_prod$taxa_habitat)[!(unique(taxa_habitat_prod$taxa_habitat) %in% unique(hs_taxa_habitat_check$taxa_habitat))])
-  }
-  
-  # Check all higher order taxa names, (NOT TRUE species) have a habitat classification
-  higher_order_taxa_habitat <- hs_taxa_match %>%
-    filter(!str_detect(SciName, " "),
-           is.na(habitat_classification))
-  
-  if (nrow(higher_order_taxa_habitat) > 0) {
-    warning("NOT ALL higher order taxa names have a habitat classification")
-  }
-  
-  # Checking that all SciNames in production have been matched to an HS code
-  if (sum(!(unique(prod_data$SciName) %in% unique(hs_taxa_match$SciName))) > 0) {
-    warning("NOT ALL SciNames matched to HS codes")
-    print("missing SciNames")
-    print(unique(prod_data$SciName)[!(unique(prod_data$SciName) %in% unique(hs_taxa_match$SciName))])
-  }
-  
-  # Checking every HS code has at least 1 SciName
-  if (nrow(hs_taxa_match %>% group_by(Code) %>% tally() %>% filter(n == 0)) > 0) {
-    warning("NOT EVERY HS code matched to at least one SciName")
-  }
-  
-  hs_taxa_match <- hs_taxa_match %>%
-    select(-habitat_test) %>%
-    rename(sciname_habitat = habitat, code_habitat = habitat_classification)
-  
-  # if (test) {
-  #   hs_taxa_match <- hs_taxa_match %>%
-  #     filter(Code %in% test_codes)
-  # }
-  
-  # SAVE HS TAXA MATCH OUTPUT:
-  write.csv(hs_taxa_match, file = file.path(datadir, paste("hs-taxa-match_", hs_version, ".csv", sep="")), row.names = FALSE)
-  
+  hs_taxa_match <- add_habitat_classifications(
+    hs_taxa_match = hs_taxa_match,
+    sciname_habitat = sciname_habitat,
+    prod_data = prod_data,
+    hs_version = hs_version
+  )
+
+  # Save HS to Taxa Match Output
+  write.csv(hs_taxa_match, 
+    file = file.path(datadir, paste("hs-taxa-match_", hs_version, ".csv", sep="")), 
+    row.names = FALSE)
   
   # Determine which HS codes can be processed and turned into another HS code
   hs_hs_match <- match_hs_to_hs(hs_taxa_match = hs_taxa_match,
@@ -625,7 +500,7 @@ if (test) {
 # Load data file and filter for fish codes (i = exporter, j = importer, hs6 = HS code)
 # Note on warning message "Some values were not matched unambiguously: NULL" means all values were matched
 
-#### Filter raw baci data #######
+## Filter Raw BACI Data ----------------------------------
 for (i in 1:nrow(df_years)){
   a_HS_year <- df_years[i,]$HS_year
   analysis_year <- df_years[i,]$analysis_year
@@ -633,7 +508,7 @@ for (i in 1:nrow(df_years)){
   # Creating out folder if necessary
   if (!file.exists(file.path(datadir_raw, paste("filtered_BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))) {
     
-    message(glue("Filter BACI HS{a_HS_year} {analysis_year}"))
+    message(glue("Filter raw BACI HS{a_HS_year} {analysis_year}"))
     baci_data_i <- read.csv(file = file.path(tradedatadir, 
                                            paste("BACI_", "HS", a_HS_year, "_V", baci_version, sep = ""),
                                            paste("BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
@@ -655,14 +530,17 @@ for (i in 1:nrow(df_years)){
     write.csv(baci_data_i, file.path(datadir_raw, paste("filtered_BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
               row.names = FALSE)
   } else {
-    print(glue("Filtered BACI HS{a_HS_year} {analysis_year} file already exists. Skipping to next HS/year pair."))
+    print(glue("Filtered BACI HS{a_HS_year} {analysis_year} file Exists. Skipping to next HS/year pair."))
     }
   } 
 
-#### Standardize BACI data ####
+## Standardize BACI data ----------------------------------
 for (i in 1:nrow(df_years)){
   a_HS_year <- df_years[i,]$HS_year
   analysis_year <- df_years[i,]$analysis_year
+
+if (!file.exists(file.path(datadir, paste("standardized_baci_seafood_hs", a_HS_year, "_y", analysis_year, ".csv", sep = "")))) {
+
   print(glue("standardize BACI {a_HS_year} {analysis_year}"))
   
   baci_data <- read.csv(file.path(datadir_raw, paste("filtered_BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))
@@ -679,7 +557,9 @@ for (i in 1:nrow(df_years)){
       select(-c(total_v)),
     file.path(datadir, paste("standardized_baci_seafood_hs", a_HS_year, "_y", analysis_year, ".csv", sep = "")),
     row.names = FALSE
-  )
+  )} else {
+    print(glue("Standardized BACI HS{a_HS_year} {analysis_year} file Exists. Skipping to next HS/year pair."))
+  }
 
   # BACI output with total and unit value
   write.csv(
@@ -690,6 +570,7 @@ for (i in 1:nrow(df_years)){
 }
 
 # Clean FAO population data ------------------------------------------------
+# FIXIT: add unzip step if file not unzipped yet
 pop_raw <- read.csv(file.path(datadir_raw, "Population_E_All_Data/Population_E_All_Data_NOFLAG.csv"))
 
 # Restructure FAO population data
@@ -787,26 +668,21 @@ if (test) {
 
 write.csv(std_pop, file.path(datadir, "fao_annual_pop.csv"), row.names = FALSE)
 
-################ Metadata tables
+# Attribute Tables --------------------------------------------------------
 
-# Load cleaned taxa details
-taxa <- fread(file.path(datadir, "clean_fao_taxa.csv")) %>%
-  rename(sciname = SciName, common_name = CommonName) %>%
-  distinct()
-
-# sciname_metadata --------------------------------------------------------
+## sciname_metadata --------------------------------------------------------
 
 build_attr_sciname(
   taxa_data = fread(file.path(datadir, "clean_fao_taxa.csv"), data.table = FALSE) %>%
     rename(sciname = SciName, common_name = CommonName) %>%
     distinct(),
-  isscaap_attribute = fread(file.path(datadir, "isscaap_attribute.csv"), data.table = FALSE),
+  isscaap_attribute = fread(file.path(outdir_attribute, "isscaap_attribute.csv"), data.table = FALSE),
   running_sau = running_sau,
   sau_taxa_data = if(running_sau) prod_data_sau else NULL,
   output_dir = datadir
 )
 
-# Code_max_resolved_taxa -------------------------------------------------
+## Code_max_resolved_taxa -------------------------------------------------
 
 
 hs_taxa_match <- data.frame(Code = integer(),
@@ -951,4 +827,12 @@ code_max_resolved_taxa <- hs_taxa_match %>%
   distinct()
 
 write.csv(code_max_resolved_taxa, file.path(datadir, "code_max_resolved_taxa.csv"), row.names = FALSE)
+
+
+## Products ---------------------------------------------------------------
+build_attr_products(
+  datadir_raw = datadir_raw, 
+  datadir = datadir, 
+  outdir_attribute = outdir_attribute, 
+  hs_raw_file = "All_HS_Codes.csv")
   

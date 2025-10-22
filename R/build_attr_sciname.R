@@ -79,48 +79,26 @@ build_attr_sciname <- function(taxa_data,
       TRUE ~ common_name
     )) %>%
     distinct() %>%
-    bind_rows(data.frame(
-      sciname = c("arthropoda", "engraulis", "hippoglossinae", "scombrinae", "clupea",     
-                  "chondrichthyes", "salmoninae", "mytilinae", "actinopteri", "animalia",    
-                  "homarus", "cypriniformes", "dissostichus", "micromesistius", "echinoida"),
-      
-      common_name = c("arthropods", "anchovies", "flounders", "mackerels, tunas, and bonitos",
-                     "herrings", "sharks, skates, rays, and chimaeras", "salmons and trouts",
-                     "saltwater mussels", "ray-finned fish", "aquatic animals", "lobsters", 
-                     "carps, minnows, loaches, etc", "toothfish", "blue whitings", "sea urchins"),
-      
-      Genus = c(NA, "engraulis", NA, NA, "clupea",     
-                NA, NA, NA, NA, NA,    
-                "homarus", NA, "dissostichus", "micromesistius", NA),
-      
-      Subfamily = c(NA, "engraulinae", "hippoglossinae", "scombrinae", "clupeinae",     
-                    NA, "salmoninae", "mytilinae", NA, NA,    
-                    NA, NA, NA, NA, NA),
-      
-      Family = c(NA, "engraulidae", "pleuronectidae", "scombridae", "clupeidae",     
-                 NA, "salmonidae", "mytilidae", NA, NA,    
-                 "nephropidae", NA, "nototheniidae", "gadidae", NA), 
-      
-      Order = c(NA, "clupeiformes", "pleuronectiformes", "scombriformes", "	clupeiformes",     
-                NA, "salmoniformes", "mytilida", NA, NA,    
-                "decapoda", "cypriniformes", "perciformes", "gadiformes", "echinoida"), 
-      
-      Class = c(NA, "teleostei", "teleostei", "teleostei", "teleostei",     
-                "chondrichthyes", "teleostei", "bivalvia", "teleostei", NA,    
-                "malacostraca", "teleostei", "teleostei", "teleostei", "echinoidea"),
-      
-      Superclass = c(NA, "osteichthyes", "osteichthyes", "osteichthyes", "osteichthyes",     
-                     NA, "osteichthyes", NA, "osteichthyes", NA,    
-                     NA, "osteichthyes", "osteichthyes", "osteichthyes", NA),
-      
-      Phylum = c("arthropoda", "chordata", "chordata", "chordata", "chordata",     
-                 "chordata", "chordata", "mollusca", "chordata", NA,    
-                 "arthropoda", "chordata", "chordata", "chordata", "echinodermata"),
-      
-      Kingdom = c("animalia", "animalia", "animalia", "animalia", "animalia",     
-                  "animalia", "animalia", "animalia", "animalia", "animalia",    
-                  "animalia", "animalia", "animalia", "animalia", "animalia")
-    )) 
+    bind_rows(
+      tibble::tribble(
+  ~sciname,           ~common_name,                                   ~Genus,               ~Subfamily,          ~Family,               ~Order,               ~Class,               ~Superclass,         ~Phylum,            ~Kingdom,
+  "arthropoda",       "arthropods",                                   NA_character_,        NA_character_,       NA_character_,         NA_character_,        NA_character_,        NA_character_,        "arthropoda",       "animalia",
+  "engraulis",        "anchovies",                                    "engraulis",          "engraulinae",       "engraulidae",         "clupeiformes",       "teleostei",          "osteichthyes",       "chordata",         "animalia",
+  "hippoglossinae",   "flounders",                                    NA_character_,        "hippoglossinae",    "pleuronectidae",      "pleuronectiformes",  "teleostei",          "osteichthyes",       "chordata",         "animalia",
+  "scombrinae",       "mackerels, tunas, and bonitos",                NA_character_,        "scombrinae",        "scombridae",          "scombriformes",      "teleostei",          "osteichthyes",       "chordata",         "animalia",
+  "clupea",           "herrings",                                     "clupea",             "clupeinae",         "clupeidae",           "clupeiformes",       "teleostei",          "osteichthyes",       "chordata",         "animalia",
+  "chondrichthyes",   "sharks, skates, rays, and chimaeras",          NA_character_,        NA_character_,       NA_character_,         NA_character_,        "chondrichthyes",     NA_character_,        "chordata",         "animalia",
+  "salmoninae",       "salmons and trouts",                           NA_character_,        "salmoninae",        "salmonidae",          "salmoniformes",      "teleostei",          "osteichthyes",       "chordata",         "animalia",
+  "mytilinae",        "saltwater mussels",                            NA_character_,        "mytilinae",         "mytilidae",           "mytilida",           "bivalvia",           NA_character_,        "mollusca",         "animalia",
+  "actinopteri",      "ray-finned fish",                              NA_character_,        NA_character_,       NA_character_,         NA_character_,        "teleostei",          "osteichthyes",       "chordata",         "animalia",
+  "animalia",         "aquatic animals",                              NA_character_,        NA_character_,       NA_character_,         NA_character_,        NA_character_,        NA_character_,        NA_character_,      "animalia",
+  "homarus",          "lobsters",                                     "homarus",            NA_character_,       "nephropidae",         "decapoda",           "malacostraca",       NA_character_,        "arthropoda",       "animalia",
+  "cypriniformes",    "carps, minnows, loaches, etc",                 NA_character_,        NA_character_,       NA_character_,         "cypriniformes",      "teleostei",          "osteichthyes",       "chordata",         "animalia",
+  "dissostichus",     "toothfish",                                    "dissostichus",       NA_character_,       "nototheniidae",       "perciformes",        "teleostei",          "osteichthyes",       "chordata",         "animalia",
+  "micromesistius",   "blue whitings",                                "micromesistius",     NA_character_,       "gadidae",             "gadiformes",         "teleostei",          "osteichthyes",       "chordata",         "animalia",
+  "echinoida",        "sea urchins",                                  NA_character_,        NA_character_,       NA_character_,         "echinoida",          "echinoidea",         NA_character_,        "echinodermata",    "animalia"
+)
+  ) 
 
   # Join with ISSCAAP attribute data
   taxa_attribute <- taxa_attribute %>%

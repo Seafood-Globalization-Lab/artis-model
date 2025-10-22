@@ -4,7 +4,7 @@
 #' handling multiple ISSCAAP classifications and adding custom mappings for 
 #' unknown origin species names commonly used in ARTIS workflows.
 #'
-#' @param prod_fao_raw Data frame containing FAO production data with SciName and 
+#' @param prod_fao Data frame containing FAO production data with SciName and 
 #'   isscaap_group columns from FAO or other production sources.
 #' @param output_dir Character string. Directory path where the ISSCAAP attribute 
 #'   CSV file will be saved. If NULL, no file is written.
@@ -31,31 +31,32 @@
 #' @importFrom utils write.csv
 #' @export
 
-build_attr_isscaap <- function(prod_fao_raw, output_dir = NULL) {
+build_attr_isscaap <- function(prod_fao, output_dir = NULL) {
   
   # Create 1-to-1 matching for SciName to isscaap_group
-  isscaap_attribute <- prod_fao_raw %>%
+  isscaap_attribute <- prod_fao %>%
     select(SciName, isscaap_group) %>%
+    rename(sciname = SciName) %>%
     distinct()
   
   # Identify species with multiple ISSCAAP groups
   multiple_isscaap <- isscaap_attribute %>% 
-    group_by(SciName) %>%
+    group_by(sciname) %>%
     tally() %>%
     filter(n > 1) %>%
-    pull(SciName)
+    pull(sciname)
   
   # Handle multiple ISSCAAP classifications
   isscaap_attribute <- isscaap_attribute %>%
     mutate(isscaap_group = case_when(
-      SciName %in% multiple_isscaap ~ "Multiple ISSCAAP groups",
-      !(SciName %in% multiple_isscaap) ~ isscaap_group
+      sciname %in% multiple_isscaap ~ "Multiple ISSCAAP groups",
+      !(sciname %in% multiple_isscaap) ~ isscaap_group
     )) %>%
     distinct()
   
   # Add ISSCAAP groups for custom "unknown origin" scinames
   unknown_isscaap <- data.frame(
-    SciName = c("arthropoda", "chondrichthyes", "engraulis", "actinopteri", "homarus",
+    sciname = c("arthropoda", "chondrichthyes", "engraulis", "actinopteri", "homarus",
                 "mytilinae", "clupea", "hippoglossinae", "scombrinae", "salmoninae", 
                 "animalia", "dissostichus", "cypriniformes", "micromesistius", 
                 "echinoida", "chordata"),
