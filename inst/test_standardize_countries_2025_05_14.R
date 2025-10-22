@@ -24,14 +24,14 @@ source("./R/standardize_country_data.R")
 
 # Connor's read in files
 # read in sau prod versions
-prod_sau_clean <- fread("data_for_testing/country-standardization-connor/clean_sau_prod.csv")
-  # mutate(country_iso3_alpha = countrycode(country_name_en,
-  #                                          origin = "country.name",
-  #                                          destination = "iso3c"))
-prod_sau_std <- fread("data_for_testing/country-standardization-connor/standardized_sau_prod.csv")
+prod_sau_clean <- fread("model_inputs/connor/clean_sau_prod.csv") %>%
+  mutate(country_iso3_alpha = countrycode(country_name_en,
+                                           origin = "country.name",
+                                           destination = "iso3c"))
+prod_sau_std <- fread("model_inputs/connor/standardized_sau_prod.csv")
 
 # read in fao prod versions
-prod_fao_clean <- fread("data_for_testing/country-standardization-connor/clean_fao_prod.csv")
+prod_fao_clean <- fread("model_inputs/connor/clean_fao_prod.csv")
 prod_fao_std <- fread("data_for_testing/country-standardization-connor/standardized_fao_prod.csv")
 
 # Setup Testing versions --------------------------------------------------
