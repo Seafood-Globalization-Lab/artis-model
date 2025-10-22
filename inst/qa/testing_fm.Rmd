@@ -1,0 +1,76 @@
+---
+title: "Testing FM changes"
+author: "Jessica Gephart"
+date: "2025-09-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, 
+                      fig.width = 6, fig.height = 4)
+```
+
+```{r load-packages}
+library(arrow)
+library(data.table)
+library(tidyverse)
+library(exploreARTIS)
+library(qs2)
+library(glue)
+```
+
+```{r}
+hs_version  <- "hs17"
+single_year <- "2020"
+artis_v <- "v2.0"
+
+inputs_dir <- file.path("/Users/gephart/Library/CloudStorage/Dropbox/Research/ARTIS/artis-model/outputs")
+
+# read in trade
+trade_data <- qs2::qd_read(file.path(inputs_dir, "2025-09-30_S-net_raw_midpoint_HS17_2020.qs2"))
+
+# read in consumption
+consump_data <- qs2::qd_read(file.path(inputs_dir, "2025-09-30_consumption_midpoint_2020_HS17.qs2"))
+
+db_folder <- "/Users/gephart/Library/CloudStorage/Dropbox/Research/ARTIS/ARTIS_2.0_FAO_2025_09_09"
+sciname <- fread(file.path(db_folder, "attribute_tables", "sciname_metadata.csv"))
+```
+
+```{r}
+consump_data %>%
+  filter(end_use == "fishmeal") %>%
+  summarise(consumption_live_t = sum(consumption_live_t))
+
+consump_data %>%
+  filter(end_use == "fishmeal") %>%
+  group_by(year, consumption_source) %>%
+  summarise(consumption_live_t = sum(consumption_live_t))
+
+consump_data %>%
+  filter(end_use == "fishmeal") %>%
+  plot_bar(bar_group = "sciname_hs_modified", 
+           value = "consumption_live_t", 
+           top_n = 25)
+
+consump_data %>%
+  filter(end_use == "fishmeal") %>%
+  plot_bar(bar_group = "source_country_iso3c",
+           value = "consumption_live_t")
+
+consump_data %>%
+  filter(end_use == "fishmeal") %>%
+  plot_bar(bar_group = "consumer_iso3c", fill_type = "consumption_source",
+           value = "consumption_live_t")
+```
+
+```{r}
+shark_scinames <- sciname %>%
+  filter(str_detect(isscaap_group, "Shark")) %>%
+  pull(sciname)
+
+tmp <- consump_data %>%
+  filter(end_use == "fishmeal", 
+         sciname %in% shark_scinames)
+```
+
+
