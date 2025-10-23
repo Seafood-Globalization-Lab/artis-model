@@ -4,14 +4,14 @@
 #' classification, common names, and ISSCAAP group information for use in 
 #' ARTIS model workflows.
 #'
-#' @param taxa_data Data frame containing cleaned FAO taxa with SciName and 
+#' @param fao_taxa_data Data frame containing cleaned FAO taxa with sciname and 
 #'   CommonName columns, typically from "clean_fao_taxa.csv".
 #' @param isscaap_attribute Data frame containing ISSCAAP group classifications 
 #'   by scientific name.
 #' @param running_sau Logical. Whether to include SAU taxa data in the attribute table.
 #' @param sau_taxa_data Data frame containing cleaned SAU taxa (only used if 
 #'   running_sau = TRUE).
-#' @param output_dir Character string. Directory path where the scientific name 
+#' @param write_dir Character string. Directory path where the scientific name 
 #'   attribute CSV file will be saved.
 #'
 #' @return NULL (invisible). Function is called for its side effects of creating
@@ -35,14 +35,14 @@
 #' @import dplyr
 #' @importFrom utils write.csv
 #' @export
-build_attr_sciname <- function(taxa_data, 
+build_attr_sciname <- function(fao_taxa_data, 
                               isscaap_attribute, 
                               running_sau = FALSE, 
                               sau_taxa_data = NULL, 
-                              output_dir) {
+                              write_dir) {
   
   # Create 1-to-1 matching for common names and taxa info
-  taxa_attribute <- taxa_data %>%
+  taxa_attribute <- fao_taxa_data %>%
     mutate(common_name = case_when(
       sciname == "alosa" ~ "shads nei", 
       sciname == "asteroidea" ~ "starfishes nei", 
@@ -123,7 +123,7 @@ build_attr_sciname <- function(taxa_data,
     select(-sum_na)
 
   # Save to file
-  write.csv(taxa_attribute, file.path(output_dir, "sciname_attribute.csv"), row.names = FALSE)
+  write.csv(taxa_attribute, file.path(write_dir, "sciname_attribute.csv"), row.names = FALSE)
   
   return(invisible(NULL))
 }

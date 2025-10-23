@@ -362,6 +362,8 @@ if (test) {
 
 # Matching Funs and CFs (HS version loop) --------------------------------
 
+# No existing file check in place. These files need to be regenerated each time a change is made to prod or taxa data. 
+
 for(i in 1:length(HS_year)) {
   
   # define HS version
@@ -491,6 +493,8 @@ for(i in 1:length(HS_year)) {
 
 # df_years dataframe contains all HS version and year pairs. Created in 00-local-machine-setup.R
 
+# Existing file check in place - filtering and standardizing BACI is independent of other steps so files only need to be created once.
+
 if (test) {
   df_years <- df_years %>%
     filter(HS_year == test_hs,
@@ -539,35 +543,35 @@ for (i in 1:nrow(df_years)){
   a_HS_year <- df_years[i,]$HS_year
   analysis_year <- df_years[i,]$analysis_year
 
-if (!file.exists(file.path(datadir, paste("standardized_baci_seafood_hs", a_HS_year, "_y", analysis_year, ".csv", sep = "")))) {
+  if (!file.exists(file.path(datadir, glue("standardized_baci_seafood_hs{a_HS_year}_y{analysis_year}.csv")))) {
 
-  print(glue("standardize BACI {a_HS_year} {analysis_year}"))
-  
-  baci_data <- read.csv(file.path(datadir_raw, paste("filtered_BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))
-  
-  baci_data <- baci_data %>%
-    mutate(year = analysis_year,
-           hs_version = paste("HS", a_HS_year, sep = ""))
-  
-  baci_data <- standardize_countries(baci_data, "BACI")
-  
-  # BACI output used to generate ARTIS (keeps legacy dataframe format)
-  write.csv(
-    baci_data %>%
-      select(-c(total_v)),
-    file.path(datadir, paste("standardized_baci_seafood_hs", a_HS_year, "_y", analysis_year, ".csv", sep = "")),
-    row.names = FALSE
-  )} else {
-    print(glue("Standardized BACI HS{a_HS_year} {analysis_year} file Exists. Skipping to next HS/year pair."))
-  }
-
-  # BACI output with total and unit value
-  write.csv(
-    baci_data,
-    file.path(datadir, paste("standardized_baci_seafood_hs", a_HS_year, "_y", analysis_year, "_including_value.csv", sep = "")),
-    row.names = FALSE
-  )
-}
+    print(glue("standardize BACI {a_HS_year} {analysis_year}"))
+    
+    baci_data <- read.csv(file.path(datadir_raw, glue("filtered_BACI_HS{a_HS_year}_Y{analysis_year}_V{baci_version}.csv")))
+    
+    baci_data <- baci_data %>%
+      mutate(year = analysis_year,
+            hs_version = paste("HS", a_HS_year, sep = ""))
+    
+    baci_data <- standardize_countries(baci_data, "BACI")
+    
+    # BACI output used to generate ARTIS (keeps legacy dataframe format)
+    write.csv(
+      baci_data %>%
+        select(-c(total_v)),
+      file.path(datadir, paste("standardized_baci_seafood_hs", a_HS_year, "_y", analysis_year, ".csv", sep = "")),
+      row.names = FALSE
+    )
+    # BACI output with total and unit value
+    write.csv(
+      baci_data,
+      file.path(datadir, paste("standardized_baci_seafood_hs", a_HS_year, "_y", analysis_year, "_including_value.csv", sep = "")),
+      row.names = FALSE
+    )
+  } else {
+      print(glue("Standardized BACI HS{a_HS_year} {analysis_year} file Exists. Skipping to next HS/year pair."))
+    }
+} # end of BACI Loop
 
 # Clean FAO population data ------------------------------------------------
 # FIXIT: add unzip step if file not unzipped yet
@@ -670,20 +674,25 @@ write.csv(std_pop, file.path(datadir, "fao_annual_pop.csv"), row.names = FALSE)
 
 # Attribute Tables --------------------------------------------------------
 
-## sciname_metadata --------------------------------------------------------
+## sciname --------------------------------------------------------
 
 build_attr_sciname(
-  taxa_data = fread(file.path(datadir, "clean_fao_taxa.csv"), data.table = FALSE) %>%
+  fao_taxa_data = fread(file.path(datadir, "clean_fao_taxa.csv"), data.table = FALSE) %>%
     rename(sciname = SciName, common_name = CommonName) %>%
     distinct(),
   isscaap_attribute = fread(file.path(outdir_attribute, "isscaap_attribute.csv"), data.table = FALSE),
   running_sau = running_sau,
-  sau_taxa_data = if(running_sau) prod_data_sau else NULL,
-  output_dir = datadir
+  sau_taxa_data = if (running_sau) {
+    fread(file.path(datadir, "clean_taxa_combined.csv"), data.table = FALSE) %>% 
+      rename(sciname = SciName, common_name = CommonName) %>%
+      distinct()
+  } else {
+    NULL
+  },
+  write_dir = outdir_attribute
 )
 
 ## Code_max_resolved_taxa -------------------------------------------------
-
 
 hs_taxa_match <- data.frame(Code = integer(),
                             SciName = character(),
@@ -696,6 +705,16 @@ hs_clade_match <- data.frame(Code = character(),
                              hs_clade = factor(),
                              classification_level = character(),
                              hs_version = character())
+
+if (running_sau) {
+  taxa <- fread(file.path(datadir, "clean_taxa_combined.csv"), data.table = FALSE) %>%
+    rename(sciname = SciName, common_name = CommonName) %>%
+    distinct()
+} else {
+  taxa <- fread(file.path(datadir, "clean_fao_taxa.csv"), data.table = FALSE) %>%
+    rename(sciname = SciName, common_name = CommonName) %>%
+    distinct()
+}
 
 for(i in HS_year){
   HS_year_rep <- i
@@ -721,21 +740,7 @@ for(i in HS_year){
     ) %>%
     mutate(hs_version = HS_year_rep)
   
-  # Add SAU matches - running with just SAU ARTIS v1.1.0 - not two separate model_inputs/
-  # hs_taxa_match_sau_i <- read.csv(file.path("model_inputs_sau", paste("hs-taxa-match_HS", HS_year_rep, ".csv", sep = "")))
-  # 
-  # hs_clade_match_sau_i <- match_hs_to_clade(hs_taxa_match = hs_taxa_match_sau_i ,
-  #                                       prod_taxa_classification = taxa %>%
-  #                                         rename(CommonName = common_name, SciName = sciname),
-  #                                       match_to_prod = FALSE) %>% 
-  #   # pad HS codes with zeroes
-  #   mutate(Code = as.character(Code)) %>%
-  #   mutate(Code = if_else(str_detect(Code, "^30"), true = str_replace(Code, pattern = "^30", replacement = "030"),
-  #                         if_else(str_detect(Code, "^511"), true = str_replace(Code, pattern = "^511", replacement = "0511"),
-  #                                 false = Code))) %>%
-  #   mutate(hs_version = HS_year_rep) %>%
-  #   filter(!is.na(hs_clade))
-  # 
+
   hs_clade_match <- hs_clade_match %>%
     bind_rows(hs_clade_match_i) %>%
    # bind_rows(hs_clade_match_sau_i) %>%
@@ -754,6 +759,8 @@ hs_clade_match <- hs_clade_match %>%
   mutate(hs6 = as.integer(hs6),
          hs_version = as.integer(hs_version)) %>%
   rename("code_taxa_level" = "classification_level")
+
+taxa_metadata <- fread(file.path(outdir_attribute, "sciname_attribute.csv"), data.table = FALSE)
 
 prod_taxa_classification <- taxa_metadata %>%
   select(-common_name) %>%
@@ -827,6 +834,7 @@ code_max_resolved_taxa <- hs_taxa_match %>%
   distinct()
 
 write.csv(code_max_resolved_taxa, file.path(datadir, "code_max_resolved_taxa.csv"), row.names = FALSE)
+write.csv(code_max_resolved_taxa, file.path(outdir_attribute, "code_max_resolved_taxa.csv"), row.names = FALSE)
 
 
 ## Products ---------------------------------------------------------------
