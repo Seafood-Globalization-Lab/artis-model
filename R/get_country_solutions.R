@@ -2,7 +2,7 @@
 #'
 #' @param num_cores Integer. Controls parallel worker allocation for solving
 #'   country-level mass balance problems within each year.
-#'
+#'   
 #'   - `num_cores = 1` → **sequential mode** (no parallelism; useful for debugging).
 #'   - `num_cores = 0` or `NULL` → **auto mode**: use all available cores minus one
 #'     (to leave one free for the OS), then cap by the number of countries
@@ -16,6 +16,20 @@
 #'   Parallelization is implemented via [future.apply::future_lapply()] with a
 #'   `multisession` backend (safe with reticulate).
 #' 
+#' @param datadir Character. Path to input data directory
+#' @param outdir Character. Path to output directory
+#' @param hs_version Character. HS version code
+#' @param test_year Numeric vector. Years to test
+#' @param prod_type Character. Production data type ("FAO" or "SAU")
+#' @param solver_type Character. Type of solver to use
+#' @param no_solve_countries Data frame. Countries to exclude
+#' @param run_env Character. Running environment
+#' @param s3_bucket_name Character. S3 bucket name if using AWS
+#' @param s3_region Character. AWS region if using AWS
+#' @param dev_mode Logical. Whether to run in development mode
+#'
+#' @return NULL invisibly
+#' 
 #' @importFrom dplyr filter select mutate if_else group_by summarize
 #' @importFrom stringr str_detect str_replace
 #' @importFrom future plan
@@ -23,16 +37,29 @@
 #' @importFrom reticulate py_run_string
 #' @importFrom aws.s3 save_object put_object
 #' @importFrom utils read.csv write.csv
-#' @export
-#' 
 
-############# BEGIN PATCH: S3 retry helpers (no new packages required) #############
+# Helper Functions for S3 ------------------------------------------------
+
+#' Helper function to check if S3 error is retryable
+#' @param msg Character string of error message
+#' @return Logical indicating if error is retryable
+#' @noRd
 is_retryable_s3 <- function(msg) {
   grepl("HTTP (500|502|503|504)", msg, ignore.case = TRUE) ||
     grepl("SlowDown|InternalError|RequestTimeout|temporarily unavailable|timeout|timed out",
           msg, ignore.case = TRUE)
 }
 
+#' Helper function to retry S3 put operations
+#' @param file Character. File path to upload
+#' @param object Character. S3 object name
+#' @param bucket Character. S3 bucket name
+#' @param region Character. AWS region
+#' @param multipart Logical. Use multipart upload
+#' @param max_attempts Integer. Maximum retry attempts
+#' @param base_sleep Numeric. Base sleep time between retries
+#' @return Logical indicating success
+#' @noRd
 s3_put_retry <- function(file, object, bucket, region = NULL,
                          multipart = FALSE, max_attempts = 8, base_sleep = 0.5) {
   stopifnot(is.character(file), length(file) == 1L, file.exists(file))
@@ -57,15 +84,25 @@ s3_put_retry <- function(file, object, bucket, region = NULL,
     }
   }
 }
-############# END PATCH: S3 retry helpers #############
 
-############# BEGIN PATCH: S3 list/clear helpers (TOP-LEVEL; not affected by rm()) #############
+#' List S3 keys with given prefix
+#' @param bucket Character. S3 bucket name
+#' @param prefix Character. Key prefix to list
+#' @param region Character. AWS region
+#' @return Character vector of S3 keys
+#' @noRd
 s3_list_keys <- function(bucket, prefix, region) {
   objs <- aws.s3::get_bucket(bucket = bucket, prefix = prefix, max = 10000L, region = region)
   if (!length(objs)) return(character(0))
   vapply(objs, function(x) if (!is.null(x$Key)) x$Key else NA_character_, character(1))
 }
 
+#' Clear S3 objects with given prefix
+#' @param bucket Character. S3 bucket name
+#' @param prefix Character. Key prefix to clear
+#' @param region Character. AWS region
+#' @return Invisible integer count of deleted objects
+#' @noRd
 s3_clear_prefix <- function(bucket, prefix, region) {
   # Clear exact prefix; also clear variant without leading slash if present
   p1 <- prefix
@@ -83,7 +120,21 @@ s3_clear_prefix <- function(bucket, prefix, region) {
   invisible(length(keys))
 }
 ############# END PATCH: S3 list/clear helpers #############
-
+#' Solve country mass balance problems in parallel
+#'
+#' @param num_cores Integer. Controls parallel worker allocation...
+#' ...existing documentation...
+#'
+#' @return NULL invisibly
+#' 
+#' @importFrom dplyr filter select mutate if_else group_by summarize
+#' @importFrom stringr str_detect str_replace
+#' @importFrom future plan
+#' @importFrom future.apply future_lapply
+#' @importFrom reticulate py_run_string
+#' @importFrom aws.s3 save_object put_object
+#' @importFrom utils read.csv write.csv
+#' @export
 get_country_solutions <- function(datadir, 
                                   outdir, 
                                   hs_version = NA, 
