@@ -590,11 +590,6 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
       if (length(qp_sol) > 0) {
         # Development mode outputs
         if (dev_mode_logic == TRUE) {
-          cli::cli_h3("Devemopent Mode")
-          cli::cli_alert_info(c(
-            "Writing raw {solver_to_use} outputs {.file *_sol.csv} and ",
-            "condition numbers {.file condition_number.csv}"
-          ))
           # Write out raw output from solver for comparison
           cond_num <- as.numeric(py$cond_num)
           write.csv(
@@ -972,6 +967,7 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
       )
     )
     saveRDS(country_est, all_country_est_fp)
+    cli::cli_alert_success("Saved all-country-est locally")
 
     if (run_env == "aws") {
       s3_put_retry(
