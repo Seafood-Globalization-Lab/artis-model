@@ -1,43 +1,3 @@
-#' Solve country mass balance problems in parallel
-#'
-#' @param num_cores Integer. Controls parallel worker allocation for solving
-#'   country-level mass balance problems within each year.
-#'   
-#'   - `num_cores = 1` → **sequential mode** (no parallelism; useful for debugging).
-#'   - `num_cores = 0` or `NULL` → **auto mode**: use all available cores minus one
-#'     (to leave one free for the OS), then cap by the number of countries
-#'     to analyze for that year.
-#'   - `num_cores >= 2` → **explicit cap**: request that many workers, but will
-#'     still be capped at the number of countries for that year.
-#'
-#'   In all cases, the number of workers is
-#'   `min(requested_cores, length(countries_to_analyze))`.
-#'
-#'   Parallelization is implemented via [future.apply::future_lapply()] with a
-#'   `multisession` backend (safe with reticulate).
-#' 
-#' @param datadir Character. Path to input data directory
-#' @param outdir Character. Path to output directory
-#' @param hs_version Character. HS version code
-#' @param test_year Numeric vector. Years to test
-#' @param prod_type Character. Production data type ("FAO" or "SAU")
-#' @param solver_type Character. Type of solver to use
-#' @param no_solve_countries Data frame. Countries to exclude
-#' @param run_env Character. Running environment
-#' @param s3_bucket_name Character. S3 bucket name if using AWS
-#' @param s3_region Character. AWS region if using AWS
-#' @param dev_mode Logical. Whether to run in development mode
-#'
-#' @return NULL invisibly
-#' 
-#' @importFrom dplyr filter select mutate if_else group_by summarize
-#' @importFrom stringr str_detect str_replace
-#' @importFrom future plan
-#' @importFrom future.apply future_lapply
-#' @importFrom reticulate py_run_string
-#' @importFrom aws.s3 save_object put_object
-#' @importFrom utils read.csv write.csv
-
 # Helper Functions for S3 ------------------------------------------------
 
 #' Helper function to check if S3 error is retryable
@@ -180,8 +140,33 @@ s3_clear_prefix <- function(bucket, prefix, region) {
 
 #' Solve country mass balance problems in parallel
 #'
-#' @param num_cores Integer. Controls parallel worker allocation...
-#' ...existing documentation...
+#' @param num_cores Integer. Controls parallel worker allocation for solving
+#'   country-level mass balance problems within each year.
+#'   
+#'   - `num_cores = 1` → **sequential mode** (no parallelism; useful for debugging).
+#'   - `num_cores = 0` or `NULL` → **auto mode**: use all available cores minus one
+#'     (to leave one free for the OS), then cap by the number of countries
+#'     to analyze for that year.
+#'   - `num_cores >= 2` → **explicit cap**: request that many workers, but will
+#'     still be capped at the number of countries for that year.
+#'
+#'   In all cases, the number of workers is
+#'   `min(requested_cores, length(countries_to_analyze))`.
+#'
+#'   Parallelization is implemented via [future.apply::future_lapply()] with a
+#'   `multisession` backend (safe with reticulate).
+#' 
+#' @param datadir Character. Path to input data directory
+#' @param outdir Character. Path to output directory
+#' @param hs_version Character. HS version code
+#' @param test_year Numeric vector. Years to test
+#' @param prod_type Character. Production data type ("FAO" or "SAU")
+#' @param solver_type Character. Type of solver to use
+#' @param no_solve_countries Data frame. Countries to exclude
+#' @param run_env Character. Running environment
+#' @param s3_bucket_name Character. S3 bucket name if using AWS
+#' @param s3_region Character. AWS region if using AWS
+#' @param dev_mode Logical. Whether to run in development mode
 #'
 #' @return NULL invisibly
 #' 
