@@ -119,7 +119,7 @@ s3_clear_prefix <- function(bucket, prefix, region) {
     return(invisible(0L))
   }
 
-  cli::cli_h3("Deleting {length(keys)} object{?s} from S3")
+  cli::cli_h2("Deleting {length(keys)} object{?s} from S3")
   cli::cli_alert_info(c(
     "i" = "S3 location: {.val s3://{bucket}}",
     "i" = "Directory: {.path {prefix}}",
@@ -244,23 +244,23 @@ get_country_solutions <- function(datadir,
                        warn = FALSE))
   sink()
 
-  cli::cli_h2("Starting HS{HS_year_rep} country solutions with {solver_type} solver")
+  cli::cli_h1("Starting HS{HS_year_rep} country solutions with {solver_type} solver")
   start_time <- Sys.time()
-  cli::cli_alert_info(c(
-    "i" = "Start time: {.val {as.character(start_time)}}",
-    "i" = "Analysis years: {.val {paste(analysis_years_rep$analysis_year, collapse = ', ')}}",
-    "i" = "Production data type: {.val {prod_type}}",
-    "i" = "Development mode: {.val {dev_mode}}",
-    "i" = "Output directory: {.file {outdir}/{hs_dir}/}",
-    "i" = "Input data directory: {.file {datadir}/}",
-    "i" = "Model run environment: {.val {run_env}}"
+  cli::cli_alert_info("Configuration:")
+  cli::cli_ul(c(
+    "Start time: {.val {as.character(start_time)}}",
+    "Analysis years: {.val {paste(analysis_years_rep$analysis_year, collapse = ', ')}}",
+    "Production data type: {.val {prod_type}}",
+    "Development mode: {.val {dev_mode}}",
+    "Output directory: {.file {outdir}/{hs_dir}/}",
+    "Input data directory: {.file {datadir}/}",
+    "Model run environment: {.val {run_env}}"
   ))
 
   # Begin analysis year loop ------------------------------------------------
   # Loop through all analysis years for a given HS version
   for (j in 1:nrow(analysis_years_rep)) {
     analysis_year <- analysis_years_rep$analysis_year[j]
-    #cli::cli_h3("Processing year {analysis_year}")
 
     hs_analysis_year_dir <- file.path(outdir, hs_dir, analysis_year)
 
@@ -317,12 +317,12 @@ get_country_solutions <- function(datadir,
 
     #  Skip to next year if already completed (all-country-est file exists)
     if (skip_this_year) {
-      cli::cli_alert_info(c(
-        "[restart country solutions] Skipping {analysis_year}:",
-        "Detected existing combined country estimate file in S3",
-        "{.file <yyyy-mm-dd>_all-country-est_{analysis_year}_HS{HS_year_rep}}",
-        "indicating this analysis year was previously completed."
-      ))
+  cli::cli_h2("Restart - Skipping Year {analysis_year}")
+  cli::cli_alert_info(c(
+    "i" = "Found existing combined country estimate file in S3",
+    "i" = "File pattern: {.file <yyyy-mm-dd>_all-country-est_{analysis_year}_HS{HS_year_rep}.RDS}",
+    "i" = "This indicates the analysis year was previously completed"
+  ))
       next
     }
 
@@ -590,8 +590,9 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
       if (length(qp_sol) > 0) {
         # Development mode outputs
         if (dev_mode_logic == TRUE) {
+          cli::cli_h3("Devemopent Mode")
           cli::cli_alert_info(c(
-            "[dev-mode TRUE] Writing raw {solver_to_use} outputs {.file *_sol.csv} and ",
+            "Writing raw {solver_to_use} outputs {.file *_sol.csv} and ",
             "condition numbers {.file condition_number.csv}"
           ))
           # Write out raw output from solver for comparison
@@ -710,14 +711,14 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
       future::plan("sequential")
       workers_to_use <- 1L
 
-      cli::cli_h3("Parallel Processing Settings - country solutions")
-      cli::cli_alert_info(c(
-        "i" = "Running {.emph sequentially} not parallel processing",
-        "i" = "Workers allocated: {.strong {workers_to_use}}",
-        "i" = "Requested cores: {.val {num_cores}}",
-        "i" = "Auto-detected max: {.val {auto_max}}",
-        "i" = "Countries to process: {.val {length(countries_to_analyze)}}",
-        "i" = "Solver type: {.val {solver_type}}"
+      cli::cli_h2("Parallel Processing Settings")
+      cli::cli_ul(c(
+        "Running {.emph sequentially} not parallel processing",
+        "Workers allocated: {.strong {workers_to_use}}",
+        "Requested cores: {.val {num_cores}}",
+        "Auto-detected max: {.val {auto_max}}",
+        "Countries to process: {.val {length(countries_to_analyze)}}",
+        "Solver type: {.val {solver_type}}"
       ))
 
     } else {
@@ -743,14 +744,14 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
       # multisession = fork-safe, works with reticulate/Python
       future::plan("multisession", workers = workers_to_use)
       
-      cli::cli_h3("Parallel Processing Settings - country solutions")
-      cli::cli_alert_info(c(
-        "i" = "Running {.emph multisession} parallel processing",
-        "i" = "Workers allocated: {.strong {workers_to_use}}",
-        "i" = "Requested cores: {.val {num_cores}}",
-        "i" = "Auto-detected max: {.val {auto_max}}",
-        "i" = "Countries to process: {.val {length(countries_to_analyze)}}",
-        "i" = "Solver type: {.val {solver_type}}"
+      cli::cli_h2("Parallel Processing Settings")
+      cli::cli_ul(c(
+        "Running {.emph multisession} parallel processing",
+        "Workers allocated: {.strong {workers_to_use}}",
+        "Requested cores: {.val {num_cores}}",
+        "Auto-detected max: {.val {auto_max}}",
+        "Countries to process: {.val {length(countries_to_analyze)}}",
+        "Solver type: {.val {solver_type}}"
       ))
     } # end of conditional parallel setup
 
@@ -787,7 +788,6 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
       dev_mode_logic = dev_mode,          # Passed to solve_country(): write debug outputs?
       future.seed = TRUE,                 # Enable reproducible RNG across workers
       future.scheduling = Inf,            # Dynamic load balancing (default)
-      future.lazy = FALSE,                # Start futures immediately (default)
       future.globals = TRUE,              # Auto-detect global variables (default)
       future.packages = NULL              # Auto-detect required packages (default)
     )
@@ -809,7 +809,7 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
           character(1)
         )
         
-        cli::cli_h3("S3 Upload Failures Detected")
+        cli::cli_h2("S3 Upload Failures Detected")
         cli::cli_alert_danger(c(
           "!" = "{sum(failed)} countr{?y/ies} failed S3 upload after 8 retry attempts",
           "x" = "Failed countries: {.val {paste(failed_countries, collapse = ', ')}}",
@@ -945,6 +945,8 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
     print(no_sol_countries)
     sink()
 
+    cli::cli_alert_info()
+
     # Upload diagnostic file to S3 if in AWS environment
     if (run_env == "aws") {
       s3_put_retry(
@@ -1031,11 +1033,11 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
   # Display completion message and perform environment-specific cleanup
   cli::cli_h2("{solver_type} Country Solutions Complete")
   cli::cli_alert_success("All analysis years completed")
-  cli::cli_alert_info(c(
-    "i" = "HS version: {.strong HS{HS_year_rep}}",
-    "i" = "Solver: {.strong {solver_type}}",
-    "i" = "Years processed: {.val {paste(analysis_years_rep$analysis_year, collapse = ', ')}}",
-    "i" = "Total elapsed time: {.strong {format(elapsed_time, digits = 2)}}"
+  cli::cli_ul(c(
+    "HS version: {.strong HS{HS_year_rep}}",
+    "Solver: {.strong {solver_type}}",
+    "Years processed: {.val {paste(analysis_years_rep$analysis_year, collapse = ', ')}}",
+    "Total elapsed time: {.strong {format(elapsed_time, digits = 2)}}"
   ))
 
   # Cleanup - Final all years complete ----------------------------------------------------------
@@ -1049,16 +1051,14 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
   # 
   # Safe because all outputs are in S3 and all inputs can be re-downloaded if needed
   if (run_env == "aws") {
-    cli::cli_alert_info(c(
-      "i" = "Results location: {.path s3://{s3_bucket_name}/{outdir}/{hs_dir}/}",
-      "i" = "Cleaning up local (docker instance) model data: {.path {datadir}}"
+    cli::cli_ul(c(
+      "Results location: {.path s3://{s3_bucket_name}/{outdir}/{hs_dir}/}",
+      "Cleaning up local (docker instance) model data: {.path {datadir}}"
     ))
     unlink(datadir, recursive = TRUE)
     cli::cli_alert_success("Docker instance cleanup complete - storage freed")
   } else {
-    cli::cli_alert_info(c(
-      "i" = "Results location: {.path {file.path(outdir, hs_dir)}}"
-    ))
+    cli::cli_alert_info("i" = "Results location: {.path {file.path(outdir, hs_dir)}}")
     cli::cli_alert_success("Local run complete - files saved to disk")
   }
 
