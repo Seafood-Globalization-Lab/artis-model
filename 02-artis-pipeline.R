@@ -7,7 +7,7 @@ rm(list=ls())
 
 #-------------------------------------------------------------------------------
 # environmet model run on - ["aws"] of ["local"]
-run_env <- "local"
+run_env <- "aws"
 
 # load packages
 library(artis)
