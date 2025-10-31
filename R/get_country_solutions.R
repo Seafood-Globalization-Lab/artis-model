@@ -244,11 +244,11 @@ get_country_solutions <- function(datadir,
                        warn = FALSE))
   sink()
 
-  cli::cli_h1("Starting HS{HS_year_rep} country solutions with {solver_type} solver")
+  cli::cli_h1("Starting HS{HS_year_rep} 🌏 country solutions 🌍 with {solver_type} solver")
   start_time <- Sys.time()
-  cli::cli_alert_info("Configuration:")
+  cli::cli_alert_info("⚙️ Configuration:")
   cli::cli_ul(c(
-    "Start time: {.val {as.character(start_time)}}",
+    "Start time: {.val {format(start_time)}}",
     "Analysis years: {.val {paste(analysis_years_rep$analysis_year, collapse = ', ')}}",
     "Production data type: {.val {prod_type}}",
     "Development mode: {.val {dev_mode}}",
@@ -706,12 +706,11 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
       future::plan("sequential")
       workers_to_use <- 1L
 
-      cli::cli_h2("Parallel Processing Settings")
+      cli::cli_h2("⚙️ Parallel Processing Settings")
       cli::cli_ul(c(
-        "Running {.emph sequentially} not parallel processing",
-        "Workers allocated: {.strong {workers_to_use}}",
-        "Requested cores: {.val {num_cores}}",
-        "Auto-detected max: {.val {auto_max}}",
+        "Strategy: {.val sequentially} not parallel processing",
+        "Workers allocated: {.val {workers_to_use}}",
+        "`num_core` arguement: {.val {num_cores}}",
         "Countries to process: {.val {length(countries_to_analyze)}}",
         "Solver type: {.val {solver_type}}"
       ))
@@ -739,12 +738,12 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
       # multisession = fork-safe, works with reticulate/Python
       future::plan("multisession", workers = workers_to_use)
       
-      cli::cli_h2("Parallel Processing Settings")
+      cli::cli_h2("⚙️ Parallel Processing Settings")
       cli::cli_ul(c(
-        "Running {.emph multisession} parallel processing",
-        "Workers allocated: {.strong {workers_to_use}}",
-        "Requested cores: {.val {num_cores}}",
-        "Auto-detected max: {.val {auto_max}}",
+        "Strategy: {.val multisession}",
+        "Workers allocated: {.val {workers_to_use}}",
+        "`num_core` arguement: {.val {num_cores}}",
+        "Auto-detected max: {.val {future::availableCores()}}",
         "Countries to process: {.val {length(countries_to_analyze)}}",
         "Solver type: {.val {solver_type}}"
       ))
@@ -818,7 +817,8 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
       }
     }
 
-    
+    cli::cli_h3("✏️ Compiling and Writing Results")
+    cli::cli_ul(c("Building all-country-est object"))
     # Build all-country-est ------------------------------------------
     # File contains:
     # - Named list with one element per successfully solved country
@@ -940,7 +940,13 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
     print(no_sol_countries)
     sink()
 
-    cli::cli_alert_info()
+    cli::cli_ul(c(
+      "Successful country solutions: {.val {length(country_est)}}",
+      "No solution countries: {.val {length(no_sol_countries)}}",
+      "Total countries: {.val {length(countries_to_analyze)}}",
+      "Wrote no-solve-qp file"
+
+    ))
 
     # Upload diagnostic file to S3 if in AWS environment
     if (run_env == "aws") {
@@ -967,7 +973,7 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
       )
     )
     saveRDS(country_est, all_country_est_fp)
-    cli::cli_alert_success("Saved all-country-est locally")
+    cli::cli_alert_success("Wrote all-country-est {analysis_year} locally")
 
     if (run_env == "aws") {
       s3_put_retry(
@@ -977,15 +983,18 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
         region = s3_region,
         multipart = TRUE
       )
+      
       cli::cli_alert_success(
-        "Year {analysis_year} processing complete and uploaded to S3"
-      )
+        "{analysis_year} processing complete and uploaded to S3")
+    } else {
+      cli::cli_alert_success(
+        "{analysis_year} processing complete")
     }
 
     # Delete all files created in the AWS worker node if on AWS to free up storage space
     if (run_env == "aws") {
       cli::cli_alert_info(
-        "Cleaning up local year directory: {.path {hs_analysis_year_dir}}"
+        "Cleaning up local {analysis_year} directory: {.path {hs_analysis_year_dir}}"
       )
       unlink(hs_analysis_year_dir)
     }
@@ -1020,20 +1029,17 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
     # Remove specific large objects that are no longer needed on local machine
     rm(analysis_year)
     rm(hs_analysis_year_dir)
-  } # end of analysis year loop
+    } # end of analysis year loop
   
   # Calculate elapsed time
   end_time <- Sys.time()
   elapsed_time <- end_time - start_time
   
   # Display completion message and perform environment-specific cleanup
-  cli::cli_h2("{solver_type} Country Solutions Complete")
-  cli::cli_alert_success("All analysis years completed")
+  cli::cli_h2("✅ Completed HS{HS_year_rep} country solutions with {solver_type} solver")
+  cli::cli_alert_success("All analysis years completed: {.val {paste(analysis_years_rep$analysis_year, collapse = ', ')}}")
   cli::cli_ul(c(
-    "HS version: {.strong HS{HS_year_rep}}",
-    "Solver: {.strong {solver_type}}",
-    "Years processed: {.val {paste(analysis_years_rep$analysis_year, collapse = ', ')}}",
-    "Total elapsed time: {.strong {format(elapsed_time, digits = 2)}}"
+    "⏱️ Total elapsed time: {.val {format(elapsed_time, digits = 2)}}"
   ))
 
   # Cleanup - Final all years complete ----------------------------------------------------------
@@ -1052,11 +1058,8 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
       "Cleaning up local (docker instance) model data: {.path {datadir}}"
     ))
     unlink(datadir, recursive = TRUE)
-    cli::cli_alert_success("Docker instance cleanup complete - storage freed")
-  } else {
-    cli::cli_alert_info("i" = "Results location: {.path {file.path(outdir, hs_dir)}}")
-    cli::cli_alert_success("Local run complete - files saved to disk")
-  }
+    cli::cli_alert_success("🧹 Docker instance cleanup complete")
+  } 
 
   # Return invisibly (function is called for side effects, not return value)
   invisible(NULL)

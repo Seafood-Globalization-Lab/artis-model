@@ -57,14 +57,14 @@ test_year <- c()
 
 # 02-artis-pipeline parameters ------------------------------------
 # set years to run - empty if all years [c()], [c(2017)] or [c(2017,2020)] for subset of years
-test_years <- c(2017) 
+test_years <- c(1996) 
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
 
 # hs_version_run is set in 02-artis-pipeline because of current `artis-hpc` setup
 
 # Development mode --------------------------------------------------------
-dev_mode <- TRUE
+dev_mode <- FALSE
 
 devdir <- "./AM_local/dev-artis-2.0"
 
