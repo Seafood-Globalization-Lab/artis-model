@@ -72,6 +72,7 @@ cli::cli_h1("🏃🏾‍➡️ Running {.file 02-artis-pipeline.R}")
 #   )
 #}
 
+outdir_quadprog_hs <- file.path(outdir_quadprog, paste0("HS", hs_version_run))
 
 # Depending on the HS version and year, some mass balance problems were not
 # solved by the quadprog solver. This function goes through all years for a
@@ -81,23 +82,22 @@ cli::cli_h1("Starting HS{hs_version_run} {.fn get_no_solve_countries} at {Sys.ti
 
 if (run_env == "aws") {
   no_solve_countries <- get_no_solve_countries(
-    snet_dir = outdir_quadprog,
-    artis_run_date_no_dash = start_date,
+    quadprog_HS_dir = outdir_quadprog_hs,
+    artis_run_date = start_date,
     run_env = "aws",
     s3_bucket_name = artis_bucket,
     s3_region = artis_bucket_region
   )
 } else {
   no_solve_countries <- get_no_solve_countries(
-    snet_dir = outdir_quadprog,
-    artis_run_date_no_dash = start_date,
+    quadprog_HS_dir = outdir_quadprog_hs,
+    artis_run_date = start_date,
     run_env = "demo"
   )
 }
 
 # Lists any combination country, year, HS version combination, where no solution
 # to the mass balance problem was solved.
-outdir_quadprog_hs <- file.path(outdir_quadprog, paste0("HS", hs_version_run))
 if (!dir.exists(outdir_quadprog_hs)) { dir.create(outdir_quadprog_hs) }
 quadprog_no_solve_fp <- file.path(outdir_quadprog_hs, "no_solve_countries.csv")
 write.csv(no_solve_countries, quadprog_no_solve_fp, row.names = FALSE)
