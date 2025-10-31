@@ -34,11 +34,12 @@ library(glue)
 ```{r load-data}
 hs_version  <- params$hs_version
 single_year <- params$single_year
-artis_v <- "v2.0"
+artis_v <- "v2.1.1"
+prod_type <- "SAU"
 
-inputs_dir <- file.path("/Users/theamarks/Documents/UW-SAFS/ARTIS/data/model_inputs_2.0_FAO")
-db_folder <- file.path("/Users/theamarks/Documents/UW-SAFS/ARTIS/data/outputs_2.0_FAO")
-attribute_dir <- file.path(db_folder, "sql_database")
+inputs_dir <- file.path("/Users/theamarks/Documents/UW-SAFS/ARTIS/data/model_inputs_2.1.1_SAU")
+db_folder <- file.path("/Users/theamarks/Documents/UW-SAFS/ARTIS/data/outputs_2.1.1_SAU_2025-10-28")
+attribute_dir <- file.path(db_folder, "attribute_tables")
 hs_year_dir <- file.path(db_folder, "snet", hs_version, single_year)
 
 # Look for trade file
@@ -55,14 +56,19 @@ consump_fp <- list.files(hs_year_dir, pattern = pattern, full.names = TRUE)
 # read in consumption
 consump_data <- qs2::qd_read(consump_fp)
 
-# read in attribute tables
-prod <- fread(file.path(attribute_dir, "prod.csv"), data.table = FALSE)
+# read in attribute tables 
+if(prod_type == "SAU"){
+  prod <- fread(file.path(attribute_dir, "prod_sau.csv"), data.table = FALSE)
+} else(
+  prod <- fread(file.path(attribute_dir, "prod.csv"), data.table = FALSE)
+)
+
 prod <- prod %>%
   filter(year == as.numeric(single_year))
 
 baci_fp <- glue("standardized_baci_seafood_{tolower(hs_version)}_y{single_year}.csv")
 baci <- fread(file.path(inputs_dir, baci_fp), data.table = FALSE)
-sciname <- fread(file.path(attribute_dir, "sciname.csv"), data.table = FALSE)
+sciname <- fread(file.path(attribute_dir, "sciname_attribute.csv"), data.table = FALSE)
 code_max_resolved_taxa <- fread(file.path(inputs_dir, "code_max_resolved_taxa.csv"), data.table = FALSE)
 
 # Set parameters
@@ -106,13 +112,13 @@ When grouped by year, exporter, importer and HS code, ARTIS trade data should ge
 
 ```{r compare with baci}
 # Filter BACI down to the hs codes appearing in ARTIS for a given HS version
+# this replaces initial baci dataframe read in with this filtered version
 baci <- trade_hs_summary %>%
   ungroup() %>%
   select(hs_version, hs6) %>%
   distinct() %>%
   mutate(hs6 = as.numeric(hs6)) %>%
   left_join(baci %>% filter(year == as.numeric(single_year)), by = c("hs_version", "hs6"))
-  
 
 # Join BACI and ARTIS trade to calculate product volume total differences
 # by hs version, year, exporter, importer and hs6 code

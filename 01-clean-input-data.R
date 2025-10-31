@@ -844,3 +844,35 @@ build_attr_products(
   outdir_attribute = outdir_attribute, 
   hs_raw_file = "All_HS_Codes.csv")
   
+
+## Prod -------------------------------------------------------------------
+
+# Cleaning FAO Production data for database
+
+prod <- read.csv(file.path(datadir, "standardized_fao_prod.csv"))
+
+# Filtering down to relevant columns (no duplicates with other tables)
+prod <- prod %>%
+  select(c(country_iso3_alpha, SciName, prod_method, habitat, quantity, year)) %>%
+  rename(
+    iso3c = country_iso3_alpha,
+    sciname = SciName,
+    method = prod_method,
+    live_weight_t = quantity
+  )
+
+# Writing out results
+write.csv(prod, file.path(outdir_attribute, "prod.csv"), row.names=FALSE)
+
+# clean SAU prod
+prod_sau <- read.csv(file.path(datadir, "standardized_combined_prod.csv"))
+
+prod_sau <- prod_sau %>%
+  select(c(country_iso3_alpha, SciName, prod_method, habitat, quantity, year)) %>%
+  rename(
+    iso3c = country_iso3_alpha,
+    sciname = SciName,
+    method = prod_method,
+    live_weight_t = quantity
+  )
+write.csv(prod_sau, file.path(outdir_attribute, "prod_sau.csv"), row.names=FALSE)

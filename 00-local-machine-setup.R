@@ -20,7 +20,7 @@ cli::cli_h3("Local data path: {.file {local_data_path}}")
 datadir_raw <- file.path(local_data_path, glue::glue("model_inputs_raw_{artis_version}"))
 # Directory for inputs to create the ARTIS database
 datadir <- file.path(local_data_path, glue::glue("model_inputs_{artis_version}_{prod_data_type}"))
-outdir <- file.path(local_data_path, glue::glue("outputs_{artis_version}_{prod_data_type}"))
+outdir <- file.path(local_data_path, glue::glue("outputs_{artis_version}_{prod_data_type}_2025-10-28"))
 
 # FIXIT - declare raw FAO prod file name here instead of in 01-clean-model-inputs.R? Would this work if swithc
 # to YAML config?
