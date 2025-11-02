@@ -1020,6 +1020,7 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
             "solver_type",
             "analysis_info",
             analysis_info,
+            "start_time",
             # Keep S3 helpers available for the next loop iteration
             "s3_clear_prefix",
             "s3_list_keys"

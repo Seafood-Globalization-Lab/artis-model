@@ -38,7 +38,7 @@ artis_v <- "v2.1.1"
 prod_type <- "SAU"
 
 inputs_dir <- file.path("/Users/theamarks/Documents/UW-SAFS/ARTIS/data/model_inputs_2.1.1_SAU")
-db_folder <- file.path("/Users/theamarks/Documents/UW-SAFS/ARTIS/data/outputs_2.1.1_SAU_2025-10-28")
+db_folder <- file.path("/Users/theamarks/Documents/UW-SAFS/ARTIS/data/outputs_2.1.1_SAU")
 attribute_dir <- file.path(db_folder, "attribute_tables")
 hs_year_dir <- file.path(db_folder, "snet", hs_version, single_year)
 
