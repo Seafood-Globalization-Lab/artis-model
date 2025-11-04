@@ -4,6 +4,16 @@ All notable changes to **artis-model** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## \[1.2.0\] – 2025-11-04
+
+### Added
+
+-   **Fishmeal Preference updated with Industry Reports and Grey Lit**
+    -  Added fishmeal priority species into `get_fmfo_species.R` function from Industry reports compiled from Clawson et al. (unpublished).
+    -  Added fishmeal priority species into `get_fmfo_species.R` function from grey literature.
+    -  Excluded prepared or preserved product codes from entering fishmeal codes in `match_hs_to_hs.R`.
+    -  Adjusted `calculate_consumption.R` `domestic_exports` by `hs6` and `species`. 
+
 ## \[1.1.0\] – 2025-08-13
 
 ### Added
