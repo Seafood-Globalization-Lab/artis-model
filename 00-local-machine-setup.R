@@ -19,7 +19,7 @@ library(glue)
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()
-artis_version <- "v1.1.0"
+artis_version <- "v1.2.0"
 
 # Input data directory paths --------------------------------------------------
 datadir_raw <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw"
@@ -30,7 +30,7 @@ tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
 
 # Model output directory paths --------------------------------------------
 # Directory where ARTIS database will be generated
-outdir <- "~/Documents/UW-SAFS/ARTIS/data/outputs_1.1.0_FAO_2025-08-02"
+outdir <- "~/Documents/UW-SAFS/ARTIS/data/outputs_1.2.0_SAU_2025-11-04"
 # Path for sub folder within outputs that will contain all country-level solutions
 # to mass balance equation, solved using the python solver "quadprog"
 outdir_quadprog <- file.path(outdir, "quadprog_snet")
@@ -47,23 +47,23 @@ outdir_sql <- file.path(outdir, "sql_database")
 
 # 01-clean-model-inputs parameters --------------------------------
 # Model Mode for 01-clean-model-inputs - TRUE fo#r SAU; FALSE for FAO
-running_sau <- FALSE
+running_sau <- TRUE
 ## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
 need_new_fb_slb <- FALSE
 # List of possible HS versions: HS96, HS02, HS12, HS17
-HS_year <- c("96", "02", "07", "12", "17")
-#HS_year <- c("12")
+#HS_year <- c("96", "02", "07", "12", "17")
+HS_year <- c("96")
 # AM - I think this is leftover code - can set HS year and year for running tests
 test <- FALSE
 test_year <- c()
 
 # 02-artis-pipeline parameters ------------------------------------
 # set years to run - empty if all years [c()]
-test_years <- c() 
+test_years <- c(1996) 
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
 # Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
-prod_data_type <- "FAO"
+prod_data_type <- "SAU"
 dev_mode <- FALSE
 
 # hs_version_run is set in 02-artis-pipeline because of current `artis-hpc` setup

@@ -1,6 +1,6 @@
 Package: artis
 Title: Aquatic Resource Trade in Species (ARTIS) Model
-Version: 1.1.0
+Version: 1.2.0
 Date: 2024-05-08
 Authors@R: c(
     person("Jessica", "Gephart", , "gephart@uw.edu", role = c("aut", "cre", "cph", "fnd")),
@@ -40,7 +40,10 @@ Imports:
     tibble,
     tidyr,
     qs2,
-    duckdb
+    aws.s3
+Suggests:
+    duckdb,
+    DBI
 Encoding: UTF-8
 LazyData: true
 LicenseFile: LICENSE
