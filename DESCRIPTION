@@ -40,10 +40,10 @@ Imports:
     tibble,
     tidyr,
     qs2,
-    aws.s3
-Suggests:
-    duckdb,
+    aws.s3,
     DBI
+Suggests:
+    duckdb
 Encoding: UTF-8
 LazyData: true
 LicenseFile: LICENSE
