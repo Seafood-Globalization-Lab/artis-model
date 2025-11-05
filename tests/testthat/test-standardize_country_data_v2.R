@@ -3,7 +3,7 @@
 # })
 
 
-df <- standardize_country_data_v2()
+df <- standardize_country_data()
 
 # 2. Test for Correct Year Mapping
 test_that("Year column has no missing values and is valid", {
