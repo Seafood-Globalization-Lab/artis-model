@@ -14,6 +14,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
     -  Excluded prepared or preserved product codes from entering fishmeal codes in `match_hs_to_hs.R`.
     -  Adjusted `calculate_consumption.R` `domestic_exports` by `hs6` and `species`. 
 
+### Changed
+
+-  **AWS s3 R API Interfacing**:
+    -  Adjsuted `aws.s3::put_object()` calls to explicity use `file` argument to avoid deprecation warnings.
+
+### Removed
+
 ## \[1.1.0\] – 2025-08-13
 
 ### Added
