@@ -3,24 +3,59 @@
 #' This function standardizes country English names and ISO3c codes to ARTIS
 #' specifications. Add more 
 #' 
-#' @param df dataframe.
-#' @param country_id character string.
-#' @param col_name character string. Check that "charater string" is valid
-#' 
+#' @param data dataframe. Input dataframe that will get country standardized
+#' @param country_id_type character. Denote whether to standardize based on 
+#' either the input data's country name column or iso3c column
+#' @param country_col_name character. Name of the input country col name to be joined to standardization data
+#' @param year_col_name character. Name of the year col name to be joined to standardization data
 #' @return a dataframe with standardized country name and iso3c columns. 
+#' @importFrom countrycode countrycode
 #' @export
 #'
 standardize_countries_draft <- function(
-  df,
-  country_id = c("name_en", "iso3c"),
-  col_name = ""
+  data,
+  country_id_type = c("name_en", "iso3c"),
+  country_col_name = "",
+  year_col_name = ""
 ) {
 
   # get dataframe with country corrections
   corrections_df <- artis::standardize_country_data()
 
-    std_df <- df %>% 
-      left_join(corrections_df, by = "country_name_en")
+  # Set up join by naming to match input data column names to the standardization column names
+  # by_cols <- setNames(c("iso3c", "year"), c(country_col_name, year_col_name))
+    
+  # Join input data to standardization data
+    if (country_id_type == "name_en") {
+      by_cols <- setNames(c("country_name", "year"), c(country_col_name, year_col_name))
+      
+      std_df <- data %>% 
+        left_join(corrections_df, by = by_cols) %>% 
+        mutate(artis_iso3c = case_when(is.na(artis_iso3c) ~ 
+                                         countrycode(!!sym(country_col_name),
+                                                     origin = "country.name",
+                                                     destination = "iso3c"),
+                                       .default = artis_iso3c), # If already a country that ARTIS did not correct, add in regular country
+               artis_country_name = case_when(is.na(artis_country_name) ~ 
+                                                countrycode(!!sym(country_col_name),
+                                                          origin = "iso3c",
+                                                          destination = "country.name"),
+                                              .default = artis_country_name)) %>%
+        select(-iso3c)
+    } else {
+      by_cols <- setNames(c("iso3c", "year"), c(country_col_name, year_col_name))
+      std_df <- data %>% 
+        left_join(corrections_df, by = by_cols) %>% # If already a country that ARTIS did not correct, add in regular country
+        mutate(artis_iso3c = case_when(is.na(artis_iso3c) ~ !!sym(country_col_name),
+                                       .default = artis_iso3c),
+               artis_country_name = case_when(is.na(artis_country_name) ~
+                                                countrycode(!!sym(country_col_name), 
+                                                            origin = "iso3c",
+                                                            destination = 'country.name'),
+                                              .default = artis_country_name)) %>%
+        select(-country_name)
+    }
+  
 
 
   # add conditional here for prod type. SAU needs additional column cleaning 
@@ -33,6 +68,14 @@ standardize_countries_draft <- function(
     #                                         origin = 'country.name', 
     #                                         destination = 'iso3c'))
 
+  # my_function <- function(data, country_col_name = "country_name_en") {
+  #   result <- data |>
+  #     group_by(.data[[country_col_name]]) |>
+  #     summarize(count = n())
+  #   
+  #   return(result)
+  # }
+  
 return(std_df)
 
 }
