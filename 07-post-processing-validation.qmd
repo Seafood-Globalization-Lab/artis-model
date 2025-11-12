@@ -1,21 +1,21 @@
 ---
-title: "07-post-processing-validation"
+title: "ARTIS v1.2.0 Data Validation"
 author: "Jessica Gephart"
-date: "2025-06-26"
+date: "Compiled on `r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 ---
 
 # Overview
 
-The Aquatic Resource Trade in Species (ARTIS) model generates two primary outputs: the taxa disaggregated trade record file and the taxa disaggregated consumption file. The trade file represents a disaggregation of reported trade records, which reflect individual trade transactions such that a product flowing from country A to country B and then to country C would be represented as two trade records/observations (A exporting to B and B exporting to C). Meanwhile, the apparent consumption file represents a linear flow of products wherein the the ARTIS trade file is used with aligned production data to calculate apparent consumption based on a "disappearance" model of products. Aquatic resources imported for consumption are disaggregated into taxa, production methods, and exporter/source country.
+The Aquatic Resource Trade in Species (ARTIS) model generates two primary outputs: the taxa disaggregated `trade` record file and the taxa disaggregated `consumption` file. The `trade` file represents a disaggregation of reported trade records, which reflect individual trade transactions such that a product flowing from country A to country B and then to country C would be represented as two trade records/observations (A exporting to B and B exporting to C). Meanwhile, the apparent `consumption` file represents a linear flow of products wherein the the ARTIS trade file is used with aligned production data to calculate apparent consumption based on a "disappearance" model of products. Aquatic resources imported for consumption are disaggregated into taxa, production methods, and exporter/source country.
 
-In addition to the trade and consumption files, we output several additional files that users may find useful:
+In addition to the `trade` and `consumption` files, we output several additional files that users may find useful:
 
--   prod.csv - this file represents the production data used within the ARTIS model, ensuring that the principle of mass-balance is maintained. All taxa names and country boundaries have been standardized to align with ARTIS. This can join ARTIS trade or consumption by year, source_country_iso3c and sciname.
--   baci.csv - this file represents the trade data in terms of hs product codes used within the ARTIS model. This file is primarily useful within this validation script to confirm that all trade in ARTIS adds back up to the input trade values. This can join ARTIS trade by hs_version, year, importer, exporter, hs6 after ARTIS trade has been summarized by those columns.
--   sciname_metadata.csv - this file includes taxonomic information, common names, and standard taxa groups that are often useful for exploring and presenting the data. This can join ARTIS trade or consumption by sciname or sciname_max_resolved.
--   code_max_resolved_taxa.csv - this file can be joined to ARTIS to add more specific taxa names when the taxonomic resolution of a code is finer than the information from the production data (e.g., actinopterygii within a code where all species belong to thunnus). This can join ARTIS trade by hs_version, hs6, and sciname. Note that sciname_max_resolved will not add back up to the production data when grouped by source country.
--   products.csv - this file includes the hs code descriptions and it can be joined to ARTIS trade data by hs_version and hs6
+-   `prod.csv` - this file represents the production data used within the ARTIS model, ensuring that the principle of mass-balance is maintained. All taxa names and country boundaries have been standardized to align with ARTIS. This can join ARTIS `trade` or `consumption` by `year`, `source_country_iso3c` and `sciname`.
+-   `baci.csv` - this file represents the trade data in terms of hs product codes used within the ARTIS model. This file is primarily useful within this validation script to confirm that all trade in ARTIS adds back up to the input trade values. This can join ARTIS `trade` by `hs_version`, `year`, `importer`, `exporter`, `hs6` after ARTIS trade has been summarized by those columns.
+-   `sciname_metadata.csv` - this file includes taxonomic information, common names, and standard taxa groups that are often useful for exploring and presenting the data. This can join ARTIS `trade` or `consumption` by `sciname` or `sciname_max_resolved`.
+-   `code_max_resolved_taxa.csv` - this file can be joined to ARTIS to add more specific taxa names when the taxonomic resolution of a code is finer than the information from the production data (e.g., `"actinopterygii"` within a code where all species belong to thunnus). This can join ARTIS `trade` by `hs_version`, `hs6`, and `sciname`. Note that `sciname_max_resolved` will not add back up to the production data when grouped by source country.
+-   `products.csv` - this file includes the hs code descriptions and it can be joined to ARTIS `trade` data by `hs_version` and `hs6`
 
 For more on the data tables and their columns see the [ARTIS wiki](https://github.com/Seafood-Globalization-Lab/artis-model/wiki/ARTIS-Database-Tables) and for more on the ARTIS model, see the [ARTIS manual](https://seafood-globalization-lab.github.io/artis-manual/)
 
@@ -33,11 +33,13 @@ library(exploreARTIS)
 
 ```{r load data}
 # Set database folder location
-db_folder <- "/Users/gephart/Library/CloudStorage/Dropbox/Research/ARTIS/ARITS_1.1.0_FAO_2025_08_02/"
+#db_folder <- "/Users/gephart/Library/CloudStorage/Dropbox/Research/ARTIS/ARITS_1.1.0_FAO_2025_08_02/"
+db_folder <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data/outputs_1.2.0_SAU_2025-11-10"
 
 # load ARTIS data set
 # point to the dataset folder
-artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_trade_v1.1.0_FAO_mid_2025-08-02.parquet"))
+#artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_trade_v1.2.0_SAU_mid_2025-11-12.parquet"))
+artis_ds <- arrow::open_dataset(file.path(db_folder, "outputs_combined", "ARTIS_v1.2.0_trade_SAU_mid_all_HS_yrs_2025-11-12.parquet"))
 
 # custom timeseries filter - result "artis_ts_result" is NOT in-memory
 # this is a "Predicate Pushdown" or "On-disk filtering" method. 
@@ -48,7 +50,7 @@ artis_ts_result <- artis_ds %>%
     (hs_version == "HS96" & year <= 2003) |
       (hs_version == "HS02" & year >= 2004 & year <= 2009) |
       (hs_version == "HS07" & year >= 2010 & year <= 2012) |
-      (hs_version == "HS12" & year >= 2013 & year <= 2020)
+      (hs_version == "HS12" & year >= 2013 & year <= 2019)
   ) # %>% Can add more data filtering
 
 # Bring the results into R memory by adding "collect()" at the end of the pipe
@@ -65,7 +67,8 @@ artis_hs_summary <- artis_hs_summary %>%
 
 # load consumption data set
 # # point to the dataset folder
-artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_consumption_v1.1.0_FAO_mid_2025-08-02.parquet"))
+#artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_consumption_v1.2.0_SAU_mid_2025-11-12.parquet"))
+artis_ds <- arrow::open_dataset(file.path(db_folder, "outputs_combined", "ARTIS_v1.2.0_consumption_SAU_mid_all_HS_yrs_2025-11-12.parquet"))
 
 # Summarize consumption file by source country
 artis_ts_result <- artis_ds %>%
@@ -73,7 +76,7 @@ artis_ts_result <- artis_ds %>%
     (hs_version == "HS96" & year <= 2003) |
       (hs_version == "HS02" & year >= 2004 & year <= 2009) |
       (hs_version == "HS07" & year >= 2010 & year <= 2012) |
-      (hs_version == "HS12" & year >= 2013 & year <= 2020)
+      (hs_version == "HS12" & year >= 2013 & year <= 2019)
   ) %>%
   group_by(year, source_country_iso3c, sciname, habitat, method) %>%
   summarise(consumption_live_t = sum(consumption_live_t, na.rm = TRUE))
@@ -88,7 +91,7 @@ artis_ts_result <- artis_ds %>%
     (hs_version == "HS96" & year <= 2003) |
       (hs_version == "HS02" & year >= 2004 & year <= 2009) |
       (hs_version == "HS07" & year >= 2010 & year <= 2012) |
-      (hs_version == "HS12" & year >= 2013 & year <= 2020)
+      (hs_version == "HS12" & year >= 2013 & year <= 2019)
   ) %>%
   group_by(year, consumer_iso3c, sciname, habitat, method, 
            consumption_source) %>%
@@ -106,7 +109,7 @@ artis_ts_result <- artis_ds %>%
     (hs_version == "HS96" & year <= 2003) |
       (hs_version == "HS02" & year >= 2004 & year <= 2009) |
       (hs_version == "HS07" & year >= 2010 & year <= 2012) |
-      (hs_version == "HS12" & year >= 2013 & year <= 2020)
+      (hs_version == "HS12" & year >= 2013 & year <= 2019)
   ) %>%
   group_by(year, source_country_iso3c, sciname) %>%
   summarise(consumption_live_t = sum(consumption_live_t)) %>%
@@ -116,10 +119,11 @@ foreign_consumption_totals <- artis_ts_result %>%
   collect()
 
 # Load attribute tables
-prod <- fread(file.path(db_folder, "attribute-tables", "prod.csv"))
-baci <- fread(file.path(db_folder, "attribute-tables", "baci.csv")) 
-sciname <- fread(file.path(db_folder, "attribute-tables", "sciname_metadata.csv"))
-code_max_resolved_taxa <- fread(file.path(db_folder, "attribute-tables", "code_max_resolved_taxa.csv"))
+#prod <- fread(file.path(db_folder, "attribute_tables", "prod.csv"))
+prod <- fread(file.path(db_folder, "attribute_tables", "prod_sau.csv"))
+baci <- fread(file.path(db_folder, "attribute_tables", "baci.csv")) 
+sciname <- fread(file.path(db_folder, "attribute_tables", "sciname_metadata.csv"))
+code_max_resolved_taxa <- fread(file.path(db_folder, "attribute_tables", "code_max_resolved_taxa.csv"))
 
 # Set parameters
 max_year <- max(artis_ts_df$year)
@@ -129,7 +133,7 @@ max_year <- max(artis_ts_df$year)
 
 ## Compare ARTIS trade with BACI
 
-When grouped by year, exporter, importer and HS code, ARTIS trade data should generally sum to BACI in terms of product weight. Volumes are expected to be slightly lower in ARTIS trade data than BACI due to small values dropped within the ARTIS model.
+When grouped by `year`, `exporter`, `importer` and `HS code`, ARTIS `trade` data should generally sum to `BACI` in terms of product weight. Volumes are expected to be slightly lower in ARTIS `trade` data than `BACI` due to small values dropped within the ARTIS model.
 
 ```{r compare with baci}
 # Filter BACI down to the hs codes appearing in ARTIS for a given HS version
