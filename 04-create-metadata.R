@@ -22,7 +22,7 @@ if (!dir.exists(outdir_attribute)) { dir.create(outdir_attribute) }
 # Load production data
 prod <- fread(file.path(datadir, "clean_fao_prod.csv"))
 prod <- prod %>%
-  rename(sciname = SciName, common_name = CommonName,
+  rename(sciname = SciName, #common_name = CommonName,
          method = prod_method)
 
 # Load cleaned taxa details

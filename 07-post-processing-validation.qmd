@@ -2,7 +2,9 @@
 title: "ARTIS v1.2.0 Data Validation"
 author: "Jessica Gephart"
 date: "Compiled on `r format(Sys.time(), '%d %B, %Y')`"
-output: html_document
+format:
+  html:
+    embed-resources: true
 ---
 
 # Overview
@@ -39,7 +41,11 @@ db_folder <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data/outputs_1.2.0_SAU_20
 # load ARTIS data set
 # point to the dataset folder
 #artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_trade_v1.2.0_SAU_mid_2025-11-12.parquet"))
-artis_ds <- arrow::open_dataset(file.path(db_folder, "outputs_combined", "ARTIS_v1.2.0_trade_SAU_mid_all_HS_yrs_2025-11-12.parquet"))
+artis_ds <- arrow::open_dataset(
+    file.path(
+        db_folder, 
+        "outputs_combined", 
+        "ARTIS_v1.2.0_trade_SAU_mid_all_HS_yrs_2025-11-12.parquet"))
 
 # custom timeseries filter - result "artis_ts_result" is NOT in-memory
 # this is a "Predicate Pushdown" or "On-disk filtering" method. 
@@ -60,15 +66,17 @@ artis_ts_df <- artis_ts_result %>%
 # create table to compare with baci
 artis_hs_summary <- artis_ds %>%
   group_by(hs_version, year, exporter_iso3c, importer_iso3c, hs6) %>%
-  summarise(product_weight_t = sum(product_weight_t, na.rm = TRUE))
-
-artis_hs_summary <- artis_hs_summary %>%
+  summarise(product_weight_t = sum(product_weight_t, na.rm = TRUE)) %>%
   collect() 
 
 # load consumption data set
 # # point to the dataset folder
 #artis_ds <- arrow::open_dataset(file.path(db_folder, "datasets", "ARTIS_consumption_v1.2.0_SAU_mid_2025-11-12.parquet"))
-artis_ds <- arrow::open_dataset(file.path(db_folder, "outputs_combined", "ARTIS_v1.2.0_consumption_SAU_mid_all_HS_yrs_2025-11-12.parquet"))
+artis_ds <- arrow::open_dataset(
+    file.path(
+        db_folder, 
+        "outputs_combined", 
+        "ARTIS_v1.2.0_consumption_SAU_mid_all_HS_yrs_2025-11-12.parquet"))
 
 # Summarize consumption file by source country
 artis_ts_result <- artis_ds %>%
@@ -127,6 +135,9 @@ code_max_resolved_taxa <- fread(file.path(db_folder, "attribute_tables", "code_m
 
 # Set parameters
 max_year <- max(artis_ts_df$year)
+
+## FIXTIT
+# Add some basic HS / year validation tests here. Do values fit into expected ranges?
 ```
 
 # QA testing
@@ -142,7 +153,9 @@ baci <- artis_hs_summary %>%
   select(hs_version, hs6) %>%
   distinct() %>%
   mutate(hs6 = as.numeric(hs6)) %>%
-  left_join(baci, by = c("hs_version", "hs6"))
+  left_join(baci, by = c("hs_version", "hs6")) %>% 
+  # ensure baci years align with artis
+  filter(year <= max_year)
 
 # Join BACI and ARTIS trade to calculate product volume total differences
 # by hs version, year, exporter, importer and hs6 code

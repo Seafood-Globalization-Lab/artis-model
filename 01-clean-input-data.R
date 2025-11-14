@@ -86,9 +86,12 @@ prod_data <- prod_data_raw %>%
                                  TRUE ~ fao_habitat)) %>% # ELSE, use FAO's habitat designation, including for all non species-level data
   # UPDATE taxa source to match structure in get country solutions
   mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_")) %>%
-  group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en) %>%
+  group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en, isscaap_group) %>%
   summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
   ungroup()
+
+  # SAVE PRODUCTION OUTPUT:
+  write.csv(prod_data, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
 
 # Changing class name based on FAO 2022 species list
 # some sources call actinopterygii a class others call it a superclass (might need to change with osteichthyes instead)
@@ -108,12 +111,12 @@ if (test) {
     filter(SciName %in% test_scinames)
 }
 
-# SAVE PRODUCTION OUTPUT:
-#write.csv(prod_data, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
 write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)
 
 prod_data <- standardize_countries(df = prod_data, 
-                                   data_source = "FAO")
+                                   data_source = "FAO") %>% 
+  group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en)
+
 write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod.csv"), row.names = FALSE)
 
 rm(prod_list)
@@ -146,8 +149,8 @@ prod_data_sau <- prod_data_sau %>%
 rm(prod_list_sau)
 
 # FIXIT: check if this data gets read back in - may be able to remove if not
-# write.csv(prod_data_sau, file.path(datadir, "clean_sau_prod.csv"), 
-#           row.names = FALSE)
+write.csv(prod_data_sau, file.path(datadir, "clean_sau_prod.csv"), 
+           row.names = FALSE)
  write.csv(prod_classification_sau, file.path(datadir, "clean_sau_taxa.csv"), 
            row.names = FALSE)
 
