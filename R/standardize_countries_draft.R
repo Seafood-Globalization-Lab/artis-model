@@ -25,34 +25,51 @@ standardize_countries_draft <- function(
   # Set up join by naming to match input data column names to the standardization column names
   # by_cols <- setNames(c("iso3c", "year"), c(country_col_name, year_col_name))
     
-  # Join input data to standardization data
+  # Join input data to standardization data frame based on country_id_type
     if (country_id_type == "name_en") {
+
+      # set up join by naming to match input data column names to the standardization column names
       by_cols <- setNames(c("country_name", "year"), c(country_col_name, year_col_name))
       
       std_df <- data %>% 
+        # Join to ARTIS corrections table
         left_join(corrections_df, by = by_cols) %>% 
+        # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
+        # pull values from given country column
         mutate(artis_iso3c = case_when(is.na(artis_iso3c) ~ 
                                          countrycode(!!sym(country_col_name),
                                                      origin = "country.name",
                                                      destination = "iso3c"),
-                                       .default = artis_iso3c), # If already a country that ARTIS did not correct, add in regular country
+                                       .default = artis_iso3c), 
+              # If already a country that ARTIS did not correct, add in regular country
                artis_country_name = case_when(is.na(artis_country_name) ~ 
                                                 countrycode(!!sym(country_col_name),
-                                                          origin = "iso3c",
+                                                          origin = "country.name",
                                                           destination = "country.name"),
                                               .default = artis_country_name)) %>%
+        # Remove original country iso3c column if it exists
         select(-iso3c)
-    } else {
+    } 
+    else if (country_id_type == "iso3c") {
+      # set up join by naming to match input data column names to the standardization column names
       by_cols <- setNames(c("iso3c", "year"), c(country_col_name, year_col_name))
+      # Join input data to standardization data frame based on iso3c
       std_df <- data %>% 
-        left_join(corrections_df, by = by_cols) %>% # If already a country that ARTIS did not correct, add in regular country
-        mutate(artis_iso3c = case_when(is.na(artis_iso3c) ~ !!sym(country_col_name),
+        # Join to ARTIS corrections table
+        left_join(corrections_df, by = by_cols) %>% 
+        # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
+        # pull values from given country column
+        mutate(artis_iso3c = case_when(is.na(artis_iso3c) ~ 
+                                          countrycode(!!sym(country_col_name),
+                                                      origin = "iso3c",
+                                                      destination = "iso3c"),
                                        .default = artis_iso3c),
                artis_country_name = case_when(is.na(artis_country_name) ~
                                                 countrycode(!!sym(country_col_name), 
                                                             origin = "iso3c",
                                                             destination = 'country.name'),
                                               .default = artis_country_name)) %>%
+        # Remove original country name column if it exists
         select(-country_name)
     }
   
