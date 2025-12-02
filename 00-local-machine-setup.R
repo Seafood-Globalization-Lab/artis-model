@@ -22,15 +22,15 @@ start_date <- Sys.Date()
 artis_version <- "v1.2.0"
 
 # Input data directory paths --------------------------------------------------
-datadir_raw <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw_1.2.0_FAO"
+datadir_raw <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw_1.2.0_SAU"
 # Directory for inputs to create the ARTIS database
-datadir <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_1.2.0_FAO"
+datadir <- "~/Documents/UW-SAFS/ARTIS/data/model_inputs_1.2.0_SAU"
 baci_version <- "202201"
 tradedatadir <- paste("baci_raw/baci_", baci_version, sep = "")
 
 # Model output directory paths --------------------------------------------
 # Directory where ARTIS database will be generated
-outdir <- "~/Documents/UW-SAFS/ARTIS/data/outputs_1.2.0_FAO"
+outdir <- "~/Documents/UW-SAFS/ARTIS/data/outputs_1.2.0_SAU_2025-11-14"
 # Path for sub folder within outputs that will contain all country-level solutions
 # to mass balance equation, solved using the python solver "quadprog"
 outdir_quadprog <- file.path(outdir, "quadprog_snet")
@@ -47,7 +47,7 @@ outdir_sql <- file.path(outdir, "sql_database")
 
 # 01-clean-model-inputs parameters --------------------------------
 # Model Mode for 01-clean-model-inputs - TRUE fo#r SAU; FALSE for FAO
-running_sau <- FALSE
+running_sau <- TRUE
 ## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
 need_new_fb_slb <- FALSE
 # List of possible HS versions: HS96, HS02, HS12, HS17
@@ -63,7 +63,7 @@ test_years <- c()
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
 # Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
-prod_data_type <- "FAO"
+prod_data_type <- "SAU"
 dev_mode <- FALSE
 
 # hs_version_run is set in 02-artis-pipeline because of current `artis-hpc` setup

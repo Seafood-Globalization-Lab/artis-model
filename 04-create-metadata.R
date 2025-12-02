@@ -26,10 +26,15 @@ prod <- prod %>%
          method = prod_method)
 
 # Load cleaned taxa details
-taxa <- fread(file.path(datadir, "clean_fao_taxa.csv")) %>%
-  rename(sciname = SciName, common_name = CommonName) %>%
-  distinct()
-
+if (prod_data_type == "FAO") {
+  taxa <- fread(file.path(datadir, "clean_fao_taxa.csv")) %>%
+    rename(sciname = SciName, common_name = CommonName) %>%
+    distinct()
+} elseif (prod_data_type == "SAU") {
+  taxa <- fread(file.path(datadir, "clean_taxa_combined.csv")) %>%
+    rename(sciname = SciName, common_name = CommonName) %>%
+    distinct()
+}
 
 # Load NCEAS group files
 #nceas_marine_capture <- read.csv(file.path(datadir_raw, "nceas_marine_capture_groups.csv"))
