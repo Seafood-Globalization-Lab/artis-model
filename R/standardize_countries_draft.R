@@ -36,27 +36,39 @@ standardize_countries_draft <- function(
         left_join(corrections_df, by = by_cols) %>% 
         # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
         # pull values from given country column
-        mutate(artis_iso3c = case_when(is.na(artis_iso3c) ~ 
-                                         countrycode(!!sym(country_col_name),
+        mutate(artis_iso3c = case_when(is.na(artis_iso3c) ~ countrycode(!!sym(country_col_name),
                                                      origin = "country.name",
                                                      destination = "iso3c"),
                                        .default = artis_iso3c), 
               # If already a country that ARTIS did not correct, add in regular country
-               artis_country_name = case_when(is.na(artis_country_name) ~ 
-                                                countrycode(!!sym(country_col_name),
+               artis_country_name = case_when(is.na(artis_country_name) ~ countrycode(!!sym(country_col_name),
                                                           origin = "country.name",
                                                           destination = "country.name"),
                                               .default = artis_country_name)) %>%
-        # Remove original country iso3c column if it exists
+        # Remove leftover corrections_df column
         select(-iso3c)
+      
+      # Get list of names that weren't standardized
+      list <- std_df %>%
+        filter(is.na(artis_country_name)) %>%
+        select(country_col_name) %>%
+        distinct() %>%
+        pull(country_col_name)
+      
     } 
     else if (country_id_type == "iso3c") {
+      
+      # filter out duplicate entires (i.e., multiple country names matched to the same input iso3c - we don't need these input country names since we will get an output country name)
+      corrections_df_iso3c <- corrections_df %>%
+        select(-country_name) %>%
+        distinct()
+      
       # set up join by naming to match input data column names to the standardization column names
       by_cols <- setNames(c("iso3c", "year"), c(country_col_name, year_col_name))
       # Join input data to standardization data frame based on iso3c
       std_df <- data %>% 
         # Join to ARTIS corrections table
-        left_join(corrections_df, by = by_cols) %>% 
+        left_join(corrections_df_iso3c, by = by_cols) %>% 
         # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
         # pull values from given country column
         mutate(artis_iso3c = case_when(is.na(artis_iso3c) ~ 
@@ -68,10 +80,24 @@ standardize_countries_draft <- function(
                                                 countrycode(!!sym(country_col_name), 
                                                             origin = "iso3c",
                                                             destination = 'country.name'),
-                                              .default = artis_country_name)) %>%
-        # Remove original country name column if it exists
-        select(-country_name)
+                                              .default = artis_country_name))
+      
+      # Get list of names that weren't standardized
+      list <- std_df %>%
+        filter(is.na(artis_iso3c)) %>%
+        select(country_col_name) %>%
+        distinct() %>%
+        pull(country_col_name)
     }
+  
+  
+# Only return a warning for unstandardized values if the list for which unstandardized values are reported is greater than 0  
+  if (!rlang::is_empty(list)) {
+    warning(paste0(
+      "List of names that weren't standardized by either the corrections dataframe or by countrycode: ",
+      dQuote(list)
+    ))
+  }
   
 
 

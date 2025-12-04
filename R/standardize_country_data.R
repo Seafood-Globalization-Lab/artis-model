@@ -87,6 +87,7 @@ standardize_country_data <- function(year_range = 1996:2023) {
   "TLS", "IDN", 1996, 2001,
   "TLS", "TLS", 2002, 2023,
   # Serbia and Montenegro split
+  "SCG", "SCG", 1996, 2005,
   "SRB", "SCG", 1996, 2005,
   "SRB", "SRB", 2006, 2023,
   "MNE", "SCG", 1996, 2005, 
