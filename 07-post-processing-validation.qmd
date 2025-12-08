@@ -5,7 +5,7 @@ date: "Compiled on `r format(Sys.time(), '%d %B, %Y')`"
 format:
   html:
     embed-resources: true
-    output-file: 07-ARTIS-validation_1.2.0_SAU_v5.html
+    output-file: 07-ARTIS-validation_1.2.0_SAU_v7_replace_prod_sau_att.html
 ---
 
 # Overview
@@ -141,6 +141,12 @@ foreign_consumption_totals <- artis_ts_result %>%
 # Load attribute tables
 if(prod_type == "SAU"){
   prod <- fread(file.path(db_folder, "attribute_tables", "prod_sau.csv"), data.table = FALSE)
+  # prod <- data.table::fread(
+  # file.path("/Users/theamarks/Documents/UW-SAFS/ARTIS/data/", "model_inputs_1.2.0_SAU", "standardized_combined_prod.csv")) %>% 
+  # rename(sciname = SciName,
+  #       source_country_iso3c = country_iso3_alpha,
+  #       method = prod_method,
+  #       live_weight_t = quantity)
 } else if (prod_type == "FAO"){
   prod <- fread(file.path(db_folder, "attribute_tables", "prod.csv"), data.table = FALSE)
 }
@@ -264,6 +270,7 @@ gc()
 ## Compare ARTIS with production
 
 ```{r compare ARTIS with production}
+
 # Confirm that domestic exports of a given species do not exceed production
 compare_trade_prod <- artis_ts_df %>%
   filter(dom_source == "domestic") %>%
@@ -275,7 +282,7 @@ compare_trade_prod <- artis_ts_df %>%
             by = c("year", "source_country_iso3c" = "iso3c", 
                    "sciname", "habitat", "method")) %>%
   mutate(diff = live_weight_t - trade_live_weight_t) %>%
-  filter(diff < -0.0001)
+  filter(diff < -0.0001) 
 
 # Confirm all production is consumed
 compare_consumption_prod <- consumption_by_producer %>%
