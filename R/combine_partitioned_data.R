@@ -12,7 +12,6 @@
 #' @param custom_timeseries Logical. If TRUE, adds "custom_ts" to output filename. FIXIT: add this functionality.
 #' @param verbose Logical. Print file names as they are added.
 #'
-#' @importFrom duckdb duckdb
 #' @importFrom DBI dbConnect dbExecute dbDisconnect dbExistsTable dbWriteTable
 #' @import glue
 #' @import qs2
@@ -59,7 +58,7 @@ combine_partitioned_data <- function(
     )
   }
   
-  con <- dbConnect(duckdb())
+  con <- dbConnect(duckdb::duckdb())
   dbExecute(con, "PRAGMA max_temp_directory_size='500GiB'")  # increase spill-to-disk limit
   on.exit(dbDisconnect(con), add = TRUE)
   

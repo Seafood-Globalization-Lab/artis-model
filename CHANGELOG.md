@@ -4,6 +4,25 @@ All notable changes to **artis-model** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## \[1.2.0\] – 2025-11-04
+
+### Added
+
+-   **Fishmeal Preference updated with Industry Reports and Grey Lit**
+    -  Added fishmeal priority species into `get_fmfo_species.R` function from Industry reports compiled from Clawson et al. (unpublished).
+    -  Added fishmeal priority species into `get_fmfo_species.R` function from grey literature.
+    -  Excluded prepared or preserved product codes from entering fishmeal codes in `match_hs_to_hs.R`.
+    -  Adjusted `calculate_consumption.R` `domestic_exports` by `hs6` and `species`. 
+
+### Changed
+
+-  **AWS s3 R API Interfacing**:
+    -  Adjsuted `aws.s3::put_object()` calls to explicity use `file` argument to avoid deprecation warnings.
+-  **Fixed Bug in Prod_sau Attribute table**
+    -  `prod_sau` attribute table was saving the fao prod file instead of the sau prod file. Fixed to save correct file.
+
+### Removed
+
 ## \[1.1.0\] – 2025-08-13
 
 ### Added

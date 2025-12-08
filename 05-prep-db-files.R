@@ -16,7 +16,13 @@ if (!dir.exists(outdir_sql)) { dir.create(outdir_sql) }
 
 countries_filename <- "countries.csv"
 hs_codes_filename <- "All_HS_Codes.csv"
-prod_filename <- "standardized_fao_prod.csv"
+
+# not used below
+# if (prod_data_type == "FAO") {
+#   prod_filename <- "standardized_fao_prod.csv"
+# } else if (prod_data_type == "SAU") {
+#   prod_filename <- "standardized_combined_prod.csv"
+# }
 
 #-------------------------------------------------------------------------------
 # Creating sciname table
@@ -186,7 +192,8 @@ prod_sau <- prod_sau %>%
     method = prod_method,
     live_weight_t = quantity
   )
-fwrite(prod, file.path(outdir_sql, "prod_sau.csv"), row.names=FALSE)
+fwrite(prod_sau, file.path(outdir_sql, "prod_sau.csv"), row.names=FALSE)
+
 #-------------------------------------------------------------------------------
 # Creating Country metadata table
 

@@ -20,3 +20,6 @@ man/*
 dev/*
 renv/*
 
+07-post-processing-validation_files/*
+*.html
+/.quarto/

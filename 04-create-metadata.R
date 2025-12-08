@@ -22,14 +22,19 @@ if (!dir.exists(outdir_attribute)) { dir.create(outdir_attribute) }
 # Load production data
 prod <- fread(file.path(datadir, "clean_fao_prod.csv"))
 prod <- prod %>%
-  rename(sciname = SciName, common_name = CommonName,
+  rename(sciname = SciName, #common_name = CommonName,
          method = prod_method)
 
 # Load cleaned taxa details
-taxa <- fread(file.path(datadir, "clean_fao_taxa.csv")) %>%
-  rename(sciname = SciName, common_name = CommonName) %>%
-  distinct()
-
+if (prod_data_type == "FAO") {
+  taxa <- fread(file.path(datadir, "clean_fao_taxa.csv")) %>%
+    rename(sciname = SciName, common_name = CommonName) %>%
+    distinct()
+} else if (prod_data_type == "SAU") {
+  taxa <- fread(file.path(datadir, "clean_taxa_combined.csv")) %>%
+    rename(sciname = SciName, common_name = CommonName) %>%
+    distinct()
+}
 
 # Load NCEAS group files
 #nceas_marine_capture <- read.csv(file.path(datadir_raw, "nceas_marine_capture_groups.csv"))
