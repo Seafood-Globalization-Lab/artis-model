@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 -  **AWS s3 R API Interfacing**:
     -  Adjsuted `aws.s3::put_object()` calls to explicity use `file` argument to avoid deprecation warnings.
+-  **Fixed Bug in Prod_sau Attribute table**
+    -  `prod_sau` attribute table was saving the fao prod file instead of the sau prod file. Fixed to save correct file.
 
 ### Removed
 

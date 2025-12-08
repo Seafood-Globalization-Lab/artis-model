@@ -30,7 +30,7 @@ if (prod_data_type == "FAO") {
   taxa <- fread(file.path(datadir, "clean_fao_taxa.csv")) %>%
     rename(sciname = SciName, common_name = CommonName) %>%
     distinct()
-} elseif (prod_data_type == "SAU") {
+} else if (prod_data_type == "SAU") {
   taxa <- fread(file.path(datadir, "clean_taxa_combined.csv")) %>%
     rename(sciname = SciName, common_name = CommonName) %>%
     distinct()
