@@ -32,6 +32,8 @@ standardize_countries_draft <- function(
       by_cols <- setNames(c("country_name", "year"), c(country_col_name, year_col_name))
       
       std_df <- data %>% 
+        # remove any trailing parenthetical phrase from string values
+        mutate(!!sym(country_col_name) := str_remove(!!sym(country_col_name), '\\(.+\\)$')) %>% 
         # Join to ARTIS corrections table
         left_join(corrections_df, by = by_cols) %>% 
         # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
@@ -65,8 +67,11 @@ standardize_countries_draft <- function(
       
       # set up join by naming to match input data column names to the standardization column names
       by_cols <- setNames(c("iso3c", "year"), c(country_col_name, year_col_name))
+
       # Join input data to standardization data frame based on iso3c
       std_df <- data %>% 
+        # remove any trailing parenthetical phrase from string values
+        mutate(!!sym(country_col_name) := str_remove(!!sym(country_col_name), '\\(.+\\)$')) %>%
         # Join to ARTIS corrections table
         left_join(corrections_df_iso3c, by = by_cols) %>% 
         # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
