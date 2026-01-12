@@ -10,7 +10,7 @@ library(stringr)
 library(data.table)
 
 # standardize_country_data.R is not formally part of artis package yet
-source("./R/standardize_country_data.R")
+#source("./R/standardize_country_data.R") - exported NAMESPACE 2026-01-12
 
 # Althea's read in files
 
