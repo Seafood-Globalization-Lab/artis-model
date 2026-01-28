@@ -13,7 +13,7 @@ standardize_country_data <- function(year_range = 1996:2023) {
 
    # --- TERRITORY TO Sovergn COUNTRY MAPPINGS ---
 
-  territory_mappings <- tribble(
+  territory_mappings <- tibble::tribble(
     ~iso3c, ~artis_iso3c,
     # US territories
     "ASM", "USA", 
@@ -77,11 +77,11 @@ standardize_country_data <- function(year_range = 1996:2023) {
     # Tanzania territory
     "EAZ", "TZA"
   ) %>% 
-  expand_grid(year = year_range)
+  tidyr::expand_grid(year = year_range)
   
   # --- TIME-DEPENDENT CORRECTIONS ---
 
-  time_dependent_corrections <- tribble(
+  time_dependent_corrections <- tibble::tribble(
   ~iso3c, ~artis_iso3c, ~start_year, ~end_year,
   # Timor Leste independence
   "TLS", "IDN", 1996, 2001,
@@ -105,11 +105,11 @@ standardize_country_data <- function(year_range = 1996:2023) {
   "SWZ", "ZA1", 1996, 1999,
   "SWZ", "SWZ", 2000, 2023
 ) |>
-expand_grid(year = year_range) |>
-filter(year >= start_year & year <= end_year) |>
-select(-start_year, -end_year)
+tidyr::expand_grid(year = year_range) |>
+dplyr::filter(year >= start_year & year <= end_year) |>
+dplyr::select(-start_year, -end_year)
   
-special_corrections <- tribble(
+special_corrections <- tibble:tribble(
   ~country_name,                     ~iso3c,    ~artis_iso3c,
   # Taiwan variants
   "Other Asia, nes",                 NA,        "TWN",
@@ -136,11 +136,11 @@ special_corrections <- tribble(
   "US Virgin Isl.",                  "VIR",     "USA",
   "Unknown Fishing Country",         "NEI",     "NEI"
 ) %>% 
-expand_grid(year = year_range)
+tidyr::expand_grid(year = year_range)
   
   # --- COMBINE ALL CORRECTIONS ---
   
-  all_corrections <- bind_rows(
+  all_corrections <- dplyr::bind_rows(
     # Standard territory mappings
     territory_mappings,
     # Time-dependent corrections  
@@ -150,19 +150,19 @@ expand_grid(year = year_range)
   ) %>% 
   
   # Fill in missing country names (preserve existing ones)
-  mutate(
-    country_name = case_when(
+  dplyr::mutate(
+    country_name = dplyr::case_when(
       # Keep existing country_name values
-      !is.na(country_name) ~ country_name,
+      !base::is.na(country_name) ~ country_name,
       # Fill missing ones from iso3c
-      !is.na(iso3c) ~ countrycode::countrycode(iso3c, "iso3c", "country.name", warn = FALSE),
+      !base::is.na(iso3c) ~ countrycode::countrycode(iso3c, "iso3c", "country.name", warn = FALSE),
       TRUE ~ country_name
     )
   ) %>% 
   
   # Generate artis_country_name (preserve any existing ones)
-  mutate(
-    artis_country_name = case_when(
+  dplyr::mutate(
+    artis_country_name = dplyr::case_when(
       # Special cases that don't use countrycode
       artis_iso3c == "NEI" ~ "Other nei",
       artis_iso3c == "SCG" ~ "Serbia and Montenegro",
@@ -174,8 +174,8 @@ expand_grid(year = year_range)
   ) %>% 
   
   # Handle special country name cases (preserve original values)
-  mutate(
-    country_name = case_when(
+    dplyr::mutate(
+    country_name = dplyr::case_when(
       iso3c == "ANT" ~ "Netherlands Antilles",
       iso3c == "EAZ" ~ "Zanzibar", 
       iso3c == "SCG" ~ "Serbia and Montenegro",
@@ -184,14 +184,14 @@ expand_grid(year = year_range)
     ),
     
     # Handle NEI cases for iso3c (only when missing)
-    iso3c = case_when(
-      is.na(iso3c) & artis_iso3c == "NEI" ~ "NEI",
+    iso3c = dplyr::case_when(
+      base::is.na(iso3c) & artis_iso3c == "NEI" ~ "NEI",
       TRUE ~ iso3c
     )
   ) %>% 
   
   # Select and arrange columns to match original output
-  select(
+    dplyr::select(
     country_name,
     iso3c, 
     year,
@@ -200,9 +200,9 @@ expand_grid(year = year_range)
   ) %>% 
   
   # Remove duplicates and filter out invalid rows
-  distinct() |>
-  filter(!is.na(year), !is.na(artis_iso3c)) |>
-  arrange(country_name, iso3c, year)
+  dplyr::distinct() %>%
+  dplyr::filter(!base::is.na(year), !base::is.na(artis_iso3c)) %>%
+  dplyr::arrange(country_name, iso3c, year)
   
   return(all_corrections)
   
