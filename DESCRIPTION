@@ -41,7 +41,6 @@ Imports:
     tidyr,
     qs2,
     duckdb,
-    rlang,
     stats
 Encoding: UTF-8
 LazyData: true
