@@ -41,7 +41,8 @@ Imports:
     tidyr,
     qs2,
     duckdb,
-    stats
+    stats,
+    DBI
 Encoding: UTF-8
 LazyData: true
 LicenseFile: LICENSE

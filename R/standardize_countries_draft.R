@@ -12,7 +12,6 @@
 #' @importFrom countrycode countrycode
 #' @importFrom stats setNames
 #' @importFrom stringr str_remove
-#' @importFrom rlang is_empty
 #' @import dplyr
 #' @export
 #'
@@ -101,7 +100,7 @@ standardize_countries_draft <- function(
   
   
 # Only return a warning for unstandardized values if the list for which unstandardized values are reported is greater than 0  
-  if (!rlang::is_empty(list)) {
+  if (!length(list) == 0) {
     warning(base::paste0(
       "List of names that weren't standardized by either the corrections dataframe or by countrycode: ",
       base::dQuote(list)
