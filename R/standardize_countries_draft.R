@@ -12,7 +12,6 @@
 #' @importFrom countrycode countrycode
 #' @importFrom stats setNames
 #' @importFrom stringr str_remove
-#' @importFrom rlang sym
 #' @importFrom rlang is_empty
 #' @import dplyr
 #' @export
@@ -38,17 +37,17 @@ standardize_countries_draft <- function(
       
       std_df <- data %>% 
         # remove any trailing parenthetical phrase from string values
-        dplyr::mutate(!!rlang::sym(country_col_name) := stringr::str_remove(!!rlang::sym(country_col_name), '\\(.+\\)$')) %>% 
+        dplyr::mutate(!!country_col_name := stringr::str_remove(.data[[country_col_name]], "\\(.+\\)$"))
         # Join to ARTIS corrections table
         dplyr::left_join(corrections_df, by = by_cols) %>% 
         # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
         # pull values from given country column
-        dplyr::mutate(artis_iso3c = dplyr::case_when(base::is.na(artis_iso3c) ~ countrycode::countrycode(!!rlang::sym(country_col_name),
+        dplyr::mutate(artis_iso3c = dplyr::case_when(base::is.na(artis_iso3c) ~ countrycode::countrycode(.data[[country_col_name]],
                                                      origin = "country.name",
                                                      destination = "iso3c"),
                                        .default = artis_iso3c), 
               # If already a country that ARTIS did not correct, add in regular country
-               artis_country_name = dplyr::case_when(base::is.na(artis_country_name) ~ countrycode::countrycode(!!rlang::sym(country_col_name),
+               artis_country_name = dplyr::case_when(base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col_name]],
                                                           origin = "country.name",
                                                           destination = "country.name"),
                                               .default = artis_country_name)) %>%
@@ -76,18 +75,18 @@ standardize_countries_draft <- function(
       # Join input data to standardization data frame based on iso3c
       std_df <- data %>% 
         # remove any trailing parenthetical phrase from string values
-        dplyr::mutate(!!rlang::sym(country_col_name) := stringr::str_remove(!!rlang::sym(country_col_name), '\\(.+\\)$')) %>%
+        dplyr::mutate(!!country_col_name := stringr::str_remove(.data[[country_col_name]], '\\(.+\\)$')) %>%
         # Join to ARTIS corrections table
         dplyr::left_join(corrections_df_iso3c, by = by_cols) %>% 
         # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
         # pull values from given country column
         dplyr::mutate(artis_iso3c = dplyr::case_when(is.na(artis_iso3c) ~ 
-                                          countrycode::countrycode(!!rlang::sym(country_col_name),
+                                          countrycode::countrycode(.data[[country_col_name]],
                                                       origin = "iso3c",
                                                       destination = "iso3c"),
                                        .default = artis_iso3c),
                artis_country_name = dplyr::case_when(base::is.na(artis_country_name) ~
-                                                countrycode::countrycode(!!rlang::sym(country_col_name), 
+                                                countrycode::countrycode(.data[[country_col_name]], 
                                                             origin = "iso3c",
                                                             destination = 'country.name'),
                                               .default = artis_country_name))
