@@ -20,6 +20,7 @@ grateful-report.html
 man/*
 dev/*
 renv/*
+data/*
 requirements_old_local.txt
 
 *.html
