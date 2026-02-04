@@ -109,7 +109,7 @@ tidyr::expand_grid(year = year_range) |>
 dplyr::filter(year >= start_year & year <= end_year) |>
 dplyr::select(-start_year, -end_year)
   
-special_corrections <- tibble:tribble(
+special_corrections <- tibble::tribble(
   ~country_name,                     ~iso3c,    ~artis_iso3c,
   # Taiwan variants
   "Other Asia, nes",                 NA,        "TWN",
