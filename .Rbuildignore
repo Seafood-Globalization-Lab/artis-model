@@ -7,9 +7,11 @@
 ^LICENSE\.md$
 ^07-post-processing-validation.Rmd
 ^demo$
-^model_inputs$
+^model_inputs/
+^outputs/
 ^images$
-^AM_local$
-^inst$
-^qa$
+^AM_local/
+^inst/
+^qa/
+^data/
 
