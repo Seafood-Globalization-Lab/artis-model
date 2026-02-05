@@ -9,15 +9,11 @@
 ^08-validatation-single-HS-year.Rmd
 \.html$
 ^demo$
-^model_inputs
-^outputs$
+^model_inputs/
+^outputs/
 ^images$
-^AM_local$
-^inst$
-^qa$
-^venv$
-^\.github$
-.env
-.env.swp
-
+^AM_local/
+^inst/
+^qa/
+^data/
 
