@@ -13,6 +13,7 @@
 #' @importFrom stats setNames
 #' @importFrom stringr str_remove
 #' @import dplyr
+#' @import cli
 #' @export
 #'
 standardize_countries_draft <- function(
@@ -21,6 +22,19 @@ standardize_countries_draft <- function(
   country_col_name = "",
   year_col_name = ""
 ) {
+
+    # Check incoming data for missing values
+    na_count <- sum(is.na(data[[country_col_name]]))
+    missing_count <- sum(data[[country_col_name]] == "")
+
+  # FIXIT : not working 
+    if (na_count > 0 | missing_count > 0) {
+    cli::cli(c(
+      "!" = "Found {no(missing_count)} missing values in column {.field {country_col_name}}.",
+      "!" = "Found {no(na_count)} NA value{?s} in column {.field {country_col_name}}.",
+      "i" = "These values will not be standardized.",
+    ))
+  }
 
   # get dataframe with country corrections
   corrections_df <- artis::standardize_country_data()
