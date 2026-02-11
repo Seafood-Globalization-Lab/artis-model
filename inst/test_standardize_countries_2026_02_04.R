@@ -4,6 +4,7 @@
 library(tidyverse)
 library(countrycode)
 library(artis)
+library(devtools)
 
 ################################################
 #####    Read in old standardized data     #####
@@ -11,35 +12,41 @@ library(artis)
 
 # Connor's read in paths
 # FAO data
-fao_raw <- read.csv("QA/dev_standardized_countries/1.2_fao_raw_combos.csv")
+fao_raw <- read_csv("QA/dev_standardized_countries/1.2_fao_raw_combos.csv")
 
 # Baci data
-sau_raw <- read.csv("QA/dev_standardized_countries/1.2_sau_raw_combos.csv")
-
-# Althea's read in paths
+sau_raw <- read_csv("QA/dev_standardized_countries/1.2_sau_raw_combos.csv")
 
 ####################################
 #####    Read in raw  data     #####
 ####################################
 
-fao_standardized_old <- read.csv("QA/dev_standardized_countries/fao_country_year_combos.csv")
+fao_standardized_old <- read_csv("QA/dev_standardized_countries/fao_country_year_combos.csv")
+sau_standardized_old <- read_csv("QA/dev_standardized_countries/sau_country_year_combos.csv")
 
-sau_standardized_old <- read.csv("QA/dev_standardized_countries/sau_country_year_combos.csv")
-
+# AM paths
+fao_raw <- read_csv("AM_local/dev-standardize-countries/1.2_fao_raw_combos.csv")
+sau_raw <- read_csv("AM_local/dev-standardize-countries/1.2_sau_raw_combos.csv")
+fao_standardized_old <- read_csv("AM_local/dev-standardize-countries/fao_country_year_combos.csv")
+sau_standardized_old <- read_csv("AM_local/dev-standardize-countries/sau_country_year_combos.csv")
 
 ################################################
 #####          Standardize data            #####
 ################################################
 
-fao_standardized_new <- artis::standardize_countries_draft(data = fao_raw,
-                                                                      country_id_type = "iso3c",
-                                                                      country_col_name = "country_iso3_alpha",
-                                                                      year_col_name = "year")
+fao_standardized_new <- artis::standardize_countries_draft(
+  data = fao_raw,
+  country_id_type = "iso3c",
+  country_col_name = "country_iso3_alpha",
+  year_col_name = "year"
+)
 
-sau_standardized_new <- artis::standardize_countries_draft(data = fao_raw,
-                                                           country_id_type = "iso3c",
-                                                           country_col_name = "country_iso3_alpha",
-                                                           year_col_name = "year")
+sau_standardized_new <- artis::standardize_countries_draft(
+  data = fao_raw,
+  country_id_type = "iso3c",
+  country_col_name = "country_iso3_alpha",
+  year_col_name = "year"
+)
 
 ######################################################################
 #####          Ensure accuracy of new standardization            #####
