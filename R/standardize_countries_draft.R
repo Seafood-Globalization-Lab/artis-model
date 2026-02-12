@@ -50,7 +50,7 @@ standardize_countries_draft <- function(
       
       std_df <- data %>% 
         # remove any trailing parenthetical phrase from string values
-        dplyr::mutate(!!country_col_name := stringr::str_remove(.data[[country_col_name]], "\\(.+\\)$"))
+        dplyr::mutate(!!country_col_name := stringr::str_remove(.data[[country_col_name]], "\\(.+\\)$")) %>%
         # Join to ARTIS corrections table
         dplyr::left_join(corrections_df, by = by_cols) %>% 
         # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
@@ -70,7 +70,7 @@ standardize_countries_draft <- function(
       # Get list of names that weren't standardized
       list <- std_df %>%
         dplyr::filter(base::is.na(artis_country_name)) %>%
-        dplyr::select(country_col_name) %>%
+        dplyr::select(all_of(country_col_name)) %>%
         dplyr::distinct() %>%
         dplyr::pull(country_col_name)
       
@@ -80,7 +80,8 @@ standardize_countries_draft <- function(
       # filter out duplicate entires (i.e., multiple country names matched to the same input iso3c - we don't need these input country names since we will get an output country name)
       corrections_df_iso3c <- corrections_df %>%
         dplyr::select(-country_name) %>%
-        dplyr::distinct()
+        dplyr::distinct() %>%
+        tidyr::drop_na()
       
       # set up join by naming to match input data column names to the standardization column names
       by_cols <- stats::setNames(c("iso3c", "year"), c(country_col_name, year_col_name))
@@ -107,7 +108,7 @@ standardize_countries_draft <- function(
       # Get list of names that weren't standardized
       list <- std_df %>%
         dplyr::filter(base::is.na(artis_iso3c)) %>%
-        dplyr::select(country_col_name) %>%
+        dplyr::select(all_of(country_col_name)) %>%
         dplyr::distinct() %>%
         dplyr::pull(country_col_name)
     }
