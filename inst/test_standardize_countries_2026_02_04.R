@@ -38,15 +38,59 @@ fao_standardized_new <- artis::standardize_countries_draft(
   data = fao_raw,
   country_id_type = "iso3c",
   country_col_name = "country_iso3_alpha",
-  year_col_name = "year"
+  year_col_name = "werewr"
 )
 
 sau_standardized_new <- artis::standardize_countries_draft(
-  data = fao_raw,
-  country_id_type = "iso3c",
+  data = 6,
+  country_id_type = "mmmmm",
   country_col_name = "country_iso3_alpha",
   year_col_name = "year"
 )
+
+
+################################################
+#####          Standardize data            #####
+################################################
+library(tibble)
+
+dummy_raw <- tibble::tibble(
+  country_iso3_alpha = c(
+    "USA",       # proper ISO3
+    "FRA",       # proper ISO3
+    NA,          # NA
+    NA_character_, # explicit character NA
+    NaN,         # numeric NaN
+    "XYZ",       # unrecognized code
+    "PRT",       # proper ISO3
+    "lollipop",  # junk
+    "GBR",       # proper ISO3
+    "" ,         # empty string
+    "ASM"        # territory
+  ),
+  year = c(2009, 2010, 2013, 2013, 2014, 2014, 2015, 2016, 2017, 2018, 2019),
+  value = c(100, 200, 150, 150, 75, 50, 80, 10, 120, 30, 50)
+)
+
+dummy_raw
+
+
+# Give a non numeric variable to a numeric variable
+artis::standardize_countries_draft(
+  data = dummy_raw,
+  country_id_type = "mmm",
+  country_col_name = "country_iso3_alpha",
+  year_col_name = "year"
+)
+
+# Give a non character variable to a character variable
+artis::standardize_countries_draft(
+  data = dummy_raw,
+  country_id_type = "name_en",
+  country_col_name = "year",
+  year_col_name = "iso3c"
+)
+
 
 ######################################################################
 #####          Ensure accuracy of new standardization            #####
