@@ -26,15 +26,32 @@ standardize_countries_draft <- function(
     # Check incoming data for missing values
     na_count <- sum(is.na(data[[country_col_name]]))
     missing_count <- sum(data[[country_col_name]] == "")
-
-  # FIXIT : not working 
-    if (na_count > 0 | missing_count > 0) {
-    cli::cli(c(
-      "!" = "Found {no(missing_count)} missing values in column {.field {country_col_name}}.",
-      "!" = "Found {no(na_count)} NA value{?s} in column {.field {country_col_name}}.",
-      "i" = "These values will not be standardized.",
-    ))
-  }
+    
+    # --- Validate input column types before doing anything ---
+    # Validate country column type
+    if (!is.character(data[[country_col_name]])) {
+      cli::cli_abort(c(
+        "x" = "The input column {.field {country_col_name}} you supplied as {.var country_col_name} does not appear to be a character type",
+        "i" = "Country names or ISO3c codes should be character strings (e.g., 'USA', 'FRA')."
+      ))
+    }
+    
+    # Validate year column type
+    if (!is.numeric(data[[year_col_name]])) {
+      cli::cli_abort(c(
+        "x" = "The input column {.field {year_col_name}} you supplied as {.var year_col_name} does not appear to be numeric.",
+        "i" = "Year values must be numeric (e.g., 2010, 2015)."
+      ))
+    }
+    
+    # Validate country_id_type
+    valid_types <- c("name_en", "iso3c")
+    if (!country_id_type %in% valid_types) {
+      cli::cli_abort(c(
+        "x" = "Invalid value supplied for {.arg country_id_type}: '{country_id_type}'.",
+        "i" = "Accepted values are {.val name_en} or {.val iso3c}."
+      ))
+    }
 
   # get dataframe with country corrections
   corrections_df <- artis::standardize_country_data()
@@ -57,12 +74,14 @@ standardize_countries_draft <- function(
         # pull values from given country column
         dplyr::mutate(artis_iso3c = dplyr::case_when(base::is.na(artis_iso3c) ~ countrycode::countrycode(.data[[country_col_name]],
                                                      origin = "country.name",
-                                                     destination = "iso3c"),
+                                                     destination = "iso3c",
+                                                     warn = FALSE),
                                        .default = artis_iso3c), 
               # If already a country that ARTIS did not correct, add in regular country
                artis_country_name = dplyr::case_when(base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col_name]],
                                                           origin = "country.name",
-                                                          destination = "country.name"),
+                                                          destination = "country.name",
+                                                          warn = FALSE),
                                               .default = artis_country_name)) %>%
         # Remove leftover corrections_df column
         dplyr::select(-iso3c)
@@ -97,12 +116,14 @@ standardize_countries_draft <- function(
         dplyr::mutate(artis_iso3c = dplyr::case_when(is.na(artis_iso3c) ~ 
                                           countrycode::countrycode(.data[[country_col_name]],
                                                       origin = "iso3c",
-                                                      destination = "iso3c"),
+                                                      destination = "iso3c",
+                                                      warn = FALSE),
                                        .default = artis_iso3c),
                artis_country_name = dplyr::case_when(base::is.na(artis_country_name) ~
                                                 countrycode::countrycode(.data[[country_col_name]], 
                                                             origin = "iso3c",
-                                                            destination = 'country.name'),
+                                                            destination = 'country.name',
+                                                            warn = FALSE),
                                               .default = artis_country_name))
       
       # Get list of names that weren't standardized
@@ -114,19 +135,32 @@ standardize_countries_draft <- function(
     }
   
   
-# Only return a warning for unstandardized values if the list for which unstandardized values are reported is greater than 0  
-  if (!length(list) == 0) {
-    warning(base::paste0(
-      "List of names that weren't standardized by either the corrections dataframe or by countrycode: ",
-      base::dQuote(list)
-    ))
+  # 1️⃣ NA/missing values warning
+  if (na_count > 0 | missing_count > 0) {
+    cli::cli_alert_danger("Found {missing_count} missing values and {na_count} NA values in column {.field {country_col_name}}.")
+    cli::cli_alert_info("These NAs will not be standardized.")
   }
   
-  std_df <- std_df %>%
-    mutate(artis_iso3c = case_when(
-      is.na(artis_iso3c) ~ "",
-      .default = artis_iso3c))
+  # 2️⃣ Print a blank line to separate warnings
+  cli::cli_text("")
   
-return(std_df)
+  # 3️⃣ Unstandardized values warning
+  non_na_list <- list[!is.na(list)]
+  if (length(non_na_list) > 0) {
+    visible_list <- sapply(non_na_list, function(x) if (x == "") dQuote("") else dQuote(x))
+    
+    # First part of the warning
+    cli::cli_alert_warning("Some values in {.field {country_col_name}} were not standardized.")
+    cli::cli_alert_info("These values were neither corrected by the ARTIS corrections table nor found by `countrycode`.")
+    
+    # Print the unstandardized list on its own line with attention emoji
+    cli::cli_text("⚠ Unstandardized values: {paste(visible_list, collapse = ', ')}")
+  }
+  
+  # Explicitly print tibble before returning
+  # print(std_df)
+  
+  # Return invisibly so assignment doesn’t double-print
+  return(std_df)
 
 }
