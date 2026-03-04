@@ -1,7 +1,7 @@
 #' standardize_countries_draft
 #'
-#' This function standardizes country English names and ISO3c codes to ARTIS
-#' specifications. Add more 
+#' Standardizes a vector of country names strings (English) and ISO3c codes strings to the ARTIS model
+#' specifications.
 #' 
 #' @param data dataframe. Input dataframe that will get country standardized
 #' @param country_id_type character. Denote whether to standardize based on 
