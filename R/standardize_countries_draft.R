@@ -1,21 +1,49 @@
-#' standardize_countries_draft
+#' Standardize country identifiers to ARTIS naming conventions
 #'
-#' Standardizes a vector of country names strings (English) and ISO3c codes strings to the ARTIS model
-#' specifications.
-#' 
-#' @param data dataframe. Input dataframe that will get country standardized
-#' @param country_id_type character. Denote whether to standardize based on 
-#' either the input data's country name column or iso3c column
-#' @param country_col_name character. Name of the input country col name to be joined to standardization data
-#' @param year_col_name character. Name of the year col name to be joined to standardization data
-#' @return a dataframe with standardized country name and iso3c columns. 
+#' This function harmonizes country identifiers in an input dataset to the
+#' ARTIS standard using a combination of the ARTIS corrections table and
+#' fallback mappings from the `countrycode` package. It supports workflows
+#' where the incoming country identifier is either an English country name
+#' or an ISO3c code, and returns a consistent pair of standardized fields:
+#' `artis_country_name` and `artis_iso3c`.
+#'
+#' The function:
+#' (1) Cleans input country strings by removing trailing parenthetical phrases.
+#' (2) Joins the input data to the ARTIS corrections table using user‑specified
+#'   country and year column names.
+#' (3) Applies ARTIS overrides where available, and uses `countrycode` to fill
+#'   in any remaining unmapped identifiers.
+#' (4) Warns when values cannot be standardized by either source.
+#' (5) Preserves all original columns and appends standardized identifiers.
+#'
+#' @param data A data frame containing country and year identifiers to be standardized.
+#' @param country_id_type Character string indicating the type of identifier
+#'   supplied in `country_col_name`. Must be either `"name_en"` for English
+#'   country names or `"iso3c"` for ISO3c codes.
+#' @param country_col_name Character string giving the name of the column in
+#'   `data` that contains the country identifier to standardize.
+#' @param year_col_name Character string giving the name of the column in
+#'   `data` that contains the year used for joining to the ARTIS corrections table.
+#'
+#' @return A data frame containing all original columns plus:
+#'   (1) `artis_country_name`: standardized ARTIS country name
+#'   (2) `artis_iso3c`: standardized ARTIS ISO3c code (empty string if unresolved)
+#'
+#' @details
+#' The ARTIS corrections table may contain multiple historical mappings for a
+#' given country-year combination. The join uses both the country identifier
+#' and year to ensure the correct mapping is applied. When no ARTIS mapping
+#' exists, the function falls back to `countrycode` to infer a standardized
+#' name and ISO3c code. Any identifiers that cannot be resolved by either
+#' source are reported in a warning.
+#'
 #' @importFrom countrycode countrycode
 #' @importFrom stats setNames
 #' @importFrom stringr str_remove
 #' @import dplyr
 #' @import cli
 #' @export
-#'
+
 standardize_countries_draft <- function(
   data,
   country_id_type = c("name_en", "iso3c"),
