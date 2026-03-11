@@ -42,7 +42,8 @@ Imports:
     qs2,
     duckdb,
     stats,
-    DBI
+    DBI,
+    cli
 Encoding: UTF-8
 LazyData: true
 LicenseFile: LICENSE

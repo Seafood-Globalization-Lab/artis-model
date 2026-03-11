@@ -19,8 +19,8 @@
 standardize_countries_draft <- function(
   data,
   country_id_type = c("name_en", "iso3c"),
-  country_col_name = "",
-  year_col_name = ""
+  country_col_name,
+  year_col_name 
 ) {
 
     # Check incoming data for missing values
@@ -77,7 +77,7 @@ standardize_countries_draft <- function(
                                                      destination = "iso3c",
                                                      warn = FALSE),
                                        .default = artis_iso3c), 
-              # If already a country that ARTIS did not correct, add in regular country
+              # If missing country name value (i.e. not corrected by ARTIS corrections join) add std country name via country code from original/supplied country name
                artis_country_name = dplyr::case_when(base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col_name]],
                                                           origin = "country.name",
                                                           destination = "country.name",
@@ -86,8 +86,8 @@ standardize_countries_draft <- function(
         # Remove leftover corrections_df column
         dplyr::select(-iso3c)
       
-      # Get list of names that weren't standardized
-      list <- std_df %>%
+      # Get vector of country names that weren't standardized (i.e. have NA values)
+      not_std_vec <- std_df %>%
         dplyr::filter(base::is.na(artis_country_name)) %>%
         dplyr::select(all_of(country_col_name)) %>%
         dplyr::distinct() %>%
@@ -126,8 +126,8 @@ standardize_countries_draft <- function(
                                                             warn = FALSE),
                                               .default = artis_country_name))
       
-      # Get list of names that weren't standardized
-      list <- std_df %>%
+      # Get vector of country names that weren't standardized (i.e. have NA values)
+      not_std_vec <- std_df %>%
         dplyr::filter(base::is.na(artis_iso3c)) %>%
         dplyr::select(all_of(country_col_name)) %>%
         dplyr::distinct() %>%
@@ -135,26 +135,26 @@ standardize_countries_draft <- function(
     }
   
   
-  # 1️⃣ NA/missing values warning
+  # NA/missing values warning
   if (na_count > 0 | missing_count > 0) {
     cli::cli_alert_danger("Found {missing_count} missing values and {na_count} NA values in column {.field {country_col_name}}.")
     cli::cli_alert_info("These NAs will not be standardized.")
   }
   
-  # 2️⃣ Print a blank line to separate warnings
+  # Print a blank line to separate warnings
   cli::cli_text("")
   
-  # 3️⃣ Unstandardized values warning
-  non_na_list <- list[!is.na(list)]
-  if (length(non_na_list) > 0) {
-    visible_list <- sapply(non_na_list, function(x) if (x == "") dQuote("") else dQuote(x))
+  # list of country names that did not successfully get assigned iso3c codes
+  not_std_countries <- not_std_vec[!is.na(not_std_vec)]
+  if (length(not_std_vec) > 0) {
+    visible_list <- sapply(not_std_countries, function(x) if (x == "") dQuote("") else dQuote(x))
     
     # First part of the warning
     cli::cli_alert_warning("Some values in {.field {country_col_name}} were not standardized.")
     cli::cli_alert_info("These values were neither corrected by the ARTIS corrections table nor found by `countrycode`.")
     
     # Print the unstandardized list on its own line with attention emoji
-    cli::cli_text("⚠ Unstandardized values: {paste(visible_list, collapse = ', ')}")
+    cli::cli_alert_info("Unstandardized values: {paste(visible_list, collapse = ', ')}")
   }
   
   # Explicitly print tibble before returning
