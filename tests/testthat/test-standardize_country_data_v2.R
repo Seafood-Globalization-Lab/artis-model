@@ -1,14 +1,11 @@
-# test_that("multiplication works", {
-#   expect_equal(2 * 2, 4)
-# })
-
 
 df <- standardize_country_data()
 
 # 2. Test for Correct Year Mapping
 test_that("Year column has no missing values and is valid", {
-  expect_true(all(!is.na(df$year)), "Some years are missing")
-  expect_true(all(df$year >= 1996 & df$year <= 2023), "Invalid year values")
+  expect_true(all(!is.na(df$year)), "Some year values are NA")
+  # FIXIT: ideally will call these min and max years dynamically by sourcing an ARTIS config file with model parameters
+  expect_true(all(df$year >= 1996 & df$year <= 2023), "Invalid year values") 
 })
 
 # Test that artis columns are their expected types
@@ -35,11 +32,11 @@ test_that("`artis_country_name` column data type is character", {
 # Check length of iso3c variables
 
 test_that("`iso3c` column character values are length of 3", {
-  expect_equal(mean(str_length(df$iso3c), na.rm = TRUE),3)
+  expect_equal(mean(stringr::str_length(df$iso3c), na.rm = TRUE),3)
 })
 
 test_that("`artis_iso3c` column character values are length of 3", {
-  expect_equal(mean(str_length(df$artis_iso3c), na.rm = TRUE),3)
+  expect_equal(mean(stringr::str_length(df$artis_iso3c), na.rm = TRUE),3)
 })
 
 
@@ -66,10 +63,10 @@ test_that("`artis_country_name` contains no NAs", {
 valid_country_names <- df$artis_country_name
 test_that("Unique ISO3C codes map to valid country names", {
   unique_iso3c <- unique(df$iso3c)
-  for (iso3c in unique_iso3c) {
-    country_name <- df$artis_country_name[df$iso3c == iso3c][1]
+  for (a_iso3c in unique_a_iso3c) {
+    country_name <- df$artis_country_name[df$iso3c == a_iso3c][1]
     expect_true(country_name %in% valid_country_names,
-                info = paste("Invalid country name for ISO3C", iso3c))
+                info = paste("Invalid country name for ISO3C", a_iso3c))
   }
 })
 
