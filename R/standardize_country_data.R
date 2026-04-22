@@ -1,15 +1,46 @@
-#' @import tidyr
-#' @import dplyr
-#' @import countrycode
-#' @import stringr
+#' Standardize Country Data
+#'
+#' Creates a correction key that maps country names and iso3c codes to their ARTIS
+#' sovereign country equivalents, accounting for territories, time-dependent
+#' political changes, and special cases. The year range is automatically
+#' set to 1996 through the current year.
+#'
+#' @return A tibble with the following columns:
+#'   \describe{
+#'     \item{country_name}{Country name as a character string.}
+#'     \item{iso3c}{ISO 3166-1 alpha-3 country code.}
+#'     \item{year}{Year as an integer.}
+#'     \item{artis_country_name}{Sovereign country name used in ARTIS.}
+#'     \item{artis_iso3c}{Sovereign ISO3C code used in ARTIS. Non-standard
+#'       codes include \code{"NEI"} (not elsewhere identified).
+#'   }
+#'
+#' @details
+#' Three types of mappings are combined:
+#' \itemize{
+#'   \item \strong{Territory mappings}: Dependent territories mapped to their
+#'     sovereign country (e.g., US, UK, French, and Chinese territories).
+#'   \item \strong{Time-dependent corrections}: Countries whose sovereignty
+#'     changed over the year range, such as Timor-Leste, South Sudan,
+#'     Serbia/Montenegro, and the Southern African Customs Union.
+#'   \item \strong{Special corrections}: FAO-specific country name variants
+#'     and small states grouped under \code{"NEI"}.
+#' }
+#'
+#' @examples
+#' corrections <- standardize_country_data()
+#'
+#' @importFrom tibble tribble
+#' @importFrom tidyr expand_grid
+#' @importFrom dplyr filter select mutate case_when bind_rows distinct arrange
+#' @importFrom countrycode countrycode
 #' @export
 
-# Create standardize countries correction key
-# Connor Quiroz
-# Created May 7, 2025
-# Refactored for maintainability
 
-standardize_country_data <- function(year_range = 1996:2023) {
+standardize_country_data <- function() {
+
+  # --- Generate range of years to expand country corrections into ---
+  year_range = 1996:as.numeric(format(Sys.Date(), "%Y"))
 
    # --- TERRITORY TO Sovergn COUNTRY MAPPINGS ---
 
