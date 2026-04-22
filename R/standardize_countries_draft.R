@@ -100,7 +100,9 @@ standardize_countries_draft <- function(
         dplyr::left_join(corrections_df, by = by_cols) %>% 
         # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
         # pull values from given country column
-        dplyr::mutate(artis_iso3c = dplyr::case_when(base::is.na(artis_iso3c) ~ countrycode::countrycode(.data[[country_col_name]],
+        dplyr::mutate(flag = dplyr::case_when(base::is.na(artis_iso3c) ~ TRUE,
+                                              .default = FALSE),
+          artis_iso3c = dplyr::case_when(base::is.na(artis_iso3c) ~ countrycode::countrycode(.data[[country_col_name]],
                                                      origin = "country.name",
                                                      destination = "iso3c",
                                                      warn = FALSE),
@@ -113,6 +115,29 @@ standardize_countries_draft <- function(
                                               .default = artis_country_name)) %>%
         # Remove leftover corrections_df column
         dplyr::select(-iso3c)
+    
+      # Problem: Correcting some of the input territory names that don't have 
+      # in house ARTIS respective matches get corrected via countrycode, and
+      # countrycode corrects to the territory iso3c instead of the soverign.
+      # we have flagged these rows to rejoin corrected countrycode iso3c to
+      # artis corrections to receive their soverign variants.
+      flagged_data <- std_df %>% 
+        dplyr::filter(flag == TRUE)
+      
+      std_df <- std_df %>%
+        dplyr::filter(flag == FALSE)
+      
+      # Rejoin flagged data to corrections
+      by_cols <- stats::setNames(c("iso3c", "year"), c("artis_iso3c", year_col_name))
+      
+      flagged_data %>%
+        dplyr::left_join(corrections_df, by = by_cols) %>%
+        dplyr::select(-artis_country_name.x, -artis_iso3c, -country_name) %>%
+        dplyr::rename(artis_iso3c = artis_iso3c.y, artis_country_name = artis_country_name.y) %>%
+        count(is.na(artis_iso3c))
+      
+      std_df <- std_df %>%
+        bind_rows(flagged_data)
       
       # Get vector of country names that weren't standardized (i.e. have NA values)
       not_std_vec <- std_df %>%
