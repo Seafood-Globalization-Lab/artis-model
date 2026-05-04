@@ -282,6 +282,7 @@ git rebase origin/develop
 ```
 
 Update your GitHub feature branch: You need to force-push since rebase rewrites history. --force-with-lease is safer than --force — it will refuse if someone else pushed to the remote branch since your last fetch, protecting against accidental overwrites.
+
 ```zsh
 git push --force-with-lease
 ```
