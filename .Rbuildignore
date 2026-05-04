@@ -17,5 +17,7 @@
 ^qa$
 ^venv$
 ^\.github$
+.env
+.env.swp
 
 

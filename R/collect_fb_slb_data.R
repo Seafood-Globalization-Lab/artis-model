@@ -56,8 +56,8 @@ collect_fb_slb_data <- function(parent_outdir) {
   fwrite(slb_synonyms_raw, file.path(outdir, "slb_synonyms_raw.csv"), row.names = FALSE)
   
   # Cleaning synonym information to use as translation tables
-  fb_synonyms_clean <- clean_fb_slb_synonyms(fb_synonyms_raw, version = "latest")
-  slb_synonyms_clean <- clean_fb_slb_synonyms(slb_synonyms_raw, version = "latest")
+  fb_synonyms_clean <- clean_fb_slb_synonyms(fb_synonyms_raw)
+  slb_synonyms_clean <- clean_fb_slb_synonyms(slb_synonyms_raw)
   
   fwrite(fb_synonyms_clean, file.path(outdir, "fb_synonyms_clean.csv"), row.names = FALSE)
   fwrite(slb_synonyms_clean, file.path(outdir, "slb_synonyms_clean.csv"), row.names = FALSE)
