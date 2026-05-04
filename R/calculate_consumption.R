@@ -62,39 +62,22 @@ calculate_consumption <- function(artis = s_net,
            hs6_processed = as.numeric(hs6_processed))
   
   prod <- prod %>%
+    # FIXIT: when NEI iso code is added into cleaned prod, this can be removed
+    mutate(country_iso3_alpha = case_when(
+      country_name_en == "Other NEI" ~ "NEI",
+      TRUE ~ country_iso3_alpha
+    )) %>%
     rename(sciname = SciName,
            method = prod_method,
            live_weight_t = quantity)
   
   # Calculate Domestic Consumption----------------------------------------------
-  # calculating all products exported by countries
-  country_exports <- artis %>%
-    mutate(hs6 = as.numeric(hs6)) %>%
-    group_by(exporter_iso3c, hs6) %>%
-    summarize(live_weight_t = sum(live_weight_t, na.rm = TRUE)) %>%
-    ungroup()
-  
-  # Note this means  all production under the error is now human consumable
-  error_code <- 999999
-  
-  # change X long to account for when a country does not export a certain code
-  X_long <- X_long %>%
-    left_join(
-      country_exports,
-      by = c("iso3c"="exporter_iso3c", "hs6")
-    ) %>%
-    # if a country does not export the code in a given year, 
-    # then change the code to placeholder error code
-    mutate(
-      hs6 = case_when(
-        is.na(live_weight_t) ~ error_code,
-        TRUE ~ hs6
-      )
-    ) %>%
-    select(-live_weight_t) %>%
-    # re-summarize estimated X to account for multiple codes going to error code
-    group_by(iso3c, hs6, sciname, habitat, method) %>%
-    summarize(estimated_X = sum(estimated_X)) %>%
+  # domestic exports by hs6 and species
+  exports_domestic <- artis %>%
+    filter(dom_source == "domestic") %>%
+    group_by(source_country_iso3c, hs6, sciname, habitat, method) %>%
+    summarize(domestic_export_live_t = sum(live_weight_t, na.rm = TRUE),
+              domestic_export_product_t = sum(product_weight_t, na.rm = TRUE)) %>%
     ungroup()
   
   # domestic consumption by hs6 code
@@ -110,14 +93,7 @@ calculate_consumption <- function(artis = s_net,
     group_by(iso3c, hs6, sciname, habitat, method) %>%
     summarize(production_live_t = sum(production_live_t, na.rm = TRUE)) %>%
     ungroup()
-  
-  # domestic exports by hs6 and species
-  exports_domestic <- artis %>%
-    filter(dom_source == "domestic") %>%
-    group_by(source_country_iso3c, hs6, sciname, habitat, method) %>%
-    summarize(domestic_export_live_t = sum(live_weight_t, na.rm = TRUE),
-              domestic_export_product_t = sum(product_weight_t, na.rm = TRUE)) %>%
-    ungroup()
+
   
   # domestic consumption = domestic production - domestic exports
   consumption_domestic <- x_p %>%
@@ -130,15 +106,6 @@ calculate_consumption <- function(artis = s_net,
     replace_na(list(domestic_export_live_t = 0,
                     domestic_export_product_t = 0)) %>%
     mutate(consumption_live_t = production_live_t - domestic_export_live_t) 
-  
-  # Domestic export = production - domestic consumption
-  # This is the total amount of product available for foreign consumption
-  domestic_export <- consumption_domestic %>%
-    select(source_country_iso3c = iso3c, hs6, sciname, habitat, method,
-           # These columns below represent that amount of production that is
-           # consumed via foreign consumption by other countries
-           domestic_export_product_t, domestic_export_live_t) %>%
-    filter(domestic_export_live_t > consumption_threshold)
   
   # DATA CHECK: domestic exports should not exceed domestic production
   domestic_consumption_threshold <- -1e-3
