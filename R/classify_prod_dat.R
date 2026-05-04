@@ -12,9 +12,9 @@
 #'   `missing_scinames_YYYY-MM-DD_HHMM.csv` is written to `datadir`.
 #'
 #' @param datadir Character. Directory containing the raw data directory
-#' @param filename Character. File name of FAO production data .zip (e.g. "GlobalProduction_2025.1.0.zip")
 #' @param prod_data_source Character, one of \code{"FAO"} or \code{"SAU"}.
 #'   Controls which ingestion/cleaning branch is used. Default \code{"FAO"}.
+#' @param prod_df Production data frame or \code{NULL}. Corresponds to \code{prod_data_source} value
 #' @param SAU_sci_2_common Character or \code{NA}. Path (relative to \code{datadir})
 #'   to the SAU scientific --> common name mapping CSV used only when
 #'   \code{prod_data_source == "SAU"}. Ignored for FAO. Default \code{NA}.
@@ -32,53 +32,55 @@
 #' @import data.table
 #' @export
 
-
-classify_prod_dat <- function(datadir, 
-                              filename, 
-                              prod_data_source="FAO",
-                              SAU_sci_2_common = NA,
-                              fb_slb_dir) {
-  
+classify_prod_dat <- function(
+  datadir = NULL,
+  prod_data_source = "FAO",
+  prod_df = NULL,
+  SAU_sci_2_common = NA,
+  fb_slb_dir = NULL
+) {
   # NOTE: final prod_data output does not aggregate to taxa level - i.e., does not do: group_by(country_iso3, SciName) %>% summarise(quantity = sum(quantity))
   # instead retains distinctions within SciName for different inlandmarine_group, source_name_en, and ISSCAAP group
   # production data does eventually get aggregated to taxa level in standardize_countries
-  
-  if (prod_data_source=="FAO") {
-    # Read in raw FAO production data files 
-    # Note: These can be downloaded from FAO website as a zip file, unzip and place these in datadir folder and rename all with "common_file_extension"
-    
-    # FAO files were not consistent between 2020 and 2021, so there are now two versions of the rebuild_fao_dat function
-    # time_series_join <- rebuild_fao_2020_dat(datadir=datadir, filename=filename)
-    # time_series_join <- rebuild_fao_2021_dat(datadir=datadir, filename=filename)
-    time_series_join <- rebuild_fao_2023_dat(datadir = datadir, filename = filename)
-    
-    prod_ts <- time_series_join %>%
-      filter(year >= 1996, 
-            quantity > 0) %>%
-      dplyr::rename(CommonName=species_name_en, # Standardize column names between FAO and SAU datasets 
-                    SciName=species_scientific_name,
-                    country_iso3_alpha = country_iso3_code, # alpha iso code
-                    country_iso3_numeric = country) %>% # numeric iso code 
-      mutate(CommonName=tolower(as.character(CommonName)),
-             SciName=tolower(as.character(SciName))) %>%
+
+  if (prod_data_source == "FAO") {
+    prod_ts <- prod_df %>%
+      dplyr::rename(
+        CommonName = species_name_en, # Standardize column names between FAO and SAU datasets
+        SciName = species_scientific_name,
+        country_iso3_alpha = country_iso3_code, # alpha iso code
+        country_iso3_numeric = country
+      ) %>% # numeric iso code
+      dplyr::mutate(
+        CommonName = tolower(as.character(CommonName)),
+        SciName = tolower(as.character(SciName))
+      ) %>%
       # Trim any leading/trailing whitespace
-      mutate_all(str_trim) %>%
-      #Filter out groups not considered in this analysis  
-      filter(!species_major_group %in% c(
-        "PLANTAE AQUATICAE",
-        "AMPHIBIA, REPTILIA",
-        "MAMMALIA"),
-      # exclude corals, sponges, pearl oysters, shells 
-      # yearbook_group_en value "Other aquatic animals & products" notation 
-      # is subject to change between FAO prod releases - use flexible matching pattern
-      !str_detect(yearbook_group_en,
-        regex("^other\\s+aq(?:\\.|uatic)\\s+animals?\\s*(?:&|and)?\\s*products?$", 
-        ignore_case = TRUE))) %>% 
-      
+      dplyr::mutate_all(str_trim) %>%
+      #Filter out groups not considered in this analysis
+      filter(
+        !species_major_group %in%
+          c(
+            "PLANTAE AQUATICAE",
+            "AMPHIBIA, REPTILIA",
+            "MAMMALIA"
+          ),
+        # exclude corals, sponges, pearl oysters, shells
+        # yearbook_group_en value "Other aquatic animals & products" notation
+        # is subject to change between FAO prod releases - use flexible matching pattern
+        !str_detect(
+          yearbook_group_en,
+          regex(
+            "^other\\s+aq(?:\\.|uatic)\\s+animals?\\s*(?:&|and)?\\s*products?$",
+            ignore_case = TRUE
+          )
+        )
+      ) %>%
+
       # currently excluding copepods, copepoda it does not go into any HS codes considered
-      # seems to be used as a starter feed for aquaculture. 
+      # seems to be used as a starter feed for aquaculture.
       # calanus finmarchicus is the Sciname reported in FAO production 2023
-      filter(SciName != "calanus finmarchicus") %>% 
+      filter(SciName != "calanus finmarchicus") %>%
 
       # Dev_mode: check prod_ts at this point unique(prod_ts$isscaap_group)
       # to further filter prod species by isscaap_group
@@ -86,17 +88,19 @@ classify_prod_dat <- function(datadir,
       # Remove unnecessary labels - anything with "(=" and everything after it
       # example "salmoniformes (=salmonoidei)" or "clupeiformes (=clupeoidei)" "haemulidae (=pomadasyidae)"
       # FIXIT: Is this a problem?
-      mutate(SciName = gsub(SciName, pattern=" \\(\\=.*", replacement="")) %>%
-      
+      mutate(
+        SciName = gsub(SciName, pattern = " \\(\\=.*", replacement = "")
+      ) %>%
+
       # THESE APPLY SPECIFICALLY TO FAO prod_ts
       # First do some cleaning of SciNames
-      # List of fixes comes from finding SciNames that do not match to either the fishbase classification 
+      # List of fixes comes from finding SciNames that do not match to either the fishbase classification
       # database or fishbase synonyms function in downstream code
 
-      ## Change names that list multiple taxa 
-      # (hybrid crosses - e.g., "morone chrysops x m. saxatilis" or "auxis thazard, a. rochei") to their common genus, 
+      ## Change names that list multiple taxa
+      # (hybrid crosses - e.g., "morone chrysops x m. saxatilis" or "auxis thazard, a. rochei") to their common genus,
       # or other lowest-level common classification
-       mutate(
+      mutate(
         SciName = case_when(
           SciName == "astacidae, cambaridae" ~ "cambaridae", # choose cambaridae, larger family
           SciName == "auxis thazard, a. rochei" ~ "auxis spp",
@@ -111,45 +115,48 @@ classify_prod_dat <- function(datadir,
           SciName == "selachimorpha (pleurotremata)" ~ "carcharhiniformes", # essentially, an unidentified shark; code currently defines sharks as a list of orders, assign to carcharhiniformes for now
           SciName == "sepiidae, sepiolidae" ~ "sepiidae", # Sepiidae = cuttlefish; Sepiolidae = bobtail squid; assigning to cuttlefish
           SciName == "squalidae, scyliorhinidae" ~ "carcharhiniformes", # two different orders of sharks; code currently defines sharks as a list of orders, assign to carcharhiniformes for now
-          SciName == "stolothrissa, limnothrissa" ~ "clupeidae", 
-          SciName == "stolothrissa, limnothrissa spp" ~ "clupeidae", 
-          SciName == "xiphopenaeus, trachypenaeus" ~ "penaeidae", 
+          SciName == "stolothrissa, limnothrissa" ~ "clupeidae",
+          SciName == "stolothrissa, limnothrissa spp" ~ "clupeidae",
+          SciName == "xiphopenaeus, trachypenaeus" ~ "penaeidae",
           SciName == "xiphopenaeus, trachypenaeus spp" ~ "penaeidae",
           SciName == "h. longifilis x c. gariepinus" ~ "clariidae", # Matched to the larger family because genus was different
           SciName == "e. fuscoguttatus x e. lanceolatus" ~ "epinephelus", # matched by same genus
-          SciName == "alosa alosa, a. fallax" ~ "alosa spp", # common genus between both 
-          
+          SciName == "alosa alosa, a. fallax" ~ "alosa spp", # common genus between both
+
           # Manually fix outdated names
           SciName == "branchiostegidae" ~ "malacanthidae",
           SciName == "caspialosa spp" ~ "alosa spp",
-          SciName == "invertebrata" ~ "asteroidea",  # assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum, ascidians would be omitted as chordata)
-          SciName == "mobulidae" ~ "myliobatidae", 
-          SciName == "natantia" ~ "crangonidae",  # natantia is obsolete term for "shrimp"; assign to order = crangonidae for now
+          SciName == "invertebrata" ~ "asteroidea", # assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum, ascidians would be omitted as chordata)
+          SciName == "mobulidae" ~ "myliobatidae",
+          SciName == "natantia" ~ "crangonidae", # natantia is obsolete term for "shrimp"; assign to order = crangonidae for now
           SciName == "reptantia" ~ "cancridae", # reptantia is obsolete term for "crab"; multiple families of crab, assign to family = "cancridae" for now
           SciName == "siluroidei" ~ "siluriformes",
           SciName == "aliger gigas" ~ "lobatus gigas", # Queen Conch
           SciName == "liza spp" ~ "planiliza spp", # Referring to mullets
-          
+
           # Incorrect Names (corrected via common name)
           SciName == "mytilus unguiculatus" ~ "mytilus coruscus", # Korean Mussel
           SciName == "tritia mutabilis" ~ "nassarius mutabilis", # Mutable/Changeable Nassa
           SciName == "tritia reticulata" ~ "nassarius reticulatus", # Netted Dog whelk
-          
+
           # Fix spelling errors:
-          SciName == "herklotsichthys quadrimaculat." ~ "herklotsichthys quadrimaculatus",
-          SciName == "pleuronectes quadrituberculat." ~ "pleuronectes quadrituberculatus",
-          SciName == "pseudopleuronectes herzenst." ~ "pseudopleuronectes herzensteini",
+          SciName == "herklotsichthys quadrimaculat." ~
+            "herklotsichthys quadrimaculatus",
+          SciName == "pleuronectes quadrituberculat." ~
+            "pleuronectes quadrituberculatus",
+          SciName == "pseudopleuronectes herzenst." ~
+            "pseudopleuronectes herzensteini",
           SciName == "salmonoidei" ~ "salmonidae",
           SciName == "mobulinae" ~ "mobulidae",
           SciName == "moroteuthopsis ingens" ~ "onykia ingens",
           SciName == "pandalus spp, pandalopsis spp" ~ "pandalus spp", #"pandalus spp", # prawn
-          
+
           # Downstream code ID's crustacea to class level; assign to branchiopoda for now; downstream code defines crustaceans as list of classes c("branchiopoda", "malacostraca", "maxillopoda", "merostomata"); reason: assuming non-crab/lobster/shrimp crustacean
           SciName == "crustacea" ~ "branchiopoda",
-          
+
           # Genus with missing spp:
           SciName == "cantherhines" ~ "cantherhines spp",
-          
+
           # Names not recognized by sealifebase/fishbase: Just go up one level in classification
           SciName == "anodonta cygnea" ~ "anodonta spp", # Because of its morphological variability and its wide range of distribution, there are over 500 synonyms for this species, just use genus
           SciName == "astacus astacus" ~ "astacus spp",
@@ -165,7 +172,7 @@ classify_prod_dat <- function(datadir,
           SciName == "merluccius gayi" ~ "merluccius spp",
           #SciName == "morone" ~ "morone spp",
           SciName == "mullus barbatus" ~ "mullus spp",
-          SciName == "oreochromis" ~ "oreochromis spp", 
+          SciName == "oreochromis" ~ "oreochromis spp",
           SciName == "percoidei" ~ "perciformes",
           SciName == "procambarus clarkii" ~ "procambarus spp",
           SciName == "scombroidei" ~ "perciformes", # fishbase doesn't list scombiformes as an order (See fishbase %>% filter(Family == "scombridae"))
@@ -180,23 +187,26 @@ classify_prod_dat <- function(datadir,
           SciName == "maguimithrax spinosissimus" ~ "mithrax spp", # This is a type species of mithrax, sea spiders
           SciName == "macroramphosidae" ~ "centriscidae", # bellowfish, macroramphosidae used to be classified as a subfamily of centriscidae
           SciName == "austrofusus glans" ~ "buccinum spp", # whelk
-          
+
           # Tribe to genus name
           SciName == "thunnini" ~ "thunnus spp",
 
-          # Additions form FAO 2025 version 
+          # Additions form FAO 2025 version
           SciName == "afruca tangeri" ~ "uca tangeri", #Worms has afruca tangeri as accepted name with uca tangeri as synonym
-          SciName == "ageneiosus dentatus" ~ "ageneiosus ucayalensis", # ageneiosus dentatus listed in Fishbase as an ambiguous synonym 
+          SciName == "ageneiosus dentatus" ~ "ageneiosus ucayalensis", # ageneiosus dentatus listed in Fishbase as an ambiguous synonym
           SciName == "alitta virens (formerly nereis virens)" ~ "alitta virens", #remove note of former name
           SciName == "amphithrax armatus" ~ "mithrax armatus", # Worms has amphithrax armatus as accepted name with mithrax armatus as original name
           SciName == "callaus deliciosa" ~ "sciaena deliciosa", # update to name identified as accepted in Fishbase and Worms
           SciName == "caridea" ~ "decapoda", # infraorder within decapoda, so move up
-          SciName == "colossoma macropomum x piaractus brachypomus" ~ "serrasalmidae", #replace with common family for hybrid
+          SciName == "colossoma macropomum x piaractus brachypomus" ~
+            "serrasalmidae", #replace with common family for hybrid
           SciName == "dallocardia muricata" ~ "trachycardium muricatum", # dallocardia muricata is accepted in Worms, but lists trachycardium muricatum as a superseded combination
-          SciName == "epinephelus fuscoguttatus x e. lanceolatus" ~ "epinephelus", #replace with common genus for hybrid
+          SciName == "epinephelus fuscoguttatus x e. lanceolatus" ~
+            "epinephelus", #replace with common genus for hybrid
           SciName == "grimothea gregaria" ~ "munida gregaria", #grimothea gregaria is accepted in Worms, but lists munida gregaria as a superseded combination
           SciName == "hansarsia megalops" ~ "nematoscelis megalops", # hansarsia megalops is accepted in Worms but nematoscelis megalops is superseded combination
-          SciName == "heterobranchus longifilis x clarias gariepinus" ~ "clariidae", # replace with common family for hybrid
+          SciName == "heterobranchus longifilis x clarias gariepinus" ~
+            "clariidae", # replace with common family for hybrid
           SciName == "holothuria (holothuria) tubulosa" ~ "holothuria tubulosa",
           SciName == "hyporthodus drummondhayi" ~ "epinephelus drummondhayi",
           SciName == "iliochione subrugosa" ~ "chione subrugosa",
@@ -207,8 +217,10 @@ classify_prod_dat <- function(datadir,
           SciName == "mytella strigata" ~ "mytella charruana",
           SciName == "perciformes (others)" ~ "perciformes",
           SciName == "perciformes (percoidei)" ~ "perciformes/percoidei",
-          SciName == "perciformes (scorpaenoidei)" ~ "perciformes/scorpaenoidei",
-          SciName == "piaractus mesopotamicus x colossoma macropomum" ~ "serrasalmidae",
+          SciName == "perciformes (scorpaenoidei)" ~
+            "perciformes/scorpaenoidei",
+          SciName == "piaractus mesopotamicus x colossoma macropomum" ~
+            "serrasalmidae",
           SciName == "pinirampus argentina" ~ "megalonema argentinum",
           SciName == "polybius depurator" ~ "liocarcinus depurator",
           SciName == "polybius navigator" ~ "liocarcinus navigator",
@@ -216,23 +228,24 @@ classify_prod_dat <- function(datadir,
           SciName == "proteopitar patagonicus" ~ "pitar patagonicus",
           SciName == "scombriformes (scombroidei)" ~ "scombriformes",
           SciName == "spisula sibyllae" ~ "spisula sachalinensis",
-          SciName == "uroteuthis (photololigo) duvaucelii" ~ "uroteuthis duvaucelii",
+          SciName == "uroteuthis (photololigo) duvaucelii" ~
+            "uroteuthis duvaucelii",
           SciName == "ylistrum japonicum" ~ "amusium japonicum",
           SciName == "labridae (ex scaridae)" ~ "labridae",
           SciName == "batoidea or batoidimorpha (hypotremata)" ~ "batoidea",
           SciName == "selachii or selachimorpha (pleurotremata)" ~ "selachii",
 
           # fishbase updated class from actinoptergi to teleostei
-          # we decided to lump all actinoptergygii as osteichthyes 
-          SciName == "actinopterygii" ~ "osteichthyes", 
+          # we decided to lump all actinoptergygii as osteichthyes
+          SciName == "actinopterygii" ~ "osteichthyes",
 
-          # FIXIT: Repull rfishbase data and remove this section once species are 
+          # FIXIT: Repull rfishbase data and remove this section once species are
           # verified in the record - currently are not listed at all 2025-09
           SciName == "lophiosilurus apurensis" ~ "osteichthyes",
           SciName == "orthopristis chalcea" ~ "osteichthyes",
           SciName == "meuschenia scabra" ~ "osteichthyes",
           SciName == "ratabulus prionotus" ~ "osteichthyes",
-          # FIXIT: Temporary change to genus - remove once these specie are added to rfishbase 
+          # FIXIT: Temporary change to genus - remove once these specie are added to rfishbase
           # data version (show on fishbase website search). FAO 2025 is using rfishbase "latest" version "24.07"
           SciName == "bodianus parrae" ~ "bodianus",
           SciName == "bodianus pulcher" ~ "bodianus",
@@ -240,118 +253,133 @@ classify_prod_dat <- function(datadir,
           SciName == "parupeneus heptacantha" ~ "parupeneus",
           SciName == "astacopsis franklinii" ~ "parastacidae",
           SciName == "pimelodus yuma" ~ "pimelodus",
-          
+
           # Keep all other SciNames as is:
-          TRUE ~ SciName)) # end of pipe
-    
+          TRUE ~ SciName
+        )
+      ) # end of pipe
+
     # Identify taxonomic ranks
     # prod_ts will eventually be joined with fishbase classification info, use column name Genus01 to differentiate from column Genus
     prod_ts$Species01 <- 0
     prod_ts$Genus01 <- 0
     prod_ts$Family01 <- 0
     prod_ts$Other01 <- 0
-    
-    prod_ts$Genus01[grepl(prod_ts$SciName, pattern="spp")] <- 1
+
+    prod_ts$Genus01[grepl(prod_ts$SciName, pattern = "spp")] <- 1
     #prod_ts$Family01[prod_ts$SciName==str_to_lower(prod_ts$family)] <- 1 # note: this incorrectly identifies aristeidae as Other01
-    prod_ts$Family01[grepl(pattern = " ", prod_ts$SciName)==FALSE & grepl(pattern = "([^\\s])*dae", prod_ts$SciName)] <- 1
-    prod_ts$Species01[grepl(prod_ts$SciName, pattern=" ") & prod_ts$Family01==0 & prod_ts$Genus01==0] <- 1
-    prod_ts$Other01[prod_ts$Species01==0 & prod_ts$Genus01==0 & prod_ts$Family01==0] <- 1
-    
+    prod_ts$Family01[
+      grepl(pattern = " ", prod_ts$SciName) == FALSE &
+        grepl(pattern = "([^\\s])*dae", prod_ts$SciName)
+    ] <- 1
+    prod_ts$Species01[
+      grepl(prod_ts$SciName, pattern = " ") &
+        prod_ts$Family01 == 0 &
+        prod_ts$Genus01 == 0
+    ] <- 1
+    prod_ts$Other01[
+      prod_ts$Species01 == 0 & prod_ts$Genus01 == 0 & prod_ts$Family01 == 0
+    ] <- 1
+
     # Now the genera are identified, remove " spp"
     prod_ts <- prod_ts %>%
-      mutate(SciName = gsub(SciName, pattern=" spp", replacement=""))
-    
+      mutate(SciName = gsub(SciName, pattern = " spp", replacement = ""))
+
     # Finally data formatting
     prod_ts <- prod_ts %>%
-      mutate(quantity = as.numeric(quantity),
-             year = as.integer(year))
+      mutate(quantity = as.numeric(quantity), year = as.integer(year))
   }
-  
-  
-  if (prod_data_source=="SAU"){
-    prod_ts <- fread(file.path(datadir, filename), 
-                        stringsAsFactors = FALSE, 
-                        header = TRUE, 
-                        sep=",") %>%
-      filter( 
-        year > 1995,
-        sum > 0) %>%
+
+  if (prod_data_source == "SAU") {
+    prod_ts <- prod_df %>%
+      # only keep data from 1996 onward and where quantity > 0
+      filter(year >= 1996, sum > 0) %>%
       mutate(scientific_name = tolower(scientific_name)) %>%
-      rename(quantity = sum,
-             CommonName = common_name,
-             SciName = scientific_name,
-             country_name_en = fishing_entity,
+      rename(
+        quantity = sum,
+        CommonName = common_name,
+        SciName = scientific_name,
+        country_name_en = fishing_entity,
       ) %>%
-      mutate(SciName = tolower(SciName), 
-             CommonName = tolower(CommonName))
-    
-    sci_2_common <- fread(file.path(datadir, SAU_sci_2_common), 
-                             stringsAsFactors = FALSE) %>%
+      mutate(SciName = tolower(SciName), CommonName = tolower(CommonName))
+
+    sci_2_common <- fread(
+      file.path(datadir, SAU_sci_2_common),
+      stringsAsFactors = FALSE,
+      data.table = FALSE
+    ) %>%
       mutate(scientific_name = tolower(scientific_name))
-    
-    sci_2_common <- sci_2_common %>% 
+
+    sci_2_common <- sci_2_common %>%
       # Remove retired scientific names
-      filter(!grepl(comments_names, pattern="retired"))
-    
-    latest_taxon_keys <- sci_2_common %>% 
-      group_by(scientific_name) %>% 
+      filter(!grepl(comments_names, pattern = "retired"))
+
+    latest_taxon_keys <- sci_2_common %>%
+      group_by(scientific_name) %>%
       summarize(taxon_key = max(taxon_key))
-    
+
     sci_2_common <- sci_2_common %>%
       filter(taxon_key %in% latest_taxon_keys$taxon_key)
-    
-    prod_ts <- prod_ts %>% 
-      left_join(sci_2_common %>%
-                  select(-common_name), by = c("SciName" = "scientific_name")) %>% 
+
+    prod_ts <- prod_ts %>%
+      left_join(
+        sci_2_common %>%
+          select(-common_name),
+        by = c("SciName" = "scientific_name")
+      ) %>%
       # Trim any leading/trailing whitespace
       mutate_all(str_trim) %>%
-      filter(is.na(SciName)==FALSE) %>%
+      filter(is.na(SciName) == FALSE) %>%
       # THESE APPLY SPECIFICALLY TO SAU prod_ts
       # First do some cleaning of SciNames
       # List of fixes comes from finding SciNames that do not match to either the fishbase classification database or fishbase synonyms function in downstream code
       # Address non-scientific names
-      mutate(SciName = case_when(SciName == "marine finfishes not identified" ~ "osteichthyes", 
-                                 SciName == "marine fishes not identified" ~ "osteichthyes",
-                                 SciName == "marine groundfishes not identified" ~ "osteichthyes",
-                                 SciName == "marine pelagic fishes not identified" ~ "osteichthyes", 
-                                 SciName == "miscellaneous aquatic invertebrates" ~ "asteroidea", # assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum, ascidians would be omitted as chordata)
-                                 SciName == "miscellaneous diadromous fishes" ~ "osteichthyes",
-                                 SciName == "miscellaneous marine crustaceans" ~ "malacostraca", # assuming some sort of crab/lobster/shrimp/prawn/crayfish crustacean
-                                 
-                                 # Names not recognized by fish/sealifebase, just go up one (in some cases, down) one level in classification
-                                 SciName == "anomura" ~ "decapoda", # fish/sealifebase doesn't go to infraorder-level of classification
-                                 SciName == "asterozoa" ~ "asteroidea",
-                                 SciName == "batoidea" ~ "rajiformes", # several potential orders, assume rajiformes for now
-                                 SciName == "brachyura" ~ "decapoda", 
-                                 SciName == "dendrobranchiata" ~ "decapoda",
-                                 SciName == "echinozoa" ~ "echinodermata", 
-                                 SciName == "inermiidae" ~ "haemulidae", 
-                                 SciName == "pteriomorphia" ~ "bivalvia", 
-                                 SciName == "scombroidea" ~ "perciformes",
-                                 
-                                 # Edits because they are not getting matched to taxa table at the end
-                                 SciName == "liza" ~ "planiliza",
-                                 SciName == "scombroidei" ~ "perciformes",
-                                 SciName == "pleuronectoidei" ~ "pleuronectiformes", # moving from suborder to order
-                                 SciName == "valamugil" ~ "crenimugil",
-                                 SciName == 'tridacnidae' ~ 'cardiidae', # Moving from subfamily to family name
-                                 SciName == 'azurina cyanea' ~ 'azurina', # moving up a taxonomic level
-                                 SciName == 'macrostrombus costatus' ~ 'strombidae', # Move from species to family name for identification
-                                 SciName == 'phrontis vibex' ~ 'nassarius vibex',
-                                 SciName == 'sinistrofulgur sinistrum' ~ 'neogastropoda', # Move from species to order
-                                 SciName == "actinopterygii" ~ "osteichthyes",
-                                 TRUE ~ SciName)) 
-    
+      mutate(
+        SciName = case_when(
+          SciName == "marine finfishes not identified" ~ "osteichthyes",
+          SciName == "marine fishes not identified" ~ "osteichthyes",
+          SciName == "marine groundfishes not identified" ~ "osteichthyes",
+          SciName == "marine pelagic fishes not identified" ~ "osteichthyes",
+          SciName == "miscellaneous aquatic invertebrates" ~ "asteroidea", # assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum, ascidians would be omitted as chordata)
+          SciName == "miscellaneous diadromous fishes" ~ "osteichthyes",
+          SciName == "miscellaneous marine crustaceans" ~ "malacostraca", # assuming some sort of crab/lobster/shrimp/prawn/crayfish crustacean
+
+          # Names not recognized by fish/sealifebase, just go up one (in some cases, down) one level in classification
+          SciName == "anomura" ~ "decapoda", # fish/sealifebase doesn't go to infraorder-level of classification
+          SciName == "asterozoa" ~ "asteroidea",
+          SciName == "batoidea" ~ "rajiformes", # several potential orders, assume rajiformes for now
+          SciName == "brachyura" ~ "decapoda",
+          SciName == "dendrobranchiata" ~ "decapoda",
+          SciName == "echinozoa" ~ "echinodermata",
+          SciName == "inermiidae" ~ "haemulidae",
+          SciName == "pteriomorphia" ~ "bivalvia",
+          SciName == "scombroidea" ~ "perciformes",
+
+          # Edits because they are not getting matched to taxa table at the end
+          SciName == "liza" ~ "planiliza",
+          SciName == "scombroidei" ~ "perciformes",
+          SciName == "pleuronectoidei" ~ "pleuronectiformes", # moving from suborder to order
+          SciName == "valamugil" ~ "crenimugil",
+          SciName == 'tridacnidae' ~ 'cardiidae', # Moving from subfamily to family name
+          SciName == 'azurina cyanea' ~ 'azurina', # moving up a taxonomic level
+          SciName == 'macrostrombus costatus' ~ 'strombidae', # Move from species to family name for identification
+          SciName == 'phrontis vibex' ~ 'nassarius vibex',
+          SciName == 'sinistrofulgur sinistrum' ~ 'neogastropoda', # Move from species to order
+          SciName == "actinopterygii" ~ "osteichthyes",
+          TRUE ~ SciName
+        )
+      )
+
     prod_ts$Species01 <- 0
     prod_ts$Genus01 <- 0
     prod_ts$Family01 <- 0
     prod_ts$Other01 <- 0
-    
-    prod_ts$Species01[which(prod_ts$taxon_level_id==6)] <- 1
-    prod_ts$Genus01[which(prod_ts$taxon_level_id==5)] <- 1
-    prod_ts$Family01[which(prod_ts$taxon_level_id==4)] <- 1
-    prod_ts$Other01[which(prod_ts$taxon_level_id<4)] <- 1
-    
+
+    prod_ts$Species01[which(prod_ts$taxon_level_id == 6)] <- 1
+    prod_ts$Genus01[which(prod_ts$taxon_level_id == 5)] <- 1
+    prod_ts$Family01[which(prod_ts$taxon_level_id == 4)] <- 1
+    prod_ts$Other01[which(prod_ts$taxon_level_id < 4)] <- 1
+
     prod_ts <- prod_ts %>%
       mutate(
         Genus01 = case_when(
@@ -396,435 +424,582 @@ classify_prod_dat <- function(datadir,
           SciName == 'neogastropoda' ~ 1,
           TRUE ~ Other01
         )
-      )  
+      )
   }
-  
+
   #############################################################################################
   # For both SAU and FAO data, match all taxanames to classification info in fishbase/sealifebase
-  
+
   # First use all unique taxa names (prod_taxa_names) to match classification info
   # IMPORTANT: in the process, find SciNames with no classification info and replace synonyms with accepted names in prod_ts
-  prod_taxa_names <- prod_ts %>% 
-    select(SciName, CommonName, Species01, Genus01, Family01, Other01) %>% 
+  prod_taxa_names <- prod_ts %>%
+    select(SciName, CommonName, Species01, Genus01, Family01, Other01) %>%
     arrange(SciName) %>%
     distinct()
-  
-  # Load Fishbase and Sealifebase Databases 
+
+  # Load Fishbase and Sealifebase Databases
   # Fishbase and Sealifebase Taxa Datasets
-  fishbase <- fread(file.path(fb_slb_dir, "fb_taxa_info.csv"))
-  sealifebase <- fread(file.path(fb_slb_dir, "slb_taxa_info.csv"))
-  
+  fishbase <- fread(file.path(fb_slb_dir, "fb_taxa_info.csv"), data.table = FALSE)
+  sealifebase <- fread(file.path(fb_slb_dir, "slb_taxa_info.csv"), data.table = FALSE)
+
   # reads and cleans Fishbase and Sealifebase synonym datasets
-  fb_df <- fread(file.path(fb_slb_dir, "fb_synonyms_clean.csv"))
-  slb_df <- fread(file.path(fb_slb_dir, "slb_synonyms_clean.csv"))
-  
+  fb_df <- fread(file.path(fb_slb_dir, "fb_synonyms_clean.csv"), data.table = FALSE)
+  slb_df <- fread(file.path(fb_slb_dir, "slb_synonyms_clean.csv"), data.table = FALSE)
+
   # Standardize fishbase and sealifebase:
-  fishbase <- fishbase %>% 
+  fishbase <- fishbase %>%
     mutate_all(tolower) %>%
     select(-SpecCode)
-  
+
   sealifebase <- sealifebase %>%
     mutate_all(tolower) %>%
     select(-SpecCode)
-  
+
   # HIERARCHICAL MATCHING TO CLASSIFICATION INFO
   # For each SciName in prod_taxa_names, use fishbase and sealifebase to add taxonomic classification
   # Original FAO and SAU data had taxonomic classification info, but use fishbase/sealifebase for this info instead (more trustworthy)
   # Need to join data hierarchically (match species to species, genus to genus, etc.)
-  # NOTES on hierarchical joining: 
+  # NOTES on hierarchical joining:
   # Use inner_join to get only matches; non-matches (i.e., not found in fishbase or sealifebase) will be rejoined at the end
   # Hierarchical joining: Before joining by Genus, remove fishbase species column (otherwise will join multiple species to what should be a single row for the genus)
   # Hierarchical joining: Before joining by Family, remove fishbase species, genus, subfamily columns
-  # Hierarchical joining: Before etc. etc. 
+  # Hierarchical joining: Before etc. etc.
   # For Other01=1, join separately for higher groups (Order, Class, and Superclass for fishbase; Order, Class, Phylum, Kingdom for Sealifebase)
   # For Other01=1, assign metadata to positive matches: Order01, Class01, Superclass01, Phylum01, Kingdom01
   fishbase <- as.data.frame(fishbase)
   sealifebase <- as.data.frame(sealifebase)
-  
+
   prod_fb_species <- prod_taxa_names %>%
-    filter(Species01==1) %>%
-    inner_join(fishbase, 
-               by=c("SciName" = "Species")) 
-  
+    filter(Species01 == 1) %>%
+    inner_join(fishbase, by = c("SciName" = "Species"))
+
   # Only includes genuses that appear in BOTH production and fishbase
-  prod_fb_genus <- prod_taxa_names %>% 
-    filter(Genus01==1) %>%
-    inner_join((fishbase %>% select(-Species)), 
-               by=c("SciName" = "Genus")) %>%
+  prod_fb_genus <- prod_taxa_names %>%
+    filter(Genus01 == 1) %>%
+    inner_join((fishbase %>% select(-Species)), by = c("SciName" = "Genus")) %>%
     mutate(Genus = SciName) %>% # Retain "Genus" column so that filtering by column "Genus" will include all Species with this Genus as well as SciName=Genus
     distinct()
-  
-  prod_fb_family <- prod_taxa_names %>% 
-    filter(Family01==1) %>%
-    inner_join((fishbase %>% select(-c(Species, Genus, Subfamily))), 
-               by=c("SciName" = "Family")) %>%
+
+  prod_fb_family <- prod_taxa_names %>%
+    filter(Family01 == 1) %>%
+    inner_join(
+      (fishbase %>% select(-c(Species, Genus, Subfamily))),
+      by = c("SciName" = "Family")
+    ) %>%
     mutate(Family = SciName) %>%
     distinct()
-  
-  prod_fb_order <- prod_taxa_names %>% 
-    filter(Other01==1) %>%
-    inner_join((fishbase %>% select(-c(Species, Genus, Subfamily, Family))), 
-               by=c("SciName" = "Order")) %>%
+
+  prod_fb_order <- prod_taxa_names %>%
+    filter(Other01 == 1) %>%
+    inner_join(
+      (fishbase %>% select(-c(Species, Genus, Subfamily, Family))),
+      by = c("SciName" = "Order")
+    ) %>%
     mutate(Order = SciName) %>%
     distinct() %>%
     mutate(Order01 = 1) %>%
     select(-Other01)
-  
-  prod_fb_class <- prod_taxa_names %>% 
-    filter(Other01==1) %>%
-    inner_join((fishbase %>% select(-c(Species, Genus, Subfamily, Family, Order))), 
-               by=c("SciName" = "Class")) %>%
+
+  prod_fb_class <- prod_taxa_names %>%
+    filter(Other01 == 1) %>%
+    inner_join(
+      (fishbase %>% select(-c(Species, Genus, Subfamily, Family, Order))),
+      by = c("SciName" = "Class")
+    ) %>%
     mutate(Class = SciName) %>%
     distinct() %>%
     mutate(Class01 = 1) %>%
     select(-Other01)
-  
-  prod_fb_superclass <- prod_taxa_names %>% 
-    filter(Other01==1) %>%
-    inner_join((fishbase %>% select(-c(Species, Genus, Subfamily, 
-                                       Family, Order, Class))), 
-               by=c("SciName" = "SuperClass")) %>%
+
+  prod_fb_superclass <- prod_taxa_names %>%
+    filter(Other01 == 1) %>%
+    inner_join(
+      (fishbase %>%
+        select(-c(Species, Genus, Subfamily, Family, Order, Class))),
+      by = c("SciName" = "SuperClass")
+    ) %>%
     mutate(SuperClass = SciName) %>%
     distinct() %>%
     mutate(Superclass01 = 1) %>%
     select(-Other01)
-  
-  # Repeat hierarchical joining with sealifebase: 
-  prod_slb_species <- prod_taxa_names %>% 
-    filter(Species01==1) %>%
-    inner_join(sealifebase, 
-               by=c("SciName" = "Species")) 
-  
-  prod_slb_genus <- prod_taxa_names %>% 
-    filter(Genus01==1) %>%
-    inner_join((sealifebase %>% select(-Species)), 
-               by=c("SciName" = "Genus")) %>%
+
+  # Repeat hierarchical joining with sealifebase:
+  prod_slb_species <- prod_taxa_names %>%
+    filter(Species01 == 1) %>%
+    inner_join(sealifebase, by = c("SciName" = "Species"))
+
+  prod_slb_genus <- prod_taxa_names %>%
+    filter(Genus01 == 1) %>%
+    inner_join(
+      (sealifebase %>% select(-Species)),
+      by = c("SciName" = "Genus")
+    ) %>%
     mutate(Genus = SciName) %>%
     distinct()
-  
-  prod_slb_family <- prod_taxa_names %>% 
-    filter(Family01==1) %>%
-    inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily))), 
-               by=c("SciName" = "Family")) %>%
+
+  prod_slb_family <- prod_taxa_names %>%
+    filter(Family01 == 1) %>%
+    inner_join(
+      (sealifebase %>% select(-c(Species, Genus, Subfamily))),
+      by = c("SciName" = "Family")
+    ) %>%
     mutate(Family = SciName) %>%
     distinct()
-  
-  prod_slb_order <- prod_taxa_names %>% 
-    filter(Other01==1) %>%
-    inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily, Family))), 
-               by=c("SciName" = "Order")) %>%
+
+  prod_slb_order <- prod_taxa_names %>%
+    filter(Other01 == 1) %>%
+    inner_join(
+      (sealifebase %>% select(-c(Species, Genus, Subfamily, Family))),
+      by = c("SciName" = "Order")
+    ) %>%
     mutate(Order = SciName) %>%
     distinct() %>%
     mutate(Order01 = 1) %>%
     select(-Other01)
-  
-  prod_slb_class <- prod_taxa_names %>% 
-    filter(Other01==1) %>%
-    inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily, 
-                                          Family, Order))), 
-               by=c("SciName" = "Class")) %>%
+
+  prod_slb_class <- prod_taxa_names %>%
+    filter(Other01 == 1) %>%
+    inner_join(
+      (sealifebase %>% select(-c(Species, Genus, Subfamily, Family, Order))),
+      by = c("SciName" = "Class")
+    ) %>%
     mutate(Class = SciName) %>%
     distinct() %>%
     mutate(Class01 = 1) %>%
     select(-Other01)
-  
-  prod_slb_phylum <- prod_taxa_names %>% 
-    filter(Other01==1) %>%
-    inner_join((sealifebase %>% select(-c(Species, Genus, Subfamily, 
-                                          Family, Order, Class))), 
-               by=c("SciName" = "Phylum")) %>%
+
+  prod_slb_phylum <- prod_taxa_names %>%
+    filter(Other01 == 1) %>%
+    inner_join(
+      (sealifebase %>%
+        select(-c(Species, Genus, Subfamily, Family, Order, Class))),
+      by = c("SciName" = "Phylum")
+    ) %>%
     mutate(Phylum = SciName) %>%
     distinct() %>%
     mutate(Phylum01 = 1) %>%
     select(-Other01)
-  
+
   # NO Kingdom matches, so stop here with taxa matching
-  
-  # Only needed metadata columns (Species01, Genus01, etc) to match production data to fishbase and sealifebase classification; can now remove these 
+
+  # Only needed metadata columns (Species01, Genus01, etc) to match production data to fishbase and sealifebase classification; can now remove these
   # Bind all matched data frames together
-  prod_fb_full <- prod_fb_species %>% 
-    full_join(prod_fb_genus, by = intersect(names(prod_fb_species), names(prod_fb_genus))) %>%
-    full_join(prod_fb_family, by = intersect(names(.), names(prod_fb_family))) %>%
+  prod_fb_full <- prod_fb_species %>%
+    full_join(
+      prod_fb_genus,
+      by = intersect(names(prod_fb_species), names(prod_fb_genus))
+    ) %>%
+    full_join(
+      prod_fb_family,
+      by = intersect(names(.), names(prod_fb_family))
+    ) %>%
     full_join(prod_fb_order, by = intersect(names(.), names(prod_fb_order))) %>%
     full_join(prod_fb_class, by = intersect(names(.), names(prod_fb_class))) %>%
-    full_join(prod_fb_superclass, by = intersect(names(.), names(prod_fb_superclass))) %>%
+    full_join(
+      prod_fb_superclass,
+      by = intersect(names(.), names(prod_fb_superclass))
+    ) %>%
     arrange(SciName)
-  
-  prod_slb_full <- prod_slb_species %>% 
-    full_join(prod_slb_genus,  by = intersect(names(prod_slb_species), names(prod_slb_genus))) %>%
-    full_join(prod_slb_family, by = intersect(names(.), names(prod_slb_family))) %>%
-    full_join(prod_slb_order, by = intersect(names(.), names(prod_slb_order))) %>%
-    full_join(prod_slb_class, by = intersect(names(.), names(prod_slb_class))) %>%
-    full_join(prod_slb_phylum, by = intersect(names(.), names(prod_slb_phylum))) %>%
+
+  prod_slb_full <- prod_slb_species %>%
+    full_join(
+      prod_slb_genus,
+      by = intersect(names(prod_slb_species), names(prod_slb_genus))
+    ) %>%
+    full_join(
+      prod_slb_family,
+      by = intersect(names(.), names(prod_slb_family))
+    ) %>%
+    full_join(
+      prod_slb_order,
+      by = intersect(names(.), names(prod_slb_order))
+    ) %>%
+    full_join(
+      prod_slb_class,
+      by = intersect(names(.), names(prod_slb_class))
+    ) %>%
+    full_join(
+      prod_slb_phylum,
+      by = intersect(names(.), names(prod_slb_phylum))
+    ) %>%
     # There are no slb superclass or kingdom matches
     arrange(SciName)
-  
+
   ##########################################################################################################
   # Standardize names of FAO prod taxa that did not match to fish/sealifebase
   # Are there any scinames common between fb and slb - should not be
   # common_fb_slb <- intersect(prod_fb_full$SciName, prod_slb_full$SciName) # none
-  
+
   # Figure out which species dropped out
-  nomatch_fb <- prod_taxa_names$SciName[prod_taxa_names$SciName %in% prod_fb_full$SciName==FALSE] # 613
-  nomatch_fb_and_slb <- nomatch_fb[nomatch_fb %in% prod_slb_full$SciName==FALSE] # 194
+  nomatch_fb <- prod_taxa_names$SciName[
+    prod_taxa_names$SciName %in% prod_fb_full$SciName == FALSE
+  ] # 613
+  nomatch_fb_and_slb <- nomatch_fb[
+    nomatch_fb %in% prod_slb_full$SciName == FALSE
+  ] # 194
   nomatch_fb_and_slb <- unique(nomatch_fb_and_slb) # FAO 191, SAU 180
   # Note: prod_taxa_names is allowed to have duplicate scinames (each has a different commonname), only need list of unique sci names for synonyms matching below
-  
+
   # Use synonyms() function in rfishbase (currently using backed up dataset of fb and slb synonyms) to see if non-matching species is due to an outdated scientific name
   # First limit nomatch_fb_and_slb to just species names (i.e., two words, look for space)
-  nomatch_species <- nomatch_fb_and_slb[grepl(nomatch_fb_and_slb, pattern = " ")] # length = 19 (for FAO); 158 (for SAU)
-  
+  nomatch_species <- nomatch_fb_and_slb[grepl(
+    nomatch_fb_and_slb,
+    pattern = " "
+  )] # length = 19 (for FAO); 158 (for SAU)
+
   fb_switches <- 0
   slb_switches <- 0
   for (i in 1:length(nomatch_species)) {
-    
     next_sciname <- nomatch_species[i]
 
     # Run scientific name through synonym databases in fishbase and sealifebase
     name_fb_status <- query_synonyms(fb_df, next_sciname)
     name_slb_status <- query_synonyms(slb_df, next_sciname)
-    
+
     # check if this SciName is in fishbase
     if (nrow(name_fb_status) > 0) {
-      
       accepted_name <- tolower(name_fb_status$synonym)
-      
+
       # REPLACE SYNONYM WITH ACCEPTED NAME IN BOTH CLASSIFICATION DATAFRAME AND PRODUCTION DATA
       # Get row from original prod_taxa_names, replace with accepted name, and join with classification info from fishbase
       prod_fb_full_newdat <- prod_taxa_names %>%
         filter(SciName == next_sciname) %>%
         mutate(SciName = accepted_name) %>%
-        inner_join(fishbase, by=c("SciName" = "Species"))
-      
+        inner_join(fishbase, by = c("SciName" = "Species"))
+
       prod_ts <- prod_ts %>%
-        mutate(SciName = if_else(SciName==next_sciname, true = accepted_name, false = SciName))
-      
-      if(nrow(prod_fb_full_newdat) > 0){ # if a new row of data was successfully found, join to full classification dataset and replace nomatch_species[i] with accepted species name
-        nomatch_species[i]<-accepted_name # replace nomatch_species with accepted name to keep track further downstream which species are still missing
+        mutate(
+          SciName = if_else(
+            SciName == next_sciname,
+            true = accepted_name,
+            false = SciName
+          )
+        )
+
+      if (nrow(prod_fb_full_newdat) > 0) {
+        # if a new row of data was successfully found, join to full classification dataset and replace nomatch_species[i] with accepted species name
+        nomatch_species[i] <- accepted_name # replace nomatch_species with accepted name to keep track further downstream which species are still missing
         prod_fb_full <- prod_fb_full %>%
-          full_join(prod_fb_full_newdat, by = intersect(names(prod_fb_full), names(prod_fb_full_newdat))) # join by all columns
+          full_join(
+            prod_fb_full_newdat,
+            by = intersect(names(prod_fb_full), names(prod_fb_full_newdat))
+          ) # join by all columns
         fb_switches = fb_switches + 1
       }
     } # end if SciName fb check
-    
+
     # check to see if this SciName is in Sealifebase
     if (nrow(name_slb_status) > 0) {
-      
       accepted_name <- tolower(name_slb_status$synonym)
-      
+
       prod_slb_full_newdat <- prod_taxa_names %>%
         filter(SciName == next_sciname) %>%
         mutate(SciName = accepted_name) %>%
-        inner_join(sealifebase, by=c("SciName" = "Species")) 
-      
+        inner_join(sealifebase, by = c("SciName" = "Species"))
+
       prod_ts <- prod_ts %>%
-        mutate(SciName = if_else(SciName==next_sciname, true = accepted_name, false = SciName))
-      
+        mutate(
+          SciName = if_else(
+            SciName == next_sciname,
+            true = accepted_name,
+            false = SciName
+          )
+        )
+
       if (nrow(prod_slb_full_newdat) > 0) {
         nomatch_species[i] <- accepted_name
-        prod_slb_full <-prod_slb_full %>%
-          full_join(prod_slb_full_newdat, intersect(names(prod_slb_full), names(prod_slb_full_newdat))) # join by all columns
-        
+        prod_slb_full <- prod_slb_full %>%
+          full_join(
+            prod_slb_full_newdat,
+            intersect(names(prod_slb_full), names(prod_slb_full_newdat))
+          ) # join by all columns
+
         slb_switches = slb_switches + 1
       }
     } # end if SciName slb check
   } # end for loop for non matching species
-  
+
   # FAO - 138 fb switches, 56 slb switches
   # SAU - 113 fb switches, 45 slb switches
-  
+
   # Figure out which species are still missing
-  post_match_missing_species <- nomatch_species[!(nomatch_species %in% prod_fb_full$SciName)]
-  post_match_missing_species <- post_match_missing_species[!(post_match_missing_species %in% prod_slb_full$SciName)]
-  
+  post_match_missing_species <- nomatch_species[
+    !(nomatch_species %in% prod_fb_full$SciName)
+  ]
+  post_match_missing_species <- post_match_missing_species[
+    !(post_match_missing_species %in% prod_slb_full$SciName)
+  ]
+
   # Only species names were screened for synonyms, get all the non-matching, non-species names
-  nomatch_non_species <- nomatch_fb_and_slb[grepl(nomatch_fb_and_slb, pattern = " ") == FALSE]
-  
+  nomatch_non_species <- nomatch_fb_and_slb[
+    grepl(nomatch_fb_and_slb, pattern = " ") == FALSE
+  ]
+
   nomatch_and_nosynonym <- c(post_match_missing_species, nomatch_non_species)
   nomatch_and_nosynonym <- sort(nomatch_and_nosynonym) # length = 0 i.e., all taxa in prod_ts now matched to classification info in rfishbase
-  
+
   # Check for any species in prod_ts that are not found in prod_fb_full or prod_slb_full and vice versa
-  unique(prod_ts$SciName)[unique(prod_ts$SciName) %in% c(prod_fb_full$SciName, prod_slb_full$SciName) == FALSE] # SAU 22 missing NON-species, 1 missing species
-  c(prod_fb_full$SciName, prod_slb_full$SciName)[c(prod_fb_full$SciName, prod_slb_full$SciName) %in% unique(prod_ts$SciName)==FALSE] # empty
-  
+  unique(prod_ts$SciName)[
+    unique(prod_ts$SciName) %in%
+      c(prod_fb_full$SciName, prod_slb_full$SciName) ==
+      FALSE
+  ] # SAU 22 missing NON-species, 1 missing species
+  c(prod_fb_full$SciName, prod_slb_full$SciName)[
+    c(prod_fb_full$SciName, prod_slb_full$SciName) %in%
+      unique(prod_ts$SciName) ==
+      FALSE
+  ] # empty
+
   ###########################################################################################################
   # Add aquarium trade info
-  
+
   # Get aquarium trade and habitat (Fresh, Brackish, Saltwater) info from fishbase: use this to classify ornamental trade species
   #fb_aquarium_info <- rfishbase::species(str_to_sentence(prod_fb_full$SciName))
-  fb_aquarium_info <- fread(file.path(fb_slb_dir, "fb_aquarium.csv"))
+  fb_aquarium_info <- fread(file.path(fb_slb_dir, "fb_aquarium.csv"), data.table = FALSE)
   fb_aquarium_relevant <- fb_aquarium_info %>%
     filter(SciName %in% prod_fb_full$SciName)
-  
+
   prod_fb_full <- prod_fb_full %>%
     left_join(fb_aquarium_relevant, by = "SciName") %>%
     rename(Fresh01 = Fresh, Brack01 = Brack, Saltwater01 = Saltwater) # to make it the same as previous version's code
-  
-  slb_aquarium_info <- fread(file.path(fb_slb_dir, "slb_aquarium.csv"))
+
+  slb_aquarium_info <- fread(file.path(fb_slb_dir, "slb_aquarium.csv"), data.table = FALSE)
   slb_aquarium_relevant <- slb_aquarium_info %>%
     filter(SciName %in% unique(prod_slb_full$SciName))
-  
+
   prod_slb_full <- prod_slb_full %>%
     left_join(slb_aquarium_relevant, by = c("SciName")) %>%
     rename(Fresh01 = Fresh, Brack01 = Brack, Saltwater01 = Saltwater) # to make it the same as previous version's code
-  
+
   ## FINAL CLEANING STEPS and combine prod_fb_full, prod_slb_full, and prod_ncbi_full
   prod_taxa_classification <- prod_fb_full %>%
-    full_join(prod_slb_full, by = intersect(names(prod_fb_full), names(prod_slb_full))) %>%
+    full_join(
+      prod_slb_full,
+      by = intersect(names(prod_fb_full), names(prod_slb_full))
+    ) %>%
     # Rename clupea pallasii pallasii (rfishbase only recognizes subspecies-level for this taxa) back to clupea pallasii
-    mutate(SciName = if_else(SciName=="clupea pallasii pallasii", true = "clupea pallasii", false = SciName)) %>%
+    mutate(
+      SciName = if_else(
+        SciName == "clupea pallasii pallasii",
+        true = "clupea pallasii",
+        false = SciName
+      )
+    ) %>%
     # rename SuperClass
     rename(Superclass = SuperClass) %>%
     # Remove all metadata columns (e.g., Species01) - these were only used to join FAO production data with fishbase and sealifebase; not needed for hs_commod_matching
-    select(SciName, CommonName, Genus, Subfamily, Family, Order, Class, Superclass, Phylum, Kingdom, 
-           Aquarium, Fresh01, Brack01, Saltwater01) %>% 
+    select(
+      SciName,
+      CommonName,
+      Genus,
+      Subfamily,
+      Family,
+      Order,
+      Class,
+      Superclass,
+      Phylum,
+      Kingdom,
+      Aquarium,
+      Fresh01,
+      Brack01,
+      Saltwater01
+    ) %>%
     arrange(SciName)
 
-
-# Unique Sciname Check ---------------------------------------------------
+  # Unique Sciname Check ---------------------------------------------------
   # Check that all SciNames are unique (and if not, they should at least have different CommonNames AND identical classification schemes)
   # After removing common name all SciNames should be unique
   classification_check <- prod_taxa_classification %>%
     select(-CommonName) %>%
-    distinct() 
-  
+    distinct()
+
   # These SciNames are not unique, even after removing Common Name - i.e., there are multiple, different rows of classification scheme for each of these SciNames
-  classification_to_fix <- data.frame(table(classification_check$SciName)) %>% 
+  classification_to_fix <- data.frame(table(classification_check$SciName)) %>%
     filter(Freq > 1) %>%
     pull(Var1)
-  
-  ## FIXIT: This needs a warning or this needs to be a different process that is not silent - introduces NAs. 
+
+  ## FIXIT: This needs a warning or this needs to be a different process that is not silent - introduces NAs.
   # Check, in each of these cases, there is a discrepancy in the classification scheme: prod_taxa_classification %>% filter(SciName %in% classification_to_fix)
   # Standardize them by inserting NA for when there is a discrepancy
   prod_taxa_fix <- NULL
-  for (i in 1:length(classification_to_fix)){
-    prod_taxa_i <- prod_taxa_classification %>% 
-      filter(SciName == classification_to_fix[i]) 
-    
-    test_taxa_i <- prod_taxa_classification %>% 
+  for (i in 1:length(classification_to_fix)) {
+    prod_taxa_i <- prod_taxa_classification %>%
+      filter(SciName == classification_to_fix[i])
+
+    test_taxa_i <- prod_taxa_classification %>%
       filter(SciName == classification_to_fix[i]) %>%
       mutate(across(everything(), as.factor)) %>%
       mutate(across(everything(), as.numeric)) %>%
       colSums(na.rm = TRUE) %>%
       t()
-    
+
     # if ColSums is 0, these are all NAs
-    # if ColSums == nrow(prod_taxa_i), then all factors match 
+    # if ColSums == nrow(prod_taxa_i), then all factors match
     # anything other than 0 or nrow(prod_taxa_i) means there is a discrepancy in this column, so set original values for this column to NA
-    fix_columns <- colnames(test_taxa_i)[test_taxa_i!=0 & test_taxa_i!=nrow(prod_taxa_i)]
-    
+    fix_columns <- colnames(test_taxa_i)[
+      test_taxa_i != 0 & test_taxa_i != nrow(prod_taxa_i)
+    ]
+
     # Set all of these columns to NA
-    prod_taxa_i[,fix_columns]<-NA
-    
+    prod_taxa_i[, fix_columns] <- NA
+
     # Classification should now be identical, distinct() should return single row
     prod_taxa_fix <- prod_taxa_fix %>%
       bind_rows(prod_taxa_i %>% distinct())
   }
-  
+
   prod_taxa_classification_clean <- prod_taxa_classification %>%
-    filter(SciName %in% classification_to_fix==FALSE)  %>% # Remove SciNames that did not have matching classification schemes
+    filter(SciName %in% classification_to_fix == FALSE) %>% # Remove SciNames that did not have matching classification schemes
     bind_rows(prod_taxa_fix) %>%
     arrange(SciName)
-  
+
   # Replace all empty values with NAs for consistent reporting
   prod_ts[prod_ts == ""] <- NA
 
-  ################## Temp 2025-08 fix for symbol bug e.g. "perciformes/percoidei_marine_capture" 
+  ################## Temp 2025-08 fix for symbol bug e.g. "perciformes/percoidei_marine_capture"
   # also added downstream to prod_taxa_classification_clean
   prod_ts <- prod_ts %>%
-    mutate(SciName = case_when(
-      # collapse perciformes/whatever into perciformeswhatever
-      str_detect(SciName, regex("^perciformes/", ignore_case = TRUE)) ~
-      str_replace(SciName, "/", ""),
-      TRUE ~ SciName))
+    mutate(
+      SciName = case_when(
+        # collapse perciformes/whatever into perciformeswhatever
+        str_detect(SciName, regex("^perciformes/", ignore_case = TRUE)) ~
+          str_replace(SciName, "/", ""),
+        TRUE ~ SciName
+      )
+    )
   #################
 
-  # Fill in Missing Phyla  
+  # Fill in Missing Phyla
   prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
-    mutate(Phylum = case_when(
-      Class %in% c("elasmobranchii", "holocephali", "myxini", 
-                  "cephalaspidomorphi", "sarcopterygii") ~ "chordata",
-      Superclass %in% c("osteichthyes", "chondrichthyes") ~ "chordata",
-      TRUE ~ Phylum))
-  
-  # Fill in missing Kingdom 
+    mutate(
+      Phylum = case_when(
+        Class %in%
+          c(
+            "elasmobranchii",
+            "holocephali",
+            "myxini",
+            "cephalaspidomorphi",
+            "sarcopterygii"
+          ) ~
+          "chordata",
+        Superclass %in% c("osteichthyes", "chondrichthyes") ~ "chordata",
+        TRUE ~ Phylum
+      )
+    )
+
+  # Fill in missing Kingdom
   prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
     mutate(Kingdom = "animalia")
 
   # Add Infraclass column
-  prod_taxa_classification_clean <- prod_taxa_classification_clean %>% 
-    mutate(Infraclass = case_when(
-      Family %in% c("carcharhiniformes", "heterodontiformes", "lamniformes", 
-        "orectolobiformes", "echinorhiniformes", "hexanchiformes", "pristiophoriformes", 
-        "squaliformes", "squatiniformes") ~ "selachii", 
-      Order %in% c("myliobatiformes", "rajiformes", "rhinopristiformes", "torpediniformes") ~ "batoidea",
-      TRUE ~ NA)) %>%
+  prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
+    mutate(
+      Infraclass = case_when(
+        Family %in%
+          c(
+            "carcharhiniformes",
+            "heterodontiformes",
+            "lamniformes",
+            "orectolobiformes",
+            "echinorhiniformes",
+            "hexanchiformes",
+            "pristiophoriformes",
+            "squaliformes",
+            "squatiniformes"
+          ) ~
+          "selachii",
+        Order %in%
+          c(
+            "myliobatiformes",
+            "rajiformes",
+            "rhinopristiformes",
+            "torpediniformes"
+          ) ~
+          "batoidea",
+        TRUE ~ NA
+      )
+    ) %>%
     relocate(Infraclass, .after = Order)
-  
+
   # Fill in missing rows for perciformes and bryozoa
   prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
     bind_rows(
-      data.frame(SciName = c("perciformes", "scorpaeniformes",  "batoidea", "selachii"),
-                 CommonName = c("tuna-like fishes nei", "mail-cheeked fishes", "rays", "sharks"),
-                 Genus = NA,
-                 Subfamily = NA,
-                 Family = NA,
-                 Order = c("perciformes", "scorpaeniformes", NA, NA),
-                 Infraclass = c(NA, NA, "batoidea",  "selachii"),
-                 Class = c("teleostei", "teleostei", "elasmobranchii", "elasmobranchii"),
-                 Superclass = NA,
-                 Phylum = c("chordata", "chordata", "chordata", "chordata"),
-                 Kingdom = c("animalia", "animalia", "animalia", "animalia"),
-                 Aquarium = NA,
-                 Fresh01 = NA,
-                 Brack01 = NA, 
-                 Saltwater01 = NA)
-    ) %>% 
+      data.frame(
+        SciName = c("perciformes", "scorpaeniformes", "batoidea", "selachii"),
+        CommonName = c(
+          "tuna-like fishes nei",
+          "mail-cheeked fishes",
+          "rays",
+          "sharks"
+        ),
+        Genus = NA,
+        Subfamily = NA,
+        Family = NA,
+        Order = c("perciformes", "scorpaeniformes", NA, NA),
+        Infraclass = c(NA, NA, "batoidea", "selachii"),
+        Class = c("teleostei", "teleostei", "elasmobranchii", "elasmobranchii"),
+        Superclass = NA,
+        Phylum = c("chordata", "chordata", "chordata", "chordata"),
+        Kingdom = c("animalia", "animalia", "animalia", "animalia"),
+        Aquarium = NA,
+        Fresh01 = NA,
+        Brack01 = NA,
+        Saltwater01 = NA
+      )
+    ) %>%
     # Special case Phylum for
-    mutate(Phylum = case_when(
-      SciName == "sipunculus nudus" ~ "annelida",
-      TRUE ~ Phylum
-    )) %>%
+    mutate(
+      Phylum = case_when(
+        SciName == "sipunculus nudus" ~ "annelida",
+        TRUE ~ Phylum
+      )
+    ) %>%
     # collapse perciformes/something into perciformessomething to prevent matching errors with symbol
-    # original fishbase syntax is retained in the taxa rank column. 
-    mutate(SciName = case_when(
-      str_detect(SciName, regex("^perciformes/", ignore_case = TRUE)) ~
-      str_replace(SciName, "/", ""),
-      TRUE ~ SciName)) %>%
-    mutate(CommonName = case_when(
-      SciName == "osteichthyes" ~ "ray-finned fishes", 
-      TRUE ~ CommonName
-    )) %>%
+    # original fishbase syntax is retained in the taxa rank column.
+    mutate(
+      SciName = case_when(
+        str_detect(SciName, regex("^perciformes/", ignore_case = TRUE)) ~
+          str_replace(SciName, "/", ""),
+        TRUE ~ SciName
+      )
+    ) %>%
+    mutate(
+      CommonName = case_when(
+        SciName == "osteichthyes" ~ "ray-finned fishes",
+        TRUE ~ CommonName
+      )
+    ) %>%
     # Only keep taxa represented within prod
     filter(SciName %in% prod_ts$SciName)
-      
-  
-# Missing Sciname Check --------------------------------------------------
+
+  # Missing Sciname Check --------------------------------------------------
 
   missing_scinames <- unique(prod_ts$SciName)[
-    !(unique(prod_ts$SciName) %in% unique(prod_taxa_classification_clean$SciName))
+    !(unique(prod_ts$SciName) %in%
+      unique(prod_taxa_classification_clean$SciName))
   ]
 
-if (length(missing_scinames) > 0) {
-  
-  cli_alert_danger(
-    "{length(missing_scinames)} {.field SciName}s in {.field prod_ts} are NOT found 
+  if (length(missing_scinames) > 0) {
+    cli_alert_danger(
+      "{length(missing_scinames)} {.field SciName}s in {.field prod_ts} are NOT found 
     in {.field prod_taxa_classification_clean}. These names could not be matched to 
     {.file fishbase} or {.file sealifebase}. They may not properly match to hs product 
     codes in {.fn match_*} functions downstream in {.file ./01-clean-input-data.R}. 
     Missing names writen to {.file datadir} as {.file missing_scinames_yyyy-mm-dd_HHMM.csv}
     to add to manual corrections upstream in this {.fn classify_prod_dat} function."
-  )
-  
-  cli_h1("Missing scientific names")
-  cli_ul(missing_scinames)
+    )
 
-  fwrite(
-    tibble(missing_scinames), 
-    file.path(datadir, glue("missing_scinames_{format(Sys.time(), '%Y-%m-%d_%H%M')}.csv"))
-  )
-}
-  
+    cli_h1("Missing scientific names")
+    cli_ul(missing_scinames)
+
+    fwrite(
+      tibble(missing_scinames),
+      file.path(
+        datadir,
+        glue("missing_scinames_{format(Sys.time(), '%Y-%m-%d_%H%M')}.csv")
+      )
+    )
+  }
+
   return(list(prod_ts, prod_taxa_classification_clean))
-  
 }

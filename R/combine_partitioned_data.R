@@ -59,23 +59,31 @@ combine_partitioned_data <- function(
   }
   
   combine_ducks <- duckdb::duckdb(
-    dbdir = file.path(outdir, "combine.duckdb"),
-    # optional: avoid scanning env for extensions; keeps things tidy/reproducible
-    environment_scan = FALSE,
-    config = list(
-      temp_directory = normalizePath(outdir, winslash = "/"),
-      memory_limit = "12GB",              # ~60–75% of your 16 GB RAM
-      max_temp_directory_size = "1TiB"    # guardrail, not space reservation
-    )
-  )
+    dbdir = file.path(outdir, "combine.duckdb")
+   )
 
   con <- DBI::dbConnect(combine_ducks)
-  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
 
-  # (optional) verify
-  DBI::dbGetQuery(con, "PRAGMA memory_limit")
-  DBI::dbGetQuery(con, "PRAGMA temp_directory")
+  # Store the database path for cleanup
+  db_path <- file.path(outdir, "combine.duckdb")
+  
+  # Register cleanup: disconnect and delete the temporary database file
+  on.exit({
+    DBI::dbDisconnect(con, shutdown = TRUE)
+    if (file.exists(db_path)) {
+      unlink(db_path)
+      if (verbose) cli::cli_alert_info("Cleaned up temporary duckDB database: {db_path}")
+    }
+  }, add = TRUE)
 
+  # Set configuration via PRAGMA statements after connecting
+  DBI::dbExecute(con, "SET memory_limit = '12GB'")
+  DBI::dbExecute(con, "SET temp_directory = ?", params = list(normalizePath(outdir, winslash = "/")))
+  DBI::dbExecute(con, "SET max_temp_directory_size = '1TiB'")
+
+  # Verify settings (optional)
+  DBI::dbGetQuery(con, "SELECT current_setting('memory_limit')")
+  DBI::dbGetQuery(con, "SELECT current_setting('temp_directory')")
   
   for (f in df_files) {
     if (verbose) message(glue("Appending {which(f == df_files)}/{length(df_files)}: {f}"))

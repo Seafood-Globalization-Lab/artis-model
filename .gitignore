@@ -3,9 +3,10 @@
 .RData
 .Ruserdata
 .DS_Store
+*.log
 demo/outputs
 venv/
-model_inputs_raw/*
+model_inputs_raw*
 baci_raw/*
 model_inputs_baci/*
 model_inputs/*

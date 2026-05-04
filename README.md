@@ -279,8 +279,12 @@ git pull origin develop
 # Rebase your feature branch onto develop version on GitHub (only effect feature branch)
 git checkout develop-<feature-name>
 git rebase origin/develop
-# update your GitHub feature branch
-git push
+```
+
+Update your GitHub feature branch: You need to force-push since rebase rewrites history. --force-with-lease is safer than --force — it will refuse if someone else pushed to the remote branch since your last fetch, protecting against accidental overwrites.
+
+```zsh
+git push --force-with-lease
 ```
 
 If there are conflicts, resolve them, then continue:

@@ -33,12 +33,12 @@ artis_bucket_region <- "us-east-1"
 # ARTIS model parameters ----------------------------------------------
 
 # set specific years to run in number vector, leave empty to run all years
-test_years <- c()
+test_years <- c(1996:2019)
 
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
 # Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
-prod_data_type <- "FAO"
+prod_data_type <- "SAU"
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()

@@ -9,7 +9,7 @@
 ^08-validatation-single-HS-year.Rmd
 \.html$
 ^demo$
-^model_inputs$
+^model_inputs
 ^outputs$
 ^images$
 ^AM_local$
@@ -17,5 +17,7 @@
 ^qa$
 ^venv$
 ^\.github$
+.env
+.env.swp
 
 
