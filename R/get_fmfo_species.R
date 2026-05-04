@@ -69,7 +69,91 @@ get_fmfo_species <- function(sau_fp,
       TRUE ~ 0))
   
   fmfo_species_output <- fmfo_species %>% 
-    select(SciName, primary_fishmeal)
+    select(SciName, primary_fishmeal) %>%
+    # Retain only true species names
+    filter(str_detect(SciName, pattern = "\\ ")) %>%
+    mutate(data_source = "SAU") %>%
+    # Add species from Clawson et al. which pulls from industry reports
+    bind_rows(
+      data.frame(SciName = c(
+        "gadus chalcogrammus", "thunnus alalunga", "strangomera bentincki",      
+        "merluccius hubbsi", "thunnus thynnus", "gadus morhua",               
+        "salmo salar", "thunnus obesus", "auxis rochei",               
+        "oncorhynchus kisutch", "coryphaena hippurus", "gymnosarda unicolor",        
+        "auxis thazard", "siganus guttatus", "scomberomorus guttatus",     
+        "thunnus tonggol", "prionotus carolinus", "sarda lineolata",            
+        "trachurus symmetricus", "pollachius pollachius", "oncorhynchus mykiss",        
+        "sardinella aurita", "pollachius virens", "katsuwonus pelamis",         
+        "ammodytes tobianus", "gymnammodytes semisquamatus", "thunnus maccoyii",           
+        "eubleekeria splendens", "thunnus albacares"  
+      ), 
+      primary_fishmeal = 0, 
+      data_source = "industry reports")
+    ) %>%
+    bind_rows(
+      data.frame(SciName = c(
+        "pandalus montagui", "lophius piscatorius", "pleoticus muelleri",          
+        "illex argentinus", "artemesia longinaris",  "heterocarpus ensifer",        
+        "hippoglossus hippoglossus", "solenocera membranacea", "ambassis gymnocephalus",      
+        "sardinella lemuru", "okamejei kenojei", "lates calcarifer",
+        "platycephalus indicus", "paralichthys olivaceus", "sebastes mentella",           
+        "metapenaeopsis barbata", "selar crumenophthalmus",  "parastromateus niger",        
+        "aphanopus carbo", "arbacia lixula", "spondyliosoma cantharus",  
+        "lophius budegassa", "sarotherodon melanotheron", "thunnus atlanticus",          
+        "acanthopagrus schlegelii", "atrobucca nibe", "doederleinia berycoides",     
+        "carcharhinus limbatus", "aristeus antennatus", "macruronus novaezelandiae",   
+        "molva dypterygia", "prionace glauca", "oreochromis aureus",          
+        "fistularia commersonii", "harpadon nehereus", "ethmalosa fimbriata",         
+        "oedalechilus labeo", "saurida undosquamis", "trachurus capensis",          
+        "pampus chinensis", "oncorhynchus tshawytscha", "oncorhynchus keta",           
+        "crangon crangon", "solea solea", "penaeus brevirostris",        
+        "muraenesox cinereus", "parapenaeus longirostris", "soletellina diphos",          
+        "konosirus punctatus", "cancer pagurus", "ilisha elongata",             
+        "platichthys flesus", "merluccius merluccius", "pleuronectes platessa",      
+        "dicentrarchus labrax", "loligo vulgaris", "lepidorhombus boscii",     
+        "aristaeomorpha foliacea", "penaeus monodon", "sparus aurata",             
+        "plesionika martia", "nemipterus virgatus", "ctenopharyngodon idella",     
+        "pecten maximus", "carcinus maenas",  "reinhardtius hippoglossoides",
+        "holthuispenaeopsis atlantica", "melanogrammus aeglefinus", "atherinomorus lacunosus",     
+        "ariomma indica", "rastrelliger kanagurta", "istiophorus platypterus",     
+        "probarbus jullieni", "seriola quinqueradiata", "todarodes pacificus",         
+        "hyporhamphus sajori", "lateolabrax japonicus", "hemitriakis japanica",        
+        "zeus faber", "euthynnus affinis", "larimichthys crocea",         
+        "oligoplites saurus", "microstomus kitt", "molva molva",                 
+        "euthynnus alletteratus", "oreochromis macrochir", "sarotherodon galilaeus",      
+        "lutjanus argentimaculatus", "lepidorhombus whiffiagonis", "miichthys miiuy",             
+        "mene maculata", "siganus fuscescens", "oreochromis mossambicus",     
+        "cirrhinus molitorella", "scomberomorus commerson", "plesionika narval",           
+        "oreochromis niloticus", "nephrops norvegicus", "sebastes viviparus",          
+        "meganyctiphanes norvegica", "carcharhinus longimanus", "thunnus orientalis",          
+        "gadus macrocephalus", "hippoglossus stenolepis", "doryteuthis gahi",            
+        "selene peruviana", "clarias batrachus", "sphyraena jello",             
+        "pasiphaea multidentata", "oncorhynchus gorbuscha", "trisopterus luscus",          
+        "priacanthus macracanthus", "chelidonichthys cuculus", "urophycis chuss",             
+        "pterois volitans",  "alpheus glaber", "etrumeus sadina",             
+        "coptodon zillii", "coptodon rendalli", "oreochromis spilurus",        
+        "ovalipes punctatus", "aristaeopsis edwardsiana", "salmo trutta",                
+        "martialia hyadesi", "calappa granulata", "metapenaeus joyneri",         
+        "rastrelliger brachysoma", "oligoplites refulgens", "alepes djedaba",              
+        "carcharhinus falciformis", "pampus argenteus", "polydactylus sexfilis",       
+        "benthosema pterotum", "gerres oblongus", "allothunnus fallai",          
+        "scyliorhinus canicula", "oncorhynchus nerka", "penaeus notialis",            
+        "maja squinado", "lutjanus guttatus", "amblygaster sirm",            
+        "pangasianodon hypophthalmus", "kajikia audax", "aristeus varidens",           
+        "plesionika edwardsii", "gerres longirostris", "mullus surmuletus",           
+        "xiphias gladius", "raja clavata", "gerres filamentosus",         
+        "stephanolepis cirrhifer", "oreochromis andersonii", "alopias vulpinus",            
+        "oreochromis shiranus", "scophthalmus maximus", "brosme brosme",               
+        "bregmaceros mcclellandi", "aluterus monoceros", "rapana venosa",               
+        "necora puber",  "genyonemus lineatus", "pasiphaea sivado",            
+        "urophycis tenuis", "chirocentrus nudus", "etrumeus whiteheadi",         
+        "penaeus vannamei", "merlangius merlangus", "glyptocephalus cynoglossus",  
+        "mulloidichthys martinicus", "acanthopagrus latus", "limanda aspera",              
+        "selaroides leptolepis", "sphyraena flavicauda", "atule mate" 
+      ), 
+      primary_fishmeal = 0, 
+      data_source = "grey literature")
+    )
 
   return(fmfo_species_output)
 }

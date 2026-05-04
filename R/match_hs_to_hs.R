@@ -352,6 +352,8 @@ match_hs_to_hs <- function(hs_taxa_match, hs_version, prod_taxa_classification, 
     )) %>%
     # Out of those that already passed the conversion test to be processed into an FMFO, if it isn't a whole fish or if it isn't already a flour, meal, pellet, make it fail the conversion test - i.e., only FMFOs OR whole fish should be allowed to become FMFO
     mutate(Conversion_test = case_when(Code_post == 230120 & Conversion_test == 1 & (Sep_pre %in% c("whole", "flours, meals, pellets") == FALSE) ~ 0,
+                                       # Exclude codes in chapter 16
+                                       (Code_post == 230120 & Conversion_test == 1 & str_detect(Code_pre, "^16")) ~ 0,
                                        # This was the 20220828 version of model_inputs:
                                        #Code_pre != 230120 & Sep_pre != "whole" & Code_post == 230120 ~ 0,
                                        # ...And also allow whole, non-live fish to become fish meal fish oil
@@ -362,7 +364,3 @@ match_hs_to_hs <- function(hs_taxa_match, hs_version, prod_taxa_classification, 
   
   return(output_df)
 }
-
-
-
-
