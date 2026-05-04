@@ -278,7 +278,7 @@ git pull origin develop
 
 # Rebase your feature branch onto develop version on GitHub (only effect feature branch)
 git checkout develop-<feature-name>
-git rebase origin develop
+git rebase origin/develop
 # update your GitHub feature branch
 git push
 ```
