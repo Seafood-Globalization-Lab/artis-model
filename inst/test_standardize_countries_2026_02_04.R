@@ -14,7 +14,7 @@ library(devtools)
 # FAO data
 fao_raw <- read_csv("QA/dev_standardized_countries/1.2_fao_raw_combos.csv")
 
-# Baci data
+# 
 sau_raw <- read_csv("QA/dev_standardized_countries/1.2_sau_raw_combos.csv")
 
 ####################################
@@ -71,9 +71,6 @@ dummy_raw <- tibble::tibble(
   year = c(2009, 2010, 2013, 2013, 2014, 2014, 2015, 2016, 2017, 2018, 2019),
   value = c(100, 200, 150, 150, 75, 50, 80, 10, 120, 30, 50)
 )
-
-dummy_raw
-
 
 # Give a non numeric variable to a numeric variable
 artis::standardize_countries_draft(
@@ -183,3 +180,35 @@ if (country_id_type == "name_en") {
 }
 
 unique(fao_raw$country_iso3_alpha)
+
+
+# FIXIT: Delete this - April 29
+#
+
+
+island_data <- sau_raw[c(2399, 2403, 2397), ] %>%
+  bind_rows(data.frame(
+country_iso3_alpha = "SJM" , country_name_en = "Svalbard isl.", year = 1996))
+
+artis::standardize_countries_draft(
+  data = island_data,
+  country_id_type = "name_en",
+  country_col_name = "country_name_en",
+  year_col_name = "year"
+)
+
+artis::standardize_countries_draft(
+  data = island_data,
+  country_id_type = "iso3c",
+  country_col_name = "country_iso3_alpha",
+  year_col_name = "year"
+)
+
+artis::standardize_countries_draft(
+  data = sau_raw,
+  country_id_type = "name_en",
+  country_col_name = "country_name_en",
+  year_col_name = "year"
+)
+
+

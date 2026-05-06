@@ -37,11 +37,9 @@
 #' @export
 
 
-standardize_country_data <- function() {
-
   # --- Generate range of years to expand country corrections into ---
-  year_range = 1996:as.numeric(format(Sys.Date(), "%Y"))
-
+standardize_country_data <- function(year_range = 1996:as.numeric(format(Sys.Date(), "%Y"))) {
+  
    # --- TERRITORY TO Sovergn COUNTRY MAPPINGS ---
 
   territory_mappings <- tibble::tribble(
