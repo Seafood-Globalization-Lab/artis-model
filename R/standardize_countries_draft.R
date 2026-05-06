@@ -95,9 +95,11 @@ standardize_countries_draft <- function(
       
       std_df <- data %>% 
         # remove any trailing parenthetical phrase from string values
-        dplyr::mutate(!!country_col_name := stringr::str_remove(.data[[country_col_name]], "\\(.+\\)$")) %>%
+        dplyr::mutate(
+          !!country_col_name := stringr::str_remove(.data[[country_col_name]], "\\(.+\\)$")) %>%
         # Join to ARTIS corrections table
-        dplyr::left_join(corrections_df, by = by_cols) %>% 
+        dplyr::left_join(
+          corrections_df, by = by_cols) %>% 
         # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
         # pull values from given country column
         dplyr::mutate(
@@ -121,7 +123,9 @@ standardize_countries_draft <- function(
       
       # Sets the names (i.e., the input column variable names) of the corrections_df
       # column names to be joined (see ?setNames()) 
-      by_cols <- stats::setNames(c("iso3c", "year"), c("artis_iso3c", year_col_name))
+      by_cols <- stats::setNames(
+        c("iso3c", "year"), 
+        c("artis_iso3c", year_col_name))
       
       # Rejoin flagged data and df_corrections by iso3c and year
       flagged_data <- std_df %>%
@@ -178,7 +182,7 @@ standardize_countries_draft <- function(
         # Join to ARTIS corrections table
         dplyr::left_join(corrections_df_iso3c, by = by_cols) %>% 
         # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
-        # pull values from given country column
+        # Probably not common to need this, but will output an NA when countrycode() does not register. 
         dplyr::mutate(artis_iso3c = dplyr::case_when(
           is.na(artis_iso3c) ~ countrycode::countrycode(.data[[country_col_name]],
                                                       origin = "iso3c",
@@ -186,7 +190,6 @@ standardize_countries_draft <- function(
                                                       warn = FALSE),
                                        .default = artis_iso3c)) %>%
         dplyr::mutate(artis_country_name = dplyr::case_when(
-          
           # FIXIT: take a look at to see whether we should apply this to all names
           base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col_name]], 
                                                             origin = "iso3c",
