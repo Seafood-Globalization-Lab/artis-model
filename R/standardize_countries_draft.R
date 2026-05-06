@@ -100,19 +100,16 @@ standardize_countries_draft <- function(
         dplyr::left_join(corrections_df, by = by_cols) %>% 
         # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
         # pull values from given country column
-        dplyr::mutate(flag = dplyr::case_when(base::is.na(artis_iso3c) ~ TRUE,
-                                              .default = FALSE),
-          artis_iso3c = dplyr::case_when(base::is.na(artis_iso3c) ~ countrycode::countrycode(.data[[country_col_name]],
-                                                     origin = "country.name",
-                                                     destination = "iso3c",
-                                                     warn = FALSE),
-                                       .default = artis_iso3c), 
+        dplyr::mutate(
+          flag = dplyr::case_when(base::is.na(artis_iso3c) ~ TRUE,
+                                              .default = FALSE)) %>% #,
               # If missing country name value (i.e. not corrected by ARTIS corrections join) add std country name via country code from original/supplied country name
-               artis_country_name = dplyr::case_when(base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col_name]],
-                                                          origin = "country.name",
-                                                          destination = "country.name",
-                                                          warn = FALSE),
-                                              .default = artis_country_name)) %>%
+          # artis_country_name = dplyr::case_when(
+            # base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col_name]],
+            #                                               origin = "country.name",
+            #                                               destination = "country.name",
+            #                                               warn = FALSE),
+                                              # .default = artis_country_name)) %>%
         # Remove leftover corrections_df column
         dplyr::select(-iso3c)
     
@@ -121,23 +118,40 @@ standardize_countries_draft <- function(
       # countrycode corrects to the territory iso3c instead of the soverign.
       # we have flagged these rows to rejoin corrected countrycode iso3c to
       # artis corrections to receive their soverign variants.
-      flagged_data <- std_df %>% 
-        dplyr::filter(flag == TRUE)
       
-      std_df <- std_df %>%
-        dplyr::filter(flag == FALSE)
-      
-      # Rejoin flagged data to corrections
+      # Sets the names (i.e., the input column variable names) of the corrections_df
+      # column names to be joined (see ?setNames()) 
       by_cols <- stats::setNames(c("iso3c", "year"), c("artis_iso3c", year_col_name))
       
-      flagged_data %>%
-        dplyr::left_join(corrections_df, by = by_cols) %>%
-        dplyr::select(-artis_country_name.x, -artis_iso3c, -country_name) %>%
-        dplyr::rename(artis_iso3c = artis_iso3c.y, artis_country_name = artis_country_name.y) %>%
-        count(is.na(artis_iso3c))
+      # Rejoin flagged data and df_corrections by iso3c and year
+      flagged_data <- std_df %>%
+        dplyr::filter(flag == TRUE) %>%
+        dplyr::mutate(
+          artis_iso3c = dplyr::case_when(
+            base::is.na(artis_iso3c) ~ countrycode::countrycode(
+              .data[[country_col_name]],
+              origin = "country.name",
+              destination = "iso3c",
+              warn = FALSE
+            ),
+            .default = artis_iso3c
+          )
+        ) %>% 
+        dplyr::left_join(corrections_df %>%
+                             select(-artis_country_name), by = by_cols) %>%
+        dplyr::select(-artis_country_name, -country_name) %>%
+        select(-artis_iso3c) %>%
+        rename(artis_iso3c = artis_iso3c.y) %>%
+        mutate(artis_country_name = countrycode(artis_iso3c,
+                                                origin = "iso3c",
+                                                destination = "country.name")) %>%
+        select(-flag)
       
-      std_df <- std_df %>%
-        bind_rows(flagged_data)
+      nonflagged_data <- std_df %>%
+        dplyr::filter(flag == FALSE) %>%
+        select(-flag)
+      
+      std_df <- bind_rows(flagged_data,nonflagged_data)
       
       # Get vector of country names that weren't standardized (i.e. have NA values)
       not_std_vec <- std_df %>%
@@ -161,19 +175,20 @@ standardize_countries_draft <- function(
       # Join input data to standardization data frame based on iso3c
       std_df <- data %>% 
         # remove any trailing parenthetical phrase from string values
-        dplyr::mutate(!!country_col_name := stringr::str_remove(.data[[country_col_name]], '\\(.+\\)$')) %>%
         # Join to ARTIS corrections table
         dplyr::left_join(corrections_df_iso3c, by = by_cols) %>% 
         # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
         # pull values from given country column
-        dplyr::mutate(artis_iso3c = dplyr::case_when(is.na(artis_iso3c) ~ 
-                                          countrycode::countrycode(.data[[country_col_name]],
+        dplyr::mutate(artis_iso3c = dplyr::case_when(
+          is.na(artis_iso3c) ~ countrycode::countrycode(.data[[country_col_name]],
                                                       origin = "iso3c",
                                                       destination = "iso3c",
                                                       warn = FALSE),
-                                       .default = artis_iso3c),
-               artis_country_name = dplyr::case_when(base::is.na(artis_country_name) ~
-                                                countrycode::countrycode(.data[[country_col_name]], 
+                                       .default = artis_iso3c)) %>%
+        dplyr::mutate(artis_country_name = dplyr::case_when(
+          
+          # FIXIT: take a look at to see whether we should apply this to all names
+          base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col_name]], 
                                                             origin = "iso3c",
                                                             destination = 'country.name',
                                                             warn = FALSE),
