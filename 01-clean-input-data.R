@@ -7,16 +7,18 @@
 rm(list=ls())
 
 # load packages
-library(artis)
-library(rfishbase)
-library(data.table)
-library(magrittr)
-library(glue)
-library(countrycode)
-library(stringr)
-library(dplyr)
-library(tidyr)
-library(cli)
+{
+  library(artis)
+  library(rfishbase)
+  library(data.table)
+  library(magrittr)
+  library(glue)
+  library(countrycode)
+  library(stringr)
+  library(dplyr)
+  library(tidyr)
+  library(cli)
+}
 
 # Run Local Machine Configuration (directory paths, parameters)
 source("00-local-machine-setup.R")
@@ -57,8 +59,8 @@ if(need_new_fb_slb == TRUE) {
 # to account for these differences.
 
 rebuilt_fao_prod <- rebuild_fao_2023_dat(
-  datadir = datadir_raw,
-  filename = "GlobalProduction_2025.1.0.zip"
+  datadir = path_fao_prod,
+  filename = glue::glue("GlobalProduction_{fao_prod_version}.zip")
 ) %>%
   # only keep data from 1996 onward and where quantity > 0
   filter(year >= 1996, quantity > 0)
@@ -876,3 +878,4 @@ prod_sau <- prod_sau %>%
     live_weight_t = quantity
   )
 write.csv(prod_sau, file.path(outdir_attribute, "prod_sau.csv"), row.names=FALSE)
+  
