@@ -26,25 +26,26 @@ source("00-local-machine-setup.R")
 # FishBase & SeaLifeDase Data ------------------------------------------------------
 # Collect new fishbase and sealifebase data files with rfishbase package wrapped in artis::collect_fb_slb_data function
 if(need_new_fb_slb == TRUE) {
-  current_fb_slb_dir <- artis::collect_fb_slb_data(parent_outdir = datadir_raw)
-  message(glue("New fishbase and sealifebase data collected at {current_fb_slb_dir}"))
+  current_fb_slb_dir <- artis::collect_fb_slb_data(
+    parent_outdir = path_fb_slb_raw)
+  cli::cli_alert_success("New fishbase and sealifebase data collected at {.file {current_fb_slb_dir}}")
 } else {
   # Or use most recent existing fishbase and sealifebase data files
-  current_fb_slb_dir <- list.dirs(datadir_raw, full.names = TRUE, recursive = FALSE) %>%
+  current_fb_slb_dir <- list.dirs(path_fb_slb_raw, full.names = TRUE, recursive = FALSE) %>%
     stringr::str_subset("fishbase_sealifebase_") %>%
     sort(decreasing = TRUE) %>%
     .[1]
   # Check if current_fb_slb_dir is valid
   if (is.na(current_fb_slb_dir)) {
     cli::cli_abort(c(
-      "x" = "No fishbase_sealifebase directory found in {.file {datadir_raw}}",
+      "x" = "No fishbase_sealifebase directory found in {.file {path_fb_slb}}",
       "i" = "Set {.code need_new_fb_slb = TRUE} in 00-local-machine-setup.R to download new data",
       "i" = "OR ensure a fishbase_sealifebase_* directory exists"
     ))
   } 
   if (dir.exists(current_fb_slb_dir)) {
     cli::cli_alert_success(
-      "Using existing FB and SLB data at {.file model_inputs_raw_{artis_version}/{basename(current_fb_slb_dir)}/}"
+      "Using existing FB and SLB data in {.file {current_fb_slb_dir}}}"
     )
   }
 }
@@ -59,7 +60,7 @@ if(need_new_fb_slb == TRUE) {
 # to account for these differences.
 
 rebuilt_fao_prod <- rebuild_fao_2023_dat(
-  datadir = path_fao_prod,
+  datadir = path_fao_prod_raw,
   filename = glue::glue("GlobalProduction_{fao_prod_version}.zip")
 ) %>%
   # only keep data from 1996 onward and where quantity > 0
@@ -68,7 +69,7 @@ rebuilt_fao_prod <- rebuild_fao_2023_dat(
 # FAO Clean Taxa and Classification ---------------------------
 
 prod_list <- artis::classify_prod_dat(
-  datadir = datadir_raw,
+  datadir = datadir,
   prod_data_source = "FAO",
   prod_df = rebuilt_fao_prod,
   fb_slb_dir = current_fb_slb_dir
@@ -198,9 +199,10 @@ write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod.csv"), row
 
 # SAU Production Data -------------------------
 ## SAU Clean Taxa and Classification ------------------------------
-prod_list_sau <- classify_prod_dat(datadir = datadir_raw,
+prod_list_sau <- classify_prod_dat(datadir = path_sau_prod_raw,
                                    prod_data_source = "SAU", # Don't change for FAO model run
-                                   prod_df = fread(file.path(datadir_raw, "SAU_Production_Data.csv"), 
+                                   # FIXIT: Could clean up datadir and prod_df arguements, overlapping purposes. 
+                                   prod_df = fread(file.path(path_sau_prod_raw, "SAU_Production_Data.csv"), 
                                                     stringsAsFactors = FALSE, 
                                                     header = TRUE, 
                                                     sep = ",", 
@@ -233,7 +235,7 @@ prod_data_sau <- prod_data_sau %>%
 rm(prod_list_sau)
 
 # Write Clean SAU Taxa 
-write.csv(prod_classification_sau, file.path(datadir, "clean_sau_taxa.csv"), 
+fwrite(prod_classification_sau, file.path(datadir, "clean_sau_taxa.csv"), 
            row.names = FALSE)
 
 # SAU Standardize Countries --------------------------------------------------
@@ -512,29 +514,42 @@ for (i in 1:nrow(df_years)){
   analysis_year <- df_years[i,]$analysis_year
   
   # Creating out folder if necessary
-  if (!file.exists(file.path(datadir_raw, paste("filtered_BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")))) {
+  if (!file.exists(file.path(
+    path_baci_raw, glue("filtered_BACI_HS{a_HS_year}_Y{analysis_year}_V{baci_version}.csv")))) {
     
     message(glue("Filter raw BACI HS{a_HS_year} {analysis_year}"))
-    baci_data_i <- read.csv(file = file.path(tradedatadir, 
-                                           paste("BACI_", "HS", a_HS_year, "_V", baci_version, sep = ""),
-                                           paste("BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
-                          stringsAsFactors = FALSE)
+    baci_data_i <- fread(
+      file = file.path(
+        path_baci_raw,
+        glue("BACI_HS{a_HS_year}_V{baci_version}"),
+        glue("BACI_HS{a_HS_year}_Y{analysis_year}_V{baci_version}.csv")
+      ),
+      stringsAsFactors = FALSE,
+      data.table = FALSE
+    )
     
     baci_data_i  <- baci_data_i  %>%
       mutate(q = as.numeric(q)) %>%
       # NAs should only arise when q is "           NA" (whitespace included)
       filter(!is.na(q))
     
-    baci_data_i  <- load_baci(
-      baci_data_i ,
+    baci_data_i <- load_baci(
+      baci_data_i,
       hs_codes = as.numeric(unique(hs_data_clean$Code)),
-      baci_country_codes = read.csv(file.path(tradedatadir, 
-                                              paste("BACI_", "HS", a_HS_year, "_V", baci_version, sep = ""),
-                                              paste("country_codes_V", baci_version, ".csv", sep = "")))
+      baci_country_codes = fread(
+        file.path(
+          path_baci_raw,
+          glue("BACI_HS{a_HS_year}_V{baci_version}"),
+          glue("country_codes_V{baci_version}.csv")
+        ),
+        data.table = FALSE
+      )
     )
     
-    write.csv(baci_data_i, file.path(datadir_raw, paste("filtered_BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
-              row.names = FALSE)
+    fwrite(
+      baci_data_i, 
+      file.path(path_baci_raw, paste("filtered_BACI_", "HS", a_HS_year, "_Y", analysis_year, "_V", baci_version, ".csv", sep = "")),
+      row.names = FALSE)
   } else {
     print(glue("Filtered BACI HS{a_HS_year} {analysis_year} file Exists. Skipping to next HS/year pair."))
     }
@@ -549,7 +564,7 @@ for (i in 1:nrow(df_years)){
 
     print(glue("standardize BACI {a_HS_year} {analysis_year}"))
     
-    baci_data <- read.csv(file.path(datadir_raw, glue("filtered_BACI_HS{a_HS_year}_Y{analysis_year}_V{baci_version}.csv")))
+    baci_data <- read.csv(file.path(path_baci_raw, glue("filtered_BACI_HS{a_HS_year}_Y{analysis_year}_V{baci_version}.csv")))
     
     baci_data <- baci_data %>%
       mutate(year = analysis_year,
@@ -557,15 +572,15 @@ for (i in 1:nrow(df_years)){
     
     baci_data <- standardize_countries(baci_data, "BACI")
     
-    # BACI output used to generate ARTIS (keeps legacy dataframe format)
-    write.csv(
-      baci_data %>%
-        select(-c(total_v)),
-      file.path(datadir, paste("standardized_baci_seafood_hs", a_HS_year, "_y", analysis_year, ".csv", sep = "")),
-      row.names = FALSE
-    )
+    # # BACI output used to generate ARTIS (keeps legacy dataframe format)
+    # write.csv(
+    #   baci_data %>%
+    #     select(-c(total_v)),
+    #   file.path(datadir, paste("standardized_baci_seafood_hs", a_HS_year, "_y", analysis_year, ".csv", sep = "")),
+    #   row.names = FALSE
+    # )
     # BACI output with total and unit value
-    write.csv(
+    fread(
       baci_data,
       file.path(datadir, paste("standardized_baci_seafood_hs", a_HS_year, "_y", analysis_year, "_including_value.csv", sep = "")),
       row.names = FALSE
