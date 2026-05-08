@@ -21,7 +21,7 @@ max_year <- 2024
 # Model Mode for 01-clean-model-inputs - TRUE for SAU; FALSE for FAO
 running_sau <- FALSE
 ## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
-need_new_fb_slb <- TRUE
+need_new_fb_slb <- FALSE
 # AM - I think this is leftover code - can set HS year and year for running tests
 test <- FALSE
 test_year <- c()
@@ -42,22 +42,33 @@ if(dev_mode == TRUE){
 
 # UW gephardtlab.fish server paths ---------------------------------------
 
+# FIXIT: Time to switch this over to a config.yml file to hold the config combos -
+# Like local vs remote server files and run local vs AWS. 
+
+# Set where files are stored - local or UW NAS server
 # UW NAS server - gephardtlab.fish.washinton.edu local mapped path
-path_uw_server <- file.path("/Volumes/gephartlab") 
+#path_env <- file.path("/Volumes/gephartlab") 
+path_env <- file.path("~/Documents/UW-SAFS/ARTIS/data/ARTIS_local_development")
 
-path_uw_data_storage <- file.path(path_uw_server, "data-storage")
-path_uw_artis_dev <- file.path(path_uw_server, "artis-development", glue::glue("ARTIS_{artis_version}_{prod_data_type}"))
-path_baci_raw <- file.path(path_uw_data_storage, "cepii-baci", glue::glue("baci_{baci_version}"))
-path_fao_prod <- file.path(path_uw_data_storage, "fao-global-production")
-path_fao_pop <- file.path(path_uw_data_storage, "fao-annual-population", glue::glue("Population_E_All_Data_{fao_pop_version}"))
+path_data_storage <- file.path(path_env, "data-storage")
+path_artis_dev <- file.path(path_env, "artis-development", glue::glue("ARTIS_{artis_version}_{prod_data_type}"))
+# Raw data paths
+path_baci_raw <- file.path(path_data_storage, "cepii-baci", glue::glue("baci_{baci_version}"))
+path_fao_prod_raw <- file.path(path_data_storage, "fao-global-production")
+path_sau_prod_raw <- file.path(path_data_storage, "sau-production")
+path_fao_pop_raw <- file.path(path_data_storage, "fao-annual-population", glue::glue("Population_E_All_Data_{fao_pop_version}"))
+path_fb_slb_raw <- file.path(path_data_storage, "fishbase-sealifebase")
 
+path_hs_codes_raw <- file.path(path_data_storage, "all-hs-codes")
+path_EUMOFA <- file.path(path_data_storage, "EUMOFA")
+path_cnv_fct <- file.path(path_data_storage, "seafood-conversion-factors")
 
 # Main data directory paths --------------------------------------------------
-local_data_path <- glue::glue("/Users/theamarks/Documents/UW-SAFS/ARTIS/data")
-datadir_raw <- file.path(local_data_path, glue::glue("model_inputs_raw_{artis_version}"))
+#local_data_path <- glue::glue("/Users/theamarks/Documents/UW-SAFS/ARTIS/data")
+#datadir_raw <- file.path(local_data_path, glue::glue("model_inputs_raw_{artis_version}"))
 # Directory for inputs to create the ARTIS database
-datadir <- file.path(path_uw_artis_dev, glue::glue("model_inputs_{artis_version}_{prod_data_type}"))
-outdir <- file.path(path_uw_artis_dev, glue::glue("outputs_{artis_version}_{prod_data_type}"))
+datadir <- file.path(path_artis_dev, glue::glue("model_inputs_{artis_version}_{prod_data_type}"))
+outdir <- file.path(path_artis_dev, glue::glue("outputs_{artis_version}_{prod_data_type}"))
 
 # FIXIT - declare raw FAO prod file name here instead of in 01-clean-model-inputs.R? Would this work if swithc
 # to YAML config?
@@ -115,21 +126,18 @@ cli::cli_verbatim("
  / ___ |/ _, _/ / /  _/ / ___/ / 
 /_/  |_/_/ |_| /_/  /___//____/  
 ")
-cli::cli_h1(" 🦐 🐟 🦪 Configured ARTIS {.strong v{artis_version}} 🐙 🦀 ")
-cli:: cli_li("Production data: {prod_data_type}")
-cli:: cli_li("Years covered: {test_years}")
-cli:: cli_li("Estimate type: {estimate_data_type}")
+cli::cli_h1(" 🦐 🐟 🦪 Configured ARTIS {.strong v{artis_version}} 🐙 🦀 🐠")
+cli:: cli_li("Production data: {.field {prod_data_type}}")
+cli:: cli_li("Years covered: {.field {test_years}}")
+cli:: cli_li("Estimate type: {.field {estimate_data_type}}")
 #cli:: cli_li("Local data path: {.file {local_data_path}}")
 
-
-
-# Create & check ARTIS directory architecture ------------------------------------
 
 # Create & check ARTIS directory architecture ------------------------------------
 
 # UW remote server connection
-if(!dir.exists(path_uw_server)) {
-  cli::cli_abort("Not connected to UW server {.file {path_uw_server}}. Map server to local machine before proceeding - following these instructions {.url https://uwconnect.uw.edu/it?id=kb_article_view&sysparm_article=KB0034311}")
+if(!dir.exists(path_env)) {
+  cli::cli_abort("Not connected to UW server {.file {path_env}}. Map server to local machine before proceeding - following these instructions {.url https://uwconnect.uw.edu/it?id=kb_article_view&sysparm_article=KB0034311}")
 }
 
 dirs_to_create <- c(
@@ -154,7 +162,7 @@ for (d in dirs_to_create) {
 
 if (length(dirs_existing) > 0) {
   cli::cli_alert_info(
-    "The following directories already exist and contents may be overwritten: {.file {basename(dirs_existing)}}"
+    "Directories already exist - Contents may be overwritten in {.file {path_artis_dev}}: \n{.file {basename(dirs_existing)}}"
   )
 }
 
