@@ -7,27 +7,64 @@ library(cli)
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()
-artis_version <- "2.1.1"
+artis_version <- "3.0"
 # Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
-prod_data_type <- "SAU" # FIXIT change/combine fully with "running_sau"?
-local_data_path <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data"
+prod_data_type <- "FAO" # FIXIT change/combine fully with "running_sau"?
+baci_version <- "202601"
+fao_prod_version <- "2026.1.0"
+fao_pop_version <- "2026_03_09" # last update date from website
+# change this when ingesting new data with new years represented 
+max_year <- 2024
+#local_data_path <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data"
 
-# CLI message to declare main model parameters
-cli::cli_h1("Configured 🐟 ARTIS {.strong version {artis_version}} 🐙 🦀 🦐 {.strong {prod_data_type}} production data 🦪")
-cli::cli_h3("Local data path: {.file {local_data_path}}")
+# 01-clean-model-inputs parameters --------------------------------
+# Model Mode for 01-clean-model-inputs - TRUE for SAU; FALSE for FAO
+running_sau <- FALSE
+## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
+need_new_fb_slb <- TRUE
+# AM - I think this is leftover code - can set HS year and year for running tests
+test <- FALSE
+test_year <- c()
+# 02-artis-pipeline parameters ------------------------------------
+# set years to run - empty if all years [c()], [c(2017)] or [c(2017,2020)] for subset of years
+test_years <- c(1996) 
+# set model estimate - "min", "midpoint", "max" - default is "midpoint"
+estimate_data_type <- "midpoint"
+# hs_version_run is set in 02-artis-pipeline because of current `artis-hpc` setup
+
+# Development mode --------------------------------------------------------
+dev_mode <- FALSE
+devdir <- "./AM_local/dev-artis-3.0"
+
+if(dev_mode == TRUE){
+  library(devtools)
+}
+
+# UW gephardtlab.fish server paths ---------------------------------------
+
+# UW NAS server - gephardtlab.fish.washinton.edu local mapped path
+path_uw_server <- file.path("/Volumes/gephartlab") 
+
+path_uw_data_storage <- file.path(path_uw_server, "data-storage")
+path_uw_artis_dev <- file.path(path_uw_server, "artis-development", glue::glue("ARTIS_{artis_version}_{prod_data_type}"))
+path_baci_raw <- file.path(path_uw_data_storage, "cepii-baci", glue::glue("baci_{baci_version}"))
+path_fao_prod <- file.path(path_uw_data_storage, "fao-global-production")
+path_fao_pop <- file.path(path_uw_data_storage, "fao-annual-population", glue::glue("Population_E_All_Data_{fao_pop_version}"))
+
 
 # Main data directory paths --------------------------------------------------
+local_data_path <- glue::glue("/Users/theamarks/Documents/UW-SAFS/ARTIS/data")
 datadir_raw <- file.path(local_data_path, glue::glue("model_inputs_raw_{artis_version}"))
 # Directory for inputs to create the ARTIS database
-datadir <- file.path(local_data_path, glue::glue("model_inputs_{artis_version}_{prod_data_type}"))
-outdir <- file.path(local_data_path, glue::glue("outputs_{artis_version}_{prod_data_type}"))
+datadir <- file.path(path_uw_artis_dev, glue::glue("model_inputs_{artis_version}_{prod_data_type}"))
+outdir <- file.path(path_uw_artis_dev, glue::glue("outputs_{artis_version}_{prod_data_type}"))
 
 # FIXIT - declare raw FAO prod file name here instead of in 01-clean-model-inputs.R? Would this work if swithc
 # to YAML config?
 
 ## Raw BACI ---------------------------------------------------------------
-baci_version <- "202501"
-tradedatadir <- file.path(datadir_raw, "baci_raw") 
+
+#tradedatadir <- file.path(datadir_raw, "baci_raw") 
 
 # Output Directories -----------------------------------------------------
 
@@ -42,43 +79,14 @@ outdir_cvxopt <- file.path(outdir, "cvxopt_snet")
 outdir_snet <- file.path(outdir, "snet")
 
 ## Postprocessing output directory paths -----------------------------------
+# FIXIT - phase this out to new KNB structure
 outdir_attribute <- file.path(outdir, "attribute_tables")
 outdir_sql <- file.path(outdir, "sql_database")
-
-# 01-clean-model-inputs parameters --------------------------------
-# Model Mode for 01-clean-model-inputs - TRUE for SAU; FALSE for FAO
-running_sau <- TRUE
-## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
-need_new_fb_slb <- FALSE
-
-# AM - I think this is leftover code - can set HS year and year for running tests
-test <- FALSE
-test_year <- c()
-
-# 02-artis-pipeline parameters ------------------------------------
-# set years to run - empty if all years [c()], [c(2017)] or [c(2017,2020)] for subset of years
-test_years <- c(1996) 
-# set model estimate - "min", "midpoint", "max" - default is "midpoint"
-estimate_data_type <- "midpoint"
-
-# hs_version_run is set in 02-artis-pipeline because of current `artis-hpc` setup
-
-# Development mode --------------------------------------------------------
-dev_mode <- FALSE
-
-devdir <- "./AM_local/dev-artis-2.0"
-
-if(dev_mode == TRUE){
-  library(devtools)
-}
 
 # Create HS version / year assignments -----------------------------------
 
 # Only change df_years when incorporating new HS version
 # List of possible HS versions: HS96, HS02, HS07, HS12, HS17
-
-# change this when ingesting new data with new years represented 
-max_year <- 2023
 
 # List of possible HS versions: HS96, HS02, HS07, HS12, HS17
 # No need to do HS92 when using BACI though as that data starts in 1996
@@ -99,58 +107,55 @@ df_years <- data.frame(HS_year = c(rep("96", length(1996:max_year)),
 ## NOTE: If updating df_years here - you also need to update in ./R/initial_variable_setup.R which 
 # creates and makes df_years available for running all functions in 02-artis-pipeline.R
 
-# Create ARTIS directory architecture ------------------------------------
+# CLI message to declare main model parameters -----------------------------
+cli::cli_verbatim("
+    ___    ____  ______ _______
+   /   |  / __ \\/_  __//  _/ ___/
+  / /| | / /_/ / / /   / / \\__ \\ 
+ / ___ |/ _, _/ / /  _/ / ___/ / 
+/_/  |_/_/ |_| /_/  /___//____/  
+")
+cli::cli_h1(" 🦐 🐟 🦪 Configured ARTIS {.strong v{artis_version}} 🐙 🦀 ")
+cli:: cli_li("Production data: {prod_data_type}")
+cli:: cli_li("Years covered: {test_years}")
+cli:: cli_li("Estimate type: {estimate_data_type}")
+#cli:: cli_li("Local data path: {.file {local_data_path}}")
 
-# Creating folder for clean model input data
-if (!dir.exists(datadir)) {
-  dir.create(datadir)
-} else {
-  cli::cli_alert_info("Directory {.file model_inputs_{artis_version}_{prod_data_type}/} already exists, contents may be overwritten.")
+
+
+# Create & check ARTIS directory architecture ------------------------------------
+
+# Create & check ARTIS directory architecture ------------------------------------
+
+# UW remote server connection
+if(!dir.exists(path_uw_server)) {
+  cli::cli_abort("Not connected to UW server {.file {path_uw_server}}. Map server to local machine before proceeding - following these instructions {.url https://uwconnect.uw.edu/it?id=kb_article_view&sysparm_article=KB0034311}")
 }
 
-# Create main outputs folder
-if (!dir.exists(outdir)) {
-  dir.create(outdir)
-} else {
-  cli::cli_alert_info("Directory {.file model_outputs_{artis_version}/} already exists, contents may be overwritten.")
+dirs_to_create <- c(
+  datadir,
+  outdir,
+  outdir_quadprog,
+  outdir_cvxopt,
+  outdir_snet,
+  outdir_attribute,
+  outdir_sql
+)
+
+dirs_existing <- c()
+
+for (d in dirs_to_create) {
+  if (!dir.exists(d)) {
+    dir.create(d)
+  } else {
+    dirs_existing <- c(dirs_existing, d)
+  }
 }
 
-# output suboutput folders. Does not include HS version and year within these folders.
-# Creating the sub folder for all country-level solutions generated by the python
-# solver quadprog.
-if (!dir.exists(outdir_quadprog)) {
-  dir.create(outdir_quadprog)
-} else {
-  cli::cli_alert_info("Directory {.file model_outputs_{artis_version}/quadprog_snet/} already exists, contents may be overwritten.")
-}
-
-# Creating the sub folder for all country-level solutions generated by the python
-# solver quadprog.
-if (!dir.exists(outdir_cvxopt)) {
-  dir.create(outdir_cvxopt)
-} else {
-  cli::cli_alert_info("Directory {.file model_outputs_{artis_version}/cvxopt_snet/} already exists, contents may be overwritten.")
-}
-
-# Creating the output folder for all ceate_snet and calculate_consumption outputs - trade and consumption outputs
-if(!dir.exists(outdir_snet)) {
-  dir.create(outdir_snet)
-} else {
-  cli::cli_alert_info("Directory {.file model_outputs_{artis_version}/snet/} already exists, contents may be overwritten.")
-}
-
-# create attribute directory if doesn't exist
-if (!dir.exists(outdir_attribute)) { 
-  dir.create(outdir_attribute) 
-} else {
-  cli::cli_alert_info("Directory {.file model_outputs_{artis_version}/attribute_tables/} already exists, contents may be overwritten.")
-}
-
-# create attribute directory if doesn't exist
-if (!dir.exists(outdir_sql)) { 
-  dir.create(outdir_sql) 
-} else {
-  cli::cli_alert_info("Directory {.file model_outputs_{artis_version}/sql_database/} already exists, contents may be overwritten.")
+if (length(dirs_existing) > 0) {
+  cli::cli_alert_info(
+    "The following directories already exist and contents may be overwritten: {.file {basename(dirs_existing)}}"
+  )
 }
 
 # 02-artis-pipeline python environment -----------------------------------
