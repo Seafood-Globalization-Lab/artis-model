@@ -339,7 +339,7 @@ sciname_habitat <- prod_taxa_classification %>%
 # Load and clean the conversion factor data and run the matching functions. 
 # This data will be used to create V1 and V2. 
 
-hs_data_raw <- fread(file.path(datadir_raw, "All_HS_Codes.csv"), colClasses = "character", data.table = FALSE)
+hs_data_raw <- fread(file.path(path_hs_codes_raw, "All_HS_Codes.csv"), colClasses = "character", data.table = FALSE)
 
 hs_data_clean <- clean_hs(hs_data_raw = hs_data_raw,
                           fb_slb_dir = current_fb_slb_dir)

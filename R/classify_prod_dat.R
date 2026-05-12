@@ -443,6 +443,7 @@ classify_prod_dat <- function(
   sealifebase <- fread(file.path(fb_slb_dir, "slb_taxa_info.csv"), data.table = FALSE)
 
   # reads and cleans Fishbase and Sealifebase synonym datasets
+  # FIXIT: rename these onjects - "fb_syn" and "slb_syn"
   fb_df <- fread(file.path(fb_slb_dir, "fb_synonyms_clean.csv"), data.table = FALSE)
   slb_df <- fread(file.path(fb_slb_dir, "slb_synonyms_clean.csv"), data.table = FALSE)
 
@@ -653,8 +654,8 @@ classify_prod_dat <- function(
     next_sciname <- nomatch_species[i]
 
     # Run scientific name through synonym databases in fishbase and sealifebase
-    name_fb_status <- query_synonyms(fb_df, next_sciname)
-    name_slb_status <- query_synonyms(slb_df, next_sciname)
+    name_fb_status <- artis::query_synonyms(fb_df, next_sciname)
+    name_slb_status <- artis::query_synonyms(slb_df, next_sciname)
 
     # check if this SciName is in fishbase
     if (nrow(name_fb_status) > 0) {
