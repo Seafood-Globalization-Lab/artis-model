@@ -27,15 +27,15 @@ library(glue)
 
 #### Directory setup #####
 # Newest data
-datadir_new <- file.path("~", "Documents", "UW-SAFS", "ARTIS", "data", "model_inputs_raw_2.0")
+datadir_new <- file.path("~", "Documents", "UW-SAFS", "ARTIS", "data", "model_inputs_raw_3.0")
 # Previous data ingest
-datadir_old <- file.path("~", "Documents", "UW-SAFS", "ARTIS", "data", "model_inputs_raw_1.0_1.1.0")
+datadir_old <- file.path("~", "Documents", "UW-SAFS", "ARTIS", "data", "model_inputs_raw_2.0")
 
 # Version identifiers for report
-artis_old <- "v1.0"
-artis_new <- "v2.0"
-data_v_old <- "2022.1.1"
-data_v_new <- "2025.1.0"
+artis_old <- "v2.0"
+artis_new <- "v3.0"
+data_v_old <- "2025.1.0"
+data_v_new <- "2026.1.0"
 ```
 
 ```{r data-source-inventory}

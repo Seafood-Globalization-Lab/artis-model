@@ -1,0 +1,105 @@
+---
+title: "Untitled"
+format: html
+---
+
+Document for assessing cleaned model inputs before running full ARTIS
+
+
+### Taxa ranks
+
+```{r}
+#| include: TRUE
+#| results: 'asis'
+
+rank_diffs <- lapply(tax_ranks, function(col){
+  old_vals <- taxa_old %>% distinct(.data[[col]]) %>% pull()
+  new_vals <- taxa_new %>% distinct(.data[[col]]) %>% pull()
+  tibble(
+    rank = col,
+    new_n = length(setdiff(new_vals, old_vals)),
+    dropped_n  = length(setdiff(old_vals, new_vals))
+  )
+}) %>% bind_rows()
+
+# replaces: rank_diffs %>% gt()
+rank_diffs %>%
+  arrange(rank) %>%
+  kbl(
+    col.names = c("Rank", glue("New in {artis_new} (n)"), "Dropped (n)"),
+    booktabs = TRUE,
+    caption = "New and dropped taxonomy values by classification rank"
+  ) %>%
+  kable_styling(
+    full_width = TRUE,
+    latex_options = c("hold_position", "scale_down")
+  )
+
+
+```
+
+### taxonomy changed
+
+```{r}
+#| eval: FALSE
+# If multiple rows per SciName exist, keep the first occurrence in each dataset
+new_rep <- taxa_new %>% arrange(SciName) %>% distinct(SciName, .keep_all = TRUE)
+old_rep <- taxa_old %>% arrange(SciName) %>% distinct(SciName, .keep_all = TRUE)
+
+cmp <- inner_join(new_rep, old_rep, by = "SciName", suffix = c(".new",".old"))
+
+tax_diffs_long <- cmp %>%
+  select(SciName, tidyselect::all_of(paste0(tax_ranks, ".new")), tidyselect::all_of(paste0(tax_ranks, ".old"))) %>%
+  pivot_longer(
+    cols = -SciName,
+    names_to = c("rank","which"),
+    names_pattern = "(.*)\\.(new|old)$",
+    values_to = "value"
+  ) %>%
+  pivot_wider(names_from = which, values_from = value) %>%
+  filter(new != old) %>%
+  arrange(SciName, rank)
+
+tax_diffs_long %>% gt()
+
+```
+
+### Broad fish taxa groupings
+
+```{r}
+#| include: TRUE
+#| results: 'asis'
+
+terms <- c("actinoptergii","actinopterygii","osteichthyes","teleostei")
+fields_to_check <- c("Class","Superclass")
+
+audit_field <- function(df, field){
+  df %>%
+    transmute(val = .data[[field]]) %>%
+    count(val, name = "n") %>%
+    filter(!is.na(val), val %in% terms) %>%
+    mutate(field = field, .before = 1)
+}
+
+audit_old <- bind_rows(lapply(fields_to_check, \(f) audit_field(taxa_old, f))) %>%
+  mutate(dataset = glue("ARTIS {artis_old}"), .before = 1)
+
+audit_new <- bind_rows(lapply(fields_to_check, \(f) audit_field(taxa_new, f))) %>%
+  mutate(dataset = glue("ARTIS {artis_new}"), .before = 1)
+
+# replaces the final bind_rows(...) %>% gt()
+bind_rows(audit_old, audit_new) %>%
+  arrange(dataset, field, val) %>%
+  kbl(
+    col.names = c("Dataset", "Field", "Value", "n"),
+    booktabs = TRUE,
+    caption = "Usage of actinoptergii / actinopterygii / osteichthyes / teleostei"
+  ) %>%
+  kable_styling(
+    full_width = TRUE,
+    latex_options = c("hold_position", "scale_down")
+  )
+
+
+```
+
