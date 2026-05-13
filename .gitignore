@@ -24,7 +24,5 @@ requirements_old_local.txt
 *.html
 *.pdf
 /.quarto/
-README_files/
-QA/
-
-.Renviron
+README_files/*
+*_files

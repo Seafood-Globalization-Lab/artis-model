@@ -3,12 +3,7 @@ title: "ARTIS Raw Data Assessment"
 subtitle: "Changelog of raw data versions"
 author: "Althea Marks"
 date: today
-format:
-  pdf:
-    papersize: letter
-    toc: true
-    toc-depth: 2
-    number-sections: true
+output: html_document
 execute:
   echo: FALSE
   include: FALSE
@@ -110,11 +105,11 @@ render_validation_table <- function(log, title = "Validation Results") {
       locations = gt::cells_body(rows = str_detect(status, "FAIL"))
     ) |>
     gt::cols_width(
-      check  ~ gt::px(220),
-      status ~ gt::px(100),
-      detail ~ gt::px(300)
+      check  ~ gt::px(300),
+      status ~ gt::px(130),
+      detail ~ gt::px(500)
     ) |>
-    gt::tab_options(table.font.size = 10)
+    gt::tab_options(table.font.size = 14)
 }
 ```
 
@@ -131,9 +126,9 @@ build) fed directly into the ARTIS model.
 Each validation check is assigned one of four status codes:
 
 - **`r STATUS_PASS`** --- No change detected; no action needed.
-- **`r STATUS_NOTE`** --- Expected or informational change (e.g., row count increase, year coverage extension, new taxa added). Review is encouraged but no code changes are required.
-- **`r STATUS_REVIEW`** --- Change needs attention before the model run (e.g., new taxa in FAO data may require updates to `classify_prod_dat()` in `01_clean_input_data.R`, dropped countries, trade value/quantity changes, product codes removed).
-- **`r STATUS_FAIL`** --- Blocking issue (e.g., missing files, missing key columns, year regression, coverage drop). Must be resolved before proceeding.
+- **`r STATUS_NOTE`** --- Expected or informational change. Review is encouraged but no code changes are required.
+- **`r STATUS_REVIEW`** --- Change needs attention before the model run.
+- **`r STATUS_FAIL`** --- Blocking issue.
 :::
 
 ### ARTIS model versions
@@ -145,13 +140,8 @@ Each validation check is assigned one of four status codes:
 
 Raw input data versions compared:
 
-- `r raw_data_type` `r data_v_old` --- previous version (ARTIS `r artis_old`)
-- `r raw_data_type` `r data_v_new` --- version to be ingested for ARTIS `r artis_new`
-
-The checks below assess file presence, column structure, row counts, year
-coverage, total production quantities, and species coverage between the two
-data versions. Results are summarised in the validation table at the end of
-this section.
+- `r raw_data_type` `r data_v_old` 
+- `r raw_data_type` `r data_v_new`
 
 ```{r fao-get-dirs}
 # List all subdirectories
@@ -536,6 +526,11 @@ raw_prod_old_sp_only |>
 ```
 
 ### FAO Validation Summary
+
+The checks below assess file presence, column structure, row counts, year
+coverage, total production quantities, and species coverage between the two
+data versions. Results are summarised in the validation table at the end of
+this section.
 
 ```{r fao-validation-table}
 #| include: TRUE
