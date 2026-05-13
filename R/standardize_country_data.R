@@ -11,7 +11,7 @@
 #'     \item{iso3c}{ISO 3166-1 alpha-3 country code.}
 #'     \item{year}{Year as an integer.}
 #'     \item{artis_country_name}{Sovereign country name used in ARTIS.}
-#'     \item{artis_iso3c}{Sovereign ISO3C code used in ARTIS. Non-standard
+#'     \item{artis_iso3c}{Sovereign ISO3C code used in ARTIS. Non-standard}
 #'       codes include \code{"NEI"} (not elsewhere identified).
 #'   }
 #'
