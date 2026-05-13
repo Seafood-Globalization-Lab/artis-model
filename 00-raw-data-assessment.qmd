@@ -1,10 +1,9 @@
 ---
-title: "ARTIS Data Ingest"
-subtitle: "Changelog of raw data verions"
+title: "ARTIS Raw Data Assessment"
+subtitle: "Changelog of raw data versions"
 author: "Althea Marks"
-format:
-  pdf:
-    papersize: letter
+date: today
+output: html_document
 execute:
   echo: FALSE
   include: FALSE
@@ -28,7 +27,6 @@ execute:
   library(gt)
   library(artis)
   library(glue)
-  library(testthat)
   library(readxl)
 }
 

@@ -26,3 +26,4 @@ requirements_old_local.txt
 *.pdf
 /.quarto/
 README_files/*
+*_files
