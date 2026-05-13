@@ -29,6 +29,7 @@ execute:
   library(artis)
   library(glue)
   library(testthat)
+  library(readxl)
 }
 
 
@@ -59,7 +60,7 @@ baci_v_new <- "V202601"
 validation_log <- list()
 ```
 
-```{r get-files}
+```{r get-prod-files}
 
 # List all subdirectories in datadir_new
 subdirs_new <- list.dirs(datadir_new, recursive = TRUE, full.names = TRUE)
@@ -84,7 +85,7 @@ gp_old_fp <- file.path(fao_dir_old, "Global_production_quantity.csv")
 
 ```
 
-```{r assess-file-changes}
+```{r assess-prod-file-changes}
 
 # 1. **Scan directories**
 scan_dir <- function(dir, rg = "") {
@@ -140,7 +141,6 @@ comparison_pairs <- file_level_log %>%
            (str_detect(new, "\\.xlsx$") & str_detect(old, "\\.xlsx$"))) %>%
   select(files_std, new, old)
 
-library(readxl)
 
 compare_files <- function(file_new, file_old) {
   if(basename(file_new) %>% str_detect("\\.csv$")) {
@@ -421,6 +421,8 @@ validation_log[[glue("BACI {baci_v_new} country code files identical across HS v
 
 ### Products
 ```{r}
+#| include: TRUE
+
 # Get all product_codes files for old and new BACI
 products_old <- list.files(
   path = path_baci_old,
@@ -496,4 +498,58 @@ walk(product_code_comparison$hs_version, \(hs_ver) {
     notes  = glue("Check product_codes_{hs_ver}_*.csv files in path_baci_old and path_baci_new. {row$n_codes_added} codes added, {row$n_codes_removed} codes removed.")
   )
 })
+
+# Display product code comparison summary table
+product_code_comparison |>
+  select(hs_version, n_codes_old, n_codes_new, n_codes_removed, n_codes_added) |>
+  gt() |>
+  tab_header(title = "BACI Product Code Changes by HS Version",
+             subtitle = glue("{baci_v_old} vs {baci_v_new}")) |>
+  cols_label(
+    hs_version      = "HS Version",
+    n_codes_old     = glue("# Codes ({baci_v_old})"),
+    n_codes_new     = glue("# Codes ({baci_v_new})"),
+    n_codes_removed = "# Removed",
+    n_codes_added   = "# Added"
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#f4cccc"),
+    locations = cells_body(rows = n_codes_removed > 0 | n_codes_added > 0)
+  )
+```
+
+# Validation Summary
+
+```{r validation-summary}
+#| include: TRUE
+
+validation_log |>
+  tibble::enframe(name = "check", value = "result") |>
+  mutate(
+    passed = map_lgl(result, "passed"),
+    notes  = map_chr(result, "notes"),
+    status = if_else(passed, "✅ PASS", "❌ FAIL"),
+    notes  = if_else(passed, "—", notes)
+  ) |>
+  select(check, status, notes) |>
+  gt() |>
+  tab_header(title = "Raw Data Validation Summary") |>
+  cols_label(
+    check  = "Check",
+    status = "Status",
+    notes  = "Next Steps if Failing"
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#f4cccc"),
+    locations = cells_body(rows = status == "❌ FAIL")
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#d9ead3"),
+    locations = cells_body(rows = status == "✅ PASS")
+  ) |>
+  cols_width(
+    check ~ px(250),
+    notes ~ px(280)
+  ) |>
+  tab_options(table.font.size = 10)
 ```
