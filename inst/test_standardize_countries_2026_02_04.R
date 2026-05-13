@@ -13,7 +13,6 @@ library(devtools)
 # Connor's read in paths
 # FAO data
 fao_raw <- read_csv("QA/dev_standardized_countries/1.2_fao_raw_combos.csv")
-
 # 
 sau_raw <- read_csv("QA/dev_standardized_countries/1.2_sau_raw_combos.csv")
 
