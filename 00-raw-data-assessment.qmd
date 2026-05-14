@@ -1,6 +1,6 @@
 ---
 title: "ARTIS Raw Data Assessment"
-subtitle: "Changelog of raw data versions"
+subtitle: "Assumption checks for ingesting raw external data"
 author: "Althea Marks"
 date: today
 output: html_document
@@ -12,8 +12,6 @@ execute:
 ---
 
 ```{r setup}
-
-#### Library #####
 {
   library(data.table)
   library(dplyr)
@@ -32,47 +30,84 @@ execute:
 
 
 #### Directory setup #####
-
-# FIXIT - use setup script to streamline
-#source("00-local-machine-setup.R")
-
-# Newest data
-datadir_new <- file.path("~", "Documents", "UW-SAFS", "ARTIS", "data",
-                         "model_inputs_raw_3.0")
-# last data ingest
-datadir_old <- file.path("~", "Documents", "UW-SAFS", "ARTIS", "data",
-                         "model_inputs_raw_2.0")
-modelfundir <- file.path("~", "Documents", "git-projects", "artis-model", "R")
-
-
-# values for report
-raw_data_type <- "FAO Global Production"
+# ARTIS versions ingesting new data
 artis_old <- "2.0"
 artis_new <- "3.0"
-data_v_old <- "2025.1.0"
-data_v_new <- "2026.1.0"
+
+path_data <- file.path("~/Documents/UW-SAFS/ARTIS/data")
+
+path_raw_data_old <- file.path(path_data, glue("model_inputs_raw_{artis_old}"))
+path_raw_data_new <- file.path(path_data, glue("model_inputs_raw_{artis_new}"))
+
+# FAO production
+fao_v_old <- "2025.1.0"
+fao_v_new <- "2026.1.0"
+# BACI trade
 baci_v_old <- "V202501"
 baci_v_new <- "V202601"
+# Fishbase / Sealifebase
+fbslb_v_old <- "24.07"
+fbslb_v_new <- "25.04"
 
-# create validation log empty list
-validation_log <- list()
+# List all subdirectories in path_raw_data_*
+subdirs_new <- list.dirs(path_raw_data_new, recursive = TRUE, full.names = TRUE)
+subdirs_old <- list.dirs(path_raw_data_old, recursive = TRUE, full.names = TRUE)
+
+# FAO Prod assessment
+# Threshold: flag rows where production absolute % change exceeds this value
+qty_pct_threshold <- 1  # percent
 ```
 
-```{r get-prod-files}
+# Summary
 
-# List all subdirectories in datadir_new
-subdirs_new <- list.dirs(datadir_new, recursive = TRUE, full.names = TRUE)
-subdirs_old <- list.dirs(datadir_old, recursive = TRUE, full.names = TRUE)
+The purpose of this report is to examine and document changes between raw input
+data versions ingested into the ARTIS (Aquatic Resource Trade in Species) Model.
+These raw data will then be cleaned and standardized to generate the model inputs fed directly into the ARTIS model.
+
+Changes to the raw data often requires updates or tweaks to the `01_clean_input_data.R` script used to generate the model inputs. Use the summary tables to understand what may need adjustments in the code. 
+
+## Model and Data Versions
+
+### ARTIS model versions
+
+- Previous ARTIS: ``r artis_old``
+- Upcoming ARTIS: ``r artis_new``
+
+### FAO Global Production
+
+- Previous: ``r fao_v_old``
+- Incoming: ``r fao_v_new``
+
+### BACI International Bilateral Trade
+
+- Previous: ``r baci_v_old``
+- Incoming: ``r baci_v_new``
+
+### Fishbase / Sealifebase
+
+- Previous: ``r fbslb_v_old``
+- Incoming: ``r fbslb_v_new``
+
+## Assessment: FAO Global Production
+
+### Check that ... 
+
+- The data set includes files required to run `artis::rebuild_fao_yyyy.R` in `01-clean-input-data.R`
+  - Green rows = files new in the incoming ``r fao_v_new`` version. 
+  - Red rows = files removed from the ``r fao_v_new`` incoming version.
+- The file sizes and row remain the same, **EXCEPT** `CL_FI_SPECIES_GROUPS` and ` Global_production_quantity` that are expected to generally increase in size and row with version bumps. 
+
+```{r fao-get-files}
 
 # FAO Global production regex pattern
-pattern_fao <- regex("(global[\\s_-]*production)", ignore_case = TRUE)
+fao_pattern <- regex("(global[\\s_-]*production)", ignore_case = TRUE)
 
 # FAO Global production directory
-fao_dir_new <- subdirs_new[str_detect(subdirs_new, pattern_fao)]
-fao_dir_old <- subdirs_old[str_detect(subdirs_old, pattern_fao)]
+fao_dir_new <- subdirs_new[str_detect(subdirs_new, fao_pattern)]
+fao_dir_old <- subdirs_old[str_detect(subdirs_old, fao_pattern)]
 
-gp_new_fp <- file.path(fao_dir_new, "Global_production_quantity.csv")
-gp_old_fp <- file.path(fao_dir_old, "Global_production_quantity.csv")
+fao_gp_new <- file.path(fao_dir_new, "Global_production_quantity.csv")
+fao_gp_old <- file.path(fao_dir_old, "Global_production_quantity.csv")
 
 # BACI regex pattern
 # pattern_baci <- regex("(baci)", ignore_case = TRUE)
@@ -83,9 +118,10 @@ gp_old_fp <- file.path(fao_dir_old, "Global_production_quantity.csv")
 
 ```
 
-```{r assess-prod-file-changes}
+```{r fao-scan-files}
 
 # 1. **Scan directories**
+# Returns full file paths from a directory; rg allows optional regex filtering
 scan_dir <- function(dir, rg = "") {
   if (length(dir) == 0) return(character(0)) # Handle empty directories
   list.files(dir, pattern = rg, recursive = TRUE, full.names = TRUE)
@@ -96,6 +132,9 @@ files_new <- scan_dir(fao_dir_new)
 files_old <- scan_dir(fao_dir_old)
 
 # 3. **Standardize file names**
+# Combine new and old file paths into a single tibble with a directory label,
+# then derive files_std: a version-agnostic, lowercase, underscore-separated key
+# used to match the same logical file across old and new versions
 all_files <- tibble(
   full_path = c(files_new, files_old),
   files = c(basename(files_new), basename(files_old)),
@@ -111,6 +150,8 @@ all_files <- tibble(
   )
 
 # 4. **Pivot to match new and old files**
+# Reshape so each row = one logical file, with separate columns for old/new full paths.
+# Files present in only one version will have NA in the other path column.
 file_level_log <- all_files %>%
   pivot_wider(
     id_cols = files_std,             # Only use files_std to identify matching files
@@ -119,18 +160,16 @@ file_level_log <- all_files %>%
     names_prefix = ""
   ) %>%
   mutate(
-    exists_in_old = !is.na(old),
-    exists_in_new = !is.na(new),
-    size_old_mb = ifelse(!is.na(old), 
-                         file.info(old)$size / 1e6, 
-                         NA_real_),
-    size_new_mb = ifelse(!is.na(new), 
-                         file.info(new)$size / 1e6, 
-                         NA_real_),
-    size_change_mb = size_new_mb - size_old_mb
+    exists_in_old  = !is.na(old),                                            # TRUE if file present in old version
+    exists_in_new  = !is.na(new),                                            # TRUE if file present in new version
+    size_old_mb    = ifelse(!is.na(old), file.info(old)$size / 1e6, NA_real_), # File size in MB for old version
+    size_new_mb    = ifelse(!is.na(new), file.info(new)$size / 1e6, NA_real_), # File size in MB for new version
+    size_change_mb = size_new_mb - size_old_mb                               # Positive = file grew, negative = file shrunk
   )
 
 # 5. **Data-Level Change Log**
+# Restrict comparisons to files that exist in both versions and are the same
+# format (.csv-.csv or .xlsx-.xlsx); PDFs and unmatched files are excluded
 comparison_pairs <- file_level_log %>%
   filter(exists_in_old & exists_in_new) %>%
   # compare matching .csv files 
@@ -140,6 +179,8 @@ comparison_pairs <- file_level_log %>%
   select(files_std, new, old)
 
 
+# Read a pair of files and return a named list of comparison metrics:
+# row counts, column names, added/removed columns, and per-column data type changes
 compare_files <- function(file_new, file_old) {
   if(basename(file_new) %>% str_detect("\\.csv$")) {
     data_new <- fread(file_new)
@@ -153,26 +194,26 @@ compare_files <- function(file_new, file_old) {
   if(basename(file_old) %>% str_detect("\\.xlsx$")) {
     data_old <- readxl::read_xlsx(file_old, skip=1)
   }
-
   
   list(
     file_name_new = basename(file_new),
     file_name_old = basename(file_old),
-    new_rows = nrow(data_new),
-    old_rows = nrow(data_old),
-    row_diff = nrow(data_new) - nrow(data_old),
-    new_cols = colnames(data_new),
-    old_cols = colnames(data_old),
+    new_rows      = nrow(data_new),
+    old_rows      = nrow(data_old),
+    row_diff      = nrow(data_new) - nrow(data_old),  # Positive = rows added, negative = rows removed
+    new_cols      = colnames(data_new),
+    old_cols      = colnames(data_old),
     # single col value will create a vector column - >1 cols will create list-col
     added_cols = if (length(setdiff(colnames(data_new),
                                     colnames(data_old))) > 0) {
-      setdiff(colnames(data_new), colnames(data_old)) 
+      setdiff(colnames(data_new), colnames(data_old))   # Columns in new but not old
     } else { NA_character_},
     removed_cols = if (length(setdiff(colnames(data_old),
                                       colnames(data_new))) > 0) {
-      setdiff(colnames(data_old), colnames(data_new)) 
+      setdiff(colnames(data_old), colnames(data_new))   # Columns in old but not new
     } else {NA_character_},
                    
+    # Build a per-column type comparison across the union of all column names
     data_type_changes = tibble(
       column = union(colnames(data_new), colnames(data_old)),
       # if col is in data_old get its class - else it is NA_character_
@@ -187,112 +228,216 @@ compare_files <- function(file_new, file_old) {
                                   class(data_new[[.x]])[1], 
                                   NA_character_))
     ) %>% 
-      mutate(type_changed = old_type != new_type)
+      mutate(type_changed = old_type != new_type)  # Flag columns where the type differs
   )
 }
 
+# Apply compare_files() across all matched pairs; result is a list-column
 data_level_log <- comparison_pairs %>%
   mutate(comparison = map2(new, old, ~ compare_files(.x, .y)))
 
 # Extract data-level comparison details
+# Unnest the list-column into individual columns for downstream use
 data_change_log <- data_level_log %>%
   unnest_wider(comparison) %>%
   select(file_name_new, file_name_old, new_rows, old_rows, row_diff, 
-         added_cols, removed_cols, data_type_changes)
-
+         added_cols, removed_cols, data_type_changes) 
 
 ```
 
-# Summary
-
-The purpose of this report is to examine and document changes 
-between raw input data versions ingested into the ARTIS (Aquatic Resource Trade 
-in Species) Model. These raw data will then be processed and standardized to the 
-model inputs (data build) fed directly into the ARTIS model. 
-
-### ARTIS model versions
-
-- ARTIS ``r artis_old`` was the previous model run
-- ARTIS ``r artis_new`` is upcoming model run
-
-# FAO Global Production
-
-### Raw input data versions
-
-- `r raw_data_type` ``r data_v_old`` is the previous data version
-- `r raw_data_type` ``r data_v_new`` is the data version to be ingested in the upcoming ARTIS ``r artis_new`` model run
-
-### File changes
-
-```{r logic-files-missing}
-#| results: 'asis'
+```{r fao-file-table}
 #| include: TRUE
 
-if (any(file_level_log$exists_in_old == FALSE)) {
-  missing_files <- file_level_log |>
-    filter(!exists_in_old) |>
-    pull(new) |>
-    basename() |>
-    paste(collapse = ", ")
-  
-  cat(paste0(
-    "The new ", data_v_new, " data version contains files that are not present in the old ",
-    data_v_old, " version: ", missing_files
-  ))
-}
-```
+# Re-derive files_std from data_change_log file names (same logic as fao-scan-files)
+# so we can join row counts back into the file-level log for display
+file_table <- file_level_log |>
+  left_join(
+    data_change_log |>
+      mutate(files_std = file_name_new |>
+               str_remove("_V\\d{6,7}[a-z]*") |>
+               str_replace_all("\\.[a-zA-Z0-9]+$", "") |>
+               str_replace_all("[^a-zA-Z0-9]", "_") |>
+               str_to_lower()
+      ) |>
+      select(files_std, new_rows, old_rows, row_diff),
+    by = "files_std"
+  ) |>
+  mutate(
+    file_name     = coalesce(basename(new), basename(old)),  # Use new name if available, fall back to old
+    exists_in_old = if_else(exists_in_old, "✓", "—"),
+    exists_in_new = if_else(exists_in_new, "✓", "—"),
+    .flag_new     = exists_in_old == "—",   # new file (not in old)
+    .flag_gone    = exists_in_new == "—"    # removed file (not in new)
+  ) |>
+  select(
+    file_name,
+    exists_in_old, exists_in_new,
+    size_old_mb, size_new_mb, size_change_mb,
+    old_rows, new_rows, row_diff,
+    .flag_new, .flag_gone  # retained for row highlighting below; dropped before rendering
+  )
 
-```{r logic-files-added}
-#| results: 'asis'
-#| include: TRUE
-
-if (any(file_level_log$exists_in_new == FALSE)) {
-  cat(paste0("The old ", data_v_old, " data version contains files that are not present in the new ", data_v_new, " version: ", basename(file_level_log[[which(file_level_log$exists_in_new == FALSE), "old"]])
-                 )
-          )
-}
-```
-
-### Column changes
-
-Only matching .csv and .xlsx files were compared.
-
-```{r}
-#| label: tab:added_removed_columns
-#| include: TRUE
-#| results: 'asis'
-
-# Filter the data_change_log to only include files with added or removed columns
-added_cols_log <- data_change_log %>% 
-  filter(!is.na(added_cols) | !is.na(removed_cols)) %>% 
-  select(file_name_new, added_cols, removed_cols)
-
-if (nrow(added_cols_log) > 0 ) {
-  # Create a kableExtra table with automatic scaling
-  added_cols_log %>%
-    kbl(
-      col.names = c("File Name", "Added Columns", "Removed Columns"),
-      caption = "Files where columns were added/removed in the new version.",
-      align = c('l', 'c', 'c')
-    ) %>%
-    kable_styling(
-      full_width = TRUE, 
-      latex_options = c("scale_down", "hold_position")
+file_table |>
+  select(-.flag_new, -.flag_gone) |>  # Drop flag columns — used for styling only
+  gt() |>
+  tab_header(
+    title    = "FAO Global Production — File-Level Assessment",
+    subtitle = glue("{fao_v_old} vs {fao_v_new}")
+  ) |>
+  cols_label(
+    file_name      = "File",
+    exists_in_old  = glue("In {fao_v_old}"),
+    exists_in_new  = glue("In {fao_v_new}"),
+    size_old_mb    = glue("Size {fao_v_old} (MB)"),
+    size_new_mb    = glue("Size {fao_v_new} (MB)"),
+    size_change_mb = "Size Δ (MB)",
+    old_rows       = glue("Rows {fao_v_old}"),
+    new_rows       = glue("Rows {fao_v_new}"),
+    row_diff       = "Row Δ"
+  ) |>
+  fmt_number(
+    columns  = c(size_old_mb, size_new_mb, size_change_mb),
+    decimals = 4
+  ) |>
+  fmt_integer(
+    columns  = c(old_rows, new_rows, row_diff),
+    use_seps = TRUE
+  ) |>
+  sub_missing(missing_text = "—") |>
+  # Highlight new files (green) and removed files (red)
+  tab_style(
+    style     = cell_fill(color = "#d9ead3"),
+    locations = cells_body(rows = file_table$.flag_new)
+  ) |>
+  tab_style(
+    style     = cell_fill(color = "#f4cccc"),
+    locations = cells_body(rows = file_table$.flag_gone)
+  ) |>
+  # Bold the row diff value when it is non-zero to draw attention to row count changes
+  tab_style(
+    style     = cell_text(weight = "bold"),
+    locations = cells_body(
+      columns = row_diff,
+      rows    = !is.na(file_table$row_diff) & file_table$row_diff != 0
     )
-}
+  ) |>
+  tab_footnote(
+    footnote  = "Green rows = files new in the incoming version. Red rows = files removed from the incoming version.",
+    locations = cells_column_labels(columns = exists_in_new)
+  ) |>
+  tab_options(
+    table.font.size           = 12,
+    column_labels.font.weight = "bold",
+    heading.align             = "left"
+  )
+```
 
+### Production Quantity
+
+::: {.callout-note}
+Not sure what we expect between versions, consistent quantity? OR is some difference ok? Created row highlighting based on percent difference threshold value at the top. 
+:::
+
+```{r fao-production-quantity}
+#| include: TRUE
+
+# Read the raw quantity CSVs directly — no rebuild_fao_2023_dat() involved.
+# Raw column names from the FAO format: PERIOD (year), VALUE (production quantity).
+qty_raw_old <- fread(fao_gp_old)
+qty_raw_new <- fread(fao_gp_new)
+
+# Derive year range from raw data (replaces fao-year-coverage chunk)
+min_yr_old <- min(qty_raw_old$PERIOD, na.rm = TRUE)
+max_yr_old <- max(qty_raw_old$PERIOD, na.rm = TRUE)
+min_yr_new <- min(qty_raw_new$PERIOD, na.rm = TRUE)
+max_yr_new <- max(qty_raw_new$PERIOD, na.rm = TRUE)
+
+# Summarise total production quantity per year, filtered to 1996+
+qty_old <- qty_raw_old |>
+  filter(PERIOD >= 1996) |>
+  group_by(year = PERIOD) |>
+  summarise(total_qty_old = sum(VALUE, na.rm = TRUE), .groups = "drop")
+
+qty_new <- qty_raw_new |>
+  filter(PERIOD >= 1996) |>
+  group_by(year = PERIOD) |>
+  summarise(total_qty_new = sum(VALUE, na.rm = TRUE), .groups = "drop")
+
+# Full join so years present in only one version are retained
+qty_compare <- full_join(qty_old, qty_new, by = "year") |>
+  mutate(
+    qty_diff      = total_qty_new - total_qty_old,
+    qty_diff_pct  = round(100 * qty_diff / total_qty_old, 2),
+    # Row highlight flags — not rendered in the table
+    .flag_old_only  = !is.na(total_qty_old) & is.na(total_qty_new),                        # year in old, missing in new
+    .flag_new_only  = is.na(total_qty_old) & !is.na(total_qty_new),                        # year in new only (expected new years)
+    .flag_threshold = !is.na(qty_diff_pct) & abs(qty_diff_pct) >= qty_pct_threshold         # % change exceeds threshold
+  ) |>
+  arrange(year)
+
+qty_compare |>
+  select(-.flag_old_only, -.flag_new_only, -.flag_threshold) |>  # Drop flag columns — used for styling only
+  gt() |>
+  tab_header(
+    title    = "FAO Global Production — Annual Quantity Assessment",
+    subtitle = glue("{fao_v_old} vs {fao_v_new}")
+  ) |>
+  cols_label(
+    year          = "Year",
+    total_qty_old = glue("Total Qty ({fao_v_old})"),
+    total_qty_new = glue("Total Qty ({fao_v_new})"),
+    qty_diff      = "Qty Δ",
+    qty_diff_pct  = "Qty Δ (%)"
+  ) |>
+  fmt_integer(
+    columns  = c(total_qty_old, total_qty_new, qty_diff),
+    use_seps = TRUE
+  ) |>
+  fmt_number(
+    columns  = qty_diff_pct,
+    decimals = 2
+  ) |>
+  sub_missing(missing_text = "—") |>
+  # Red: years present in old but missing in new (unexpected)
+  tab_style(
+    style     = cell_fill(color = "#f4cccc"),
+    locations = cells_body(rows = qty_compare$.flag_old_only)
+  ) |>
+  # Neutral yellow: years present in new only (expected new data years)
+  tab_style(
+    style     = cell_fill(color = "#fff2cc"),
+    locations = cells_body(rows = qty_compare$.flag_new_only)
+  ) |>
+  # Purple: absolute % change exceeds threshold — warrants review
+  tab_style(
+    style     = cell_fill(color = "#d9d2e9"),
+    locations = cells_body(rows = qty_compare$.flag_threshold)
+  ) |>
+  tab_footnote(
+    footnote  = glue("Purple rows = absolute % change equals or exceeds {qty_pct_threshold}% threshold and warrants review."),
+    locations = cells_column_labels(columns = qty_diff_pct)
+  ) |>
+  tab_footnote(
+    footnote  = "Yellow rows = years new in the incoming version. Red rows = years present in the previous version but missing from the incoming version.",
+    locations = cells_column_labels(columns = year)
+  ) |>
+  tab_options(
+    table.font.size           = 12,
+    column_labels.font.weight = "bold",
+    heading.align             = "left"
+  )
 ```
 
 ### Sciname
 
-```{r sciname-diff-raw}
+```{r fao-sciname-unique-new}
 #| include: TRUE
 #| results: 'asis'
 
 # get old production species - uncleaned
-raw_prod_old_fn <- glue("GlobalProduction_{data_v_old}.zip")
+raw_prod_old_fn <- glue("GlobalProduction_{fao_v_old}.zip")
 raw_prod_old_sp <- artis::rebuild_fao_2023_dat(
-  datadir = datadir_old, 
+  datadir = path_raw_data_old, 
   filename = raw_prod_old_fn) %>%
   select(
     sciname = species_scientific_name, 
@@ -303,9 +448,9 @@ raw_prod_old_sp <- artis::rebuild_fao_2023_dat(
   distinct()
 
 # get new production species - uncleaned
-raw_prod_new_fn <- glue("GlobalProduction_{data_v_new}.zip")
+raw_prod_new_fn <- glue("GlobalProduction_{fao_v_new}.zip")
 raw_prod_new_sp <- artis::rebuild_fao_2023_dat(
-  datadir = datadir_new, 
+  datadir = path_raw_data_new, 
   filename = raw_prod_new_fn) %>%
   select(
     sciname = species_scientific_name, 
@@ -317,42 +462,160 @@ raw_prod_new_sp <- artis::rebuild_fao_2023_dat(
 
 raw_prod_old_sp_only <- anti_join(raw_prod_old_sp, raw_prod_new_sp, by = "sciname") %>%
   arrange(sciname) %>% 
-  mutate(version = data_v_old)
+  mutate(version = fao_v_old)
 
 raw_prod_new_sp_only <- anti_join(raw_prod_new_sp, raw_prod_old_sp, by = "sciname") %>%
   arrange(sciname)  %>% 
-  mutate(version = data_v_new)
+  mutate(version = fao_v_new)
 
-raw_prod_new_sp_only %>%
-  kable(
-    caption = glue("Taxa unique to {data_v_new} FAO production data"),
-    booktabs = TRUE,
-    col.names = c("Scientific Name", "Common Name", "version")
-  ) %>%
-  kable_styling(font_size = 8)   # set size in points
+# --- Table 1: Taxa unique to new version ---
+new_sp_tbl <- raw_prod_new_sp_only |>
+  mutate(likely_hybrid = str_detect(sciname, "\\bx\\b"))
 
-raw_prod_old_sp_only %>%
-  kable(
-    caption = glue("Taxa unique to {data_v_old} FAO production data"),
-    booktabs = TRUE,
-    col.names = c("Scientific Name", "Common Name", "version")
-  ) %>%
-  kable_styling(font_size = 8)   # set size in points
-
+new_sp_tbl |>
+  select(sciname, common_name, version, likely_hybrid) |>
+  gt() |>
+  tab_header(
+    title    = glue("FAO Global Production — New Taxa Assessment"),
+    subtitle = glue("{fao_v_old} vs {fao_v_new}")
+  ) |>
+  cols_label(
+    sciname       = "Scientific Name",
+    common_name   = "Common Name",
+    version       = "Version",
+    likely_hybrid = "Hybrid"
+  ) |>
+  fmt(
+    columns = likely_hybrid,
+    fns     = function(x) ifelse(x, "✓", "—")
+  ) |>
+  sub_missing(missing_text = "—") |>
+  tab_style(
+    style     = cell_fill(color = "#fff2cc"),
+    locations = cells_body(rows = new_sp_tbl$likely_hybrid)
+  ) |>
+  tab_options(
+    table.font.size           = 12,
+    column_labels.font.weight = "bold",
+    heading.align             = "left",
+    row.striping.include_table_body = TRUE
+  )
 ```
 
+```{r fao-unique-taxa-old}
+#| include: TRUE
+#| results: 'asis'
+# --- Table 2: Taxa unique to old version ---
+old_sp_tbl <- raw_prod_old_sp_only |>
+  mutate(likely_hybrid = str_detect(sciname, "\\bx\\b"))
 
+old_sp_tbl |>
+  select(sciname, common_name, version, likely_hybrid) |>
+  gt() |>
+  tab_header(
+    title    = glue("FAO Global Production — Removed Taxa Assessment"),
+    subtitle = glue("{fao_v_old} vs {fao_v_new}")
+  ) |>
+  cols_label(
+    sciname       = "Scientific Name",
+    common_name   = "Common Name",
+    version       = "Version",
+    likely_hybrid = "Hybrid"
+  ) |>
+  fmt(
+    columns = likely_hybrid,
+    fns     = function(x) ifelse(x, "✓", "—")
+  ) |>
+  sub_missing(missing_text = "—") |>
+  tab_style(
+    style     = cell_fill(color = "#fff2cc"),
+    locations = cells_body(rows = old_sp_tbl$likely_hybrid)
+  ) |>
+  tab_options(
+    table.font.size           = 12,
+    column_labels.font.weight = "bold",
+    heading.align             = "left",
+    row.striping.include_table_body = TRUE,
+  )
+```
+
+```{r fao-common-names}
+#| include: TRUE
+#| results: 'asis'
+common_name_changes <- bind_rows(
+  anti_join(
+    raw_prod_old_sp |> distinct(sciname, common_name),
+    raw_prod_new_sp |> distinct(sciname, common_name),
+    by = c("sciname", "common_name")
+  ) |> mutate(change = "removed"),
+  anti_join(
+    raw_prod_new_sp |> distinct(sciname, common_name),
+    raw_prod_old_sp |> distinct(sciname, common_name),
+    by = c("sciname", "common_name")
+  ) |> mutate(change = "added")
+) |>
+  arrange(sciname, change)
+
+shared_scinames <- intersect(
+  raw_prod_old_sp$sciname,
+  raw_prod_new_sp$sciname
+)
+
+common_name_changes_filtered <- common_name_changes |>
+  filter(sciname %in% shared_scinames)
+
+# derive alternating group index per sciname
+sciname_groups <- common_name_changes_filtered |>
+  distinct(sciname) |>
+  mutate(.grp = row_number() %% 2 == 0)  # TRUE = even rows get shading
+
+common_name_changes_filtered |>
+  left_join(sciname_groups, by = "sciname") |>
+  gt() |>
+  tab_header(
+    title    = "FAO Global Production — Common Name Changes",
+    subtitle = glue("{fao_v_old} vs {fao_v_new}")
+  ) |>
+  cols_label(
+    sciname     = "Scientific Name",
+    common_name = "Common Name",
+    change      = "Change"
+  ) |>
+  cols_hide(.grp) |>
+  tab_style(
+    style     = cell_fill(color = "#efefef"),
+    locations = cells_body(
+      rows = common_name_changes_filtered |>
+        left_join(sciname_groups, by = "sciname") |>
+        pull(.grp)
+    )
+  ) |>
+  tab_style(
+    style     = cell_text(color = "#2a7a2a", weight = "bold"),
+    locations = cells_body(columns = change, rows = common_name_changes_filtered$change == "added")
+  ) |>
+  tab_style(
+    style     = cell_text(color = "#b94040", weight = "bold"),
+    locations = cells_body(columns = change, rows = common_name_changes_filtered$change == "removed")
+  ) |>
+  tab_options(
+    table.font.size           = 12,
+    column_labels.font.weight = "bold",
+    heading.align             = "left"
+  )
+```
 
 # BACI Bilateral Trade
 
 ```{r}
-path_baci_old <- file.path(datadir_old, "baci_raw")
-path_baci_new <- file.path(datadir_new, "baci_raw")
+path_baci_old <- file.path(path_raw_data_old, "baci_raw")
+path_baci_new <- file.path(path_raw_data_new, "baci_raw")
 ```
 
 ### Countries
 
 ```{r}
+#| eval: false
 # Old BACI assessment ----------------------------------
 
 # Get HS version from raw baci data directories
@@ -419,7 +682,8 @@ validation_log[[glue("BACI {baci_v_new} country code files identical across HS v
 
 ### Products
 ```{r}
-#| include: TRUE
+#| eval: FALSE
+
 
 # Get all product_codes files for old and new BACI
 products_old <- list.files(
@@ -519,7 +783,7 @@ product_code_comparison |>
 # Validation Summary
 
 ```{r validation-summary}
-#| include: TRUE
+#| eval: FALSE
 
 validation_log |>
   tibble::enframe(name = "check", value = "result") |>
