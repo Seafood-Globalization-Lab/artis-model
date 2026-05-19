@@ -25,6 +25,8 @@
 #' @seealso \code{\link{classify_prod_dat}}
 #'
 #' @importFrom tibble tribble
+#' @export
+
 build_corr_tbl_prod_sciname <- function(){
 
   prod_sciname_corrections <- tribble(
