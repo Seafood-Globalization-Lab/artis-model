@@ -39,6 +39,15 @@ classify_prod_dat <- function(
   SAU_sci_2_common = NA,
   fb_slb_dir = NULL
 ) {
+  .Deprecated(
+    msg = paste0(
+      "`classify_prod_dat()` has been split into three focused functions:\n",
+      "  1. `clean_prod_dat()`             — source-specific cleaning\n",
+      "  2. `match_prod_taxa_to_fbslb()`   — FB/SLB matching & synonym resolution\n",
+      "  3. `fill_taxa_classification_gaps()` — gap-filling & final validation\n",
+      "See `01-clean-input-data.R` for the updated two-pass workflow."
+    )
+  )
   # NOTE: final prod_data output does not aggregate to taxa level - i.e., does not do: group_by(country_iso3, SciName) %>% summarise(quantity = sum(quantity))
   # instead retains distinctions within SciName for different inlandmarine_group, source_name_en, and ISSCAAP group
   # production data does eventually get aggregated to taxa level in standardize_countries
@@ -101,19 +110,19 @@ classify_prod_dat <- function(
         SciName = gsub(SciName, pattern = " \\(\\=.*", replacement = "")
       )
 
-    # Join on sciname manual corrections table to provide ARTIS corrections
-    prod_ts <- prod_ts %>% 
-      dplyr::left_join(
-        prod_sciname_corr_tbl %>% 
-          filter(prod_data_type == !!prod_data_source) %>% 
-          select(sciname_raw, sciname_corrected),
-        join_by("SciName" == "sciname_raw")
-        ) %>% 
-      dplyr::mutate(
-        SciName = case_when(
-          !is.na(sciname_corrected) ~ sciname_corrected, .default = SciName)
-      ) %>% 
-      select(!sciname_corrected)
+    # # Join on sciname manual corrections table to provide ARTIS corrections
+    # prod_ts <- prod_ts %>% 
+    #   dplyr::left_join(
+    #     prod_sciname_corr_tbl %>% 
+    #       filter(prod_data_type == !!prod_data_source) %>% 
+    #       select(sciname_raw, sciname_corrected),
+    #     join_by("SciName" == "sciname_raw")
+    #     ) %>% 
+    #   dplyr::mutate(
+    #     SciName = case_when(
+    #       !is.na(sciname_corrected) ~ sciname_corrected, .default = SciName)
+    #   ) %>% 
+    #   select(!sciname_corrected)
     
     ############################################
     # Identify taxonomic ranks
@@ -188,19 +197,19 @@ classify_prod_dat <- function(
       mutate_all(str_trim) %>%
       filter(is.na(SciName) == FALSE)
 
-    # Join on sciname manual corrections table to provide ARTIS corrections
-    prod_ts <- prod_ts %>% 
-      dplyr::left_join(
-        prod_sciname_corr_tbl %>% 
-          filter(prod_data_type == !!prod_data_source) %>% 
-          select(sciname_raw, sciname_corrected),
-        join_by("SciName" == "sciname_raw")
-        ) %>% 
-      dplyr::mutate(
-        SciName = case_when(
-          !is.na(sciname_corrected) ~ sciname_corrected, .default = SciName)
-      ) %>% 
-      select(!sciname_corrected)
+    # # Join on sciname manual corrections table to provide ARTIS corrections
+    # prod_ts <- prod_ts %>% 
+    #   dplyr::left_join(
+    #     prod_sciname_corr_tbl %>% 
+    #       filter(prod_data_type == !!prod_data_source) %>% 
+    #       select(sciname_raw, sciname_corrected),
+    #     join_by("SciName" == "sciname_raw")
+    #     ) %>% 
+    #   dplyr::mutate(
+    #     SciName = case_when(
+    #       !is.na(sciname_corrected) ~ sciname_corrected, .default = SciName)
+    #   ) %>% 
+    #   select(!sciname_corrected)
     
     prod_ts$Species01 <- 0
     prod_ts$Genus01 <- 0
