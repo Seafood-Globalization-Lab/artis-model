@@ -114,17 +114,8 @@ classify_prod_dat <- function(
           !is.na(sciname_corrected) ~ sciname_corrected, .default = SciName)
       ) %>% 
       select(!sciname_corrected)
-
-      # THESE APPLY SPECIFICALLY TO FAO prod_ts
-      # First do some cleaning of SciNames
-      # List of fixes comes from finding SciNames that do not match to either the fishbase classification
-      # database or fishbase synonyms function in downstream code
-
-      ## Change names that list multiple taxa
-      # (hybrid crosses - e.g., "morone chrysops x m. saxatilis" or "auxis thazard, a. rochei") to their common genus,
-      # or other lowest-level common classification
-
-
+    
+    ############################################
     # Identify taxonomic ranks
     # prod_ts will eventually be joined with fishbase classification info, use column name Genus01 to differentiate from column Genus
     prod_ts$Species01 <- 0
@@ -156,6 +147,8 @@ classify_prod_dat <- function(
       mutate(quantity = as.numeric(quantity), year = as.integer(year))
   }
 
+  ###############################################
+  # SAU Production Data
   if (prod_data_source == "SAU") {
     prod_ts <- prod_df %>%
       mutate(scientific_name = tolower(scientific_name)) %>%
@@ -194,11 +187,6 @@ classify_prod_dat <- function(
       # Trim any leading/trailing whitespace
       mutate_all(str_trim) %>%
       filter(is.na(SciName) == FALSE)
-
-      # THESE APPLY SPECIFICALLY TO SAU prod_ts
-      # First do some cleaning of SciNames
-      # List of fixes comes from finding SciNames that do not match to either the fishbase classification database or fishbase synonyms function in downstream code
-      # Address non-scientific names
 
     # Join on sciname manual corrections table to provide ARTIS corrections
     prod_ts <- prod_ts %>% 
@@ -272,7 +260,23 @@ classify_prod_dat <- function(
   }
 
   #############################################################################################
-  # For both SAU and FAO data, match all taxanames to classification info in fishbase/sealifebase
+  # Match all taxanames to classification info in fishbase/sealifebase - FAO and SAU
+
+
+  # Fishbase and Sealifebase Taxa Datasets
+  fishbase <- fread(file.path(fb_slb_dir, "fb_taxa_info.csv"), data.table = FALSE) %>% 
+    mutate_all(tolower) %>%
+    select(-SpecCode)
+
+  sealifebase <- fread(file.path(fb_slb_dir, "slb_taxa_info.csv"), data.table = FALSE) %>% 
+    mutate_all(tolower) %>%
+    select(-SpecCode)
+
+  # reads and cleans Fishbase and Sealifebase synonym datasets
+  # FIXIT: rename these onjects - "fb_syn" and "slb_syn"
+  fb_synonyms <- fread(file.path(fb_slb_dir, "fb_synonyms_clean.csv"), data.table = FALSE)
+  slb_synonyms <- fread(file.path(fb_slb_dir, "slb_synonyms_clean.csv"), data.table = FALSE)
+
 
   # First use all unique taxa names (prod_taxa_names) to match classification info
   # IMPORTANT: in the process, find SciNames with no classification info and replace synonyms with accepted names in prod_ts
@@ -280,25 +284,6 @@ classify_prod_dat <- function(
     select(SciName, CommonName, Species01, Genus01, Family01, Other01) %>%
     arrange(SciName) %>%
     distinct()
-
-  # Load Fishbase and Sealifebase Databases
-  # Fishbase and Sealifebase Taxa Datasets
-  fishbase <- fread(file.path(fb_slb_dir, "fb_taxa_info.csv"), data.table = FALSE)
-  sealifebase <- fread(file.path(fb_slb_dir, "slb_taxa_info.csv"), data.table = FALSE)
-
-  # reads and cleans Fishbase and Sealifebase synonym datasets
-  # FIXIT: rename these onjects - "fb_syn" and "slb_syn"
-  fb_df <- fread(file.path(fb_slb_dir, "fb_synonyms_clean.csv"), data.table = FALSE)
-  slb_df <- fread(file.path(fb_slb_dir, "slb_synonyms_clean.csv"), data.table = FALSE)
-
-  # Standardize fishbase and sealifebase:
-  fishbase <- fishbase %>%
-    mutate_all(tolower) %>%
-    select(-SpecCode)
-
-  sealifebase <- sealifebase %>%
-    mutate_all(tolower) %>%
-    select(-SpecCode)
 
   # HIERARCHICAL MATCHING TO CLASSIFICATION INFO
   # For each SciName in prod_taxa_names, use fishbase and sealifebase to add taxonomic classification
@@ -311,8 +296,6 @@ classify_prod_dat <- function(
   # Hierarchical joining: Before etc. etc.
   # For Other01=1, join separately for higher groups (Order, Class, and Superclass for fishbase; Order, Class, Phylum, Kingdom for Sealifebase)
   # For Other01=1, assign metadata to positive matches: Order01, Class01, Superclass01, Phylum01, Kingdom01
-  fishbase <- as.data.frame(fishbase)
-  sealifebase <- as.data.frame(sealifebase)
 
   prod_fb_species <- prod_taxa_names %>%
     filter(Species01 == 1) %>%
@@ -478,19 +461,19 @@ classify_prod_dat <- function(
   # Figure out which species dropped out
   nomatch_fb <- prod_taxa_names$SciName[
     prod_taxa_names$SciName %in% prod_fb_full$SciName == FALSE
-  ] # 613
+  ] 
   nomatch_fb_and_slb <- nomatch_fb[
     nomatch_fb %in% prod_slb_full$SciName == FALSE
-  ] # 194
-  nomatch_fb_and_slb <- unique(nomatch_fb_and_slb) # FAO 191, SAU 180
+  ] 
+  nomatch_fb_and_slb <- unique(nomatch_fb_and_slb) 
   # Note: prod_taxa_names is allowed to have duplicate scinames (each has a different commonname), only need list of unique sci names for synonyms matching below
 
-  # Use synonyms() function in rfishbase (currently using backed up dataset of fb and slb synonyms) to see if non-matching species is due to an outdated scientific name
+  # Use synonyms() function in rfishbase 
   # First limit nomatch_fb_and_slb to just species names (i.e., two words, look for space)
   nomatch_species <- nomatch_fb_and_slb[grepl(
     nomatch_fb_and_slb,
     pattern = " "
-  )] # length = 19 (for FAO); 158 (for SAU)
+  )] 
 
   fb_switches <- 0
   slb_switches <- 0
@@ -498,10 +481,10 @@ classify_prod_dat <- function(
     next_sciname <- nomatch_species[i]
 
     # Run scientific name through synonym databases in fishbase and sealifebase
-    name_fb_status <- artis::query_synonyms(fb_df, next_sciname)
-    name_slb_status <- artis::query_synonyms(slb_df, next_sciname)
+    name_fb_status <- artis::query_synonyms(fb_synonyms, next_sciname)
+    name_slb_status <- artis::query_synonyms(slb_synonyms, next_sciname)
 
-    # check if this SciName is in fishbase
+    # check if this SciName is in fishbase #################
     if (nrow(name_fb_status) > 0) {
       accepted_name <- tolower(name_fb_status$synonym)
 
@@ -533,7 +516,7 @@ classify_prod_dat <- function(
       }
     } # end if SciName fb check
 
-    # check to see if this SciName is in Sealifebase
+    # check to see if this SciName is in Sealifebase ######################
     if (nrow(name_slb_status) > 0) {
       accepted_name <- tolower(name_slb_status$synonym)
 
@@ -564,8 +547,6 @@ classify_prod_dat <- function(
     } # end if SciName slb check
   } # end for loop for non matching species
 
-  # FAO - 138 fb switches, 56 slb switches
-  # SAU - 113 fb switches, 45 slb switches
 
   # Figure out which species are still missing
   post_match_missing_species <- nomatch_species[
@@ -588,12 +569,12 @@ classify_prod_dat <- function(
     unique(prod_ts$SciName) %in%
       c(prod_fb_full$SciName, prod_slb_full$SciName) ==
       FALSE
-  ] # SAU 22 missing NON-species, 1 missing species
+  ] 
   c(prod_fb_full$SciName, prod_slb_full$SciName)[
     c(prod_fb_full$SciName, prod_slb_full$SciName) %in%
       unique(prod_ts$SciName) ==
       FALSE
-  ] # empty
+  ] 
 
   ###########################################################################################################
   # Add aquarium trade info
@@ -616,20 +597,20 @@ classify_prod_dat <- function(
     left_join(slb_aquarium_relevant, by = c("SciName")) %>%
     rename(Fresh01 = Fresh, Brack01 = Brack, Saltwater01 = Saltwater) # to make it the same as previous version's code
 
-  ## FINAL CLEANING STEPS and combine prod_fb_full, prod_slb_full, and prod_ncbi_full
+  ## FINAL CLEANING STEPS and combine prod_fb_full, prod_slb_full, and prod_ncbi_full ################################
   prod_taxa_classification <- prod_fb_full %>%
     full_join(
       prod_slb_full,
       by = intersect(names(prod_fb_full), names(prod_slb_full))
     ) %>%
-    # Rename clupea pallasii pallasii (rfishbase only recognizes subspecies-level for this taxa) back to clupea pallasii
-    mutate(
-      SciName = if_else(
-        SciName == "clupea pallasii pallasii",
-        true = "clupea pallasii",
-        false = SciName
-      )
-    ) %>%
+    # # Rename clupea pallasii pallasii (rfishbase only recognizes subspecies-level for this taxa) back to clupea pallasii
+    # mutate(
+    #   SciName = if_else(
+    #     SciName == "clupea pallasii pallasii",
+    #     true = "clupea pallasii",
+    #     false = SciName
+    #   )
+    # ) %>%
     # rename SuperClass
     rename(Superclass = SuperClass) %>%
     # Remove all metadata columns (e.g., Species01) - these were only used to join FAO production data with fishbase and sealifebase; not needed for hs_commod_matching
