@@ -199,14 +199,20 @@ write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod.csv"), row
 
 # SAU Production Data -------------------------
 ## SAU Clean Taxa and Classification ------------------------------
+
+prod_sau_raw <- fread(
+  file.path(path_sau_prod_raw, "SAU_Production_Data.csv"), 
+  stringsAsFactors = FALSE, 
+  header = TRUE, 
+  sep = ",", 
+  data.table = FALSE) %>%
+  # only keep data from 1996 onward and where quantity > 0
+  filter(year >= 1996, sum > 0)
+
 prod_list_sau <- classify_prod_dat(datadir = path_sau_prod_raw,
                                    prod_data_source = "SAU", # Don't change for FAO model run
                                    # FIXIT: Could clean up datadir and prod_df arguements, overlapping purposes. 
-                                   prod_df = fread(file.path(path_sau_prod_raw, "SAU_Production_Data.csv"), 
-                                                    stringsAsFactors = FALSE, 
-                                                    header = TRUE, 
-                                                    sep = ",", 
-                                                    data.table = FALSE),
+                                   prod_df = prod_sau_raw,
                                    SAU_sci_2_common = "TaxonFunctionalCommercial_Clean.csv",
                                    fb_slb_dir = current_fb_slb_dir)
 

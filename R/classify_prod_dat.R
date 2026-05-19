@@ -1,4 +1,4 @@
-#' Classify and clean production data (FAO or SAU) and attach taxonomy
+#' Clean, correct, and classify production data (FAO or SAU) and attach taxonomy
 #'
 #' @description
 #' Ingests raw production data from **FAO** or **SAU**, performs
@@ -43,7 +43,12 @@ classify_prod_dat <- function(
   # instead retains distinctions within SciName for different inlandmarine_group, source_name_en, and ISSCAAP group
   # production data does eventually get aggregated to taxa level in standardize_countries
 
+  # Generate manual corrections table for production Scinames
+  prod_sciname_corr_tbl <- artis::build_corr_tbl_prod_sciname()
+
+  # Run a custom set of cleaning, classifying, and corrections on FAO vs SAU production data
   if (prod_data_source == "FAO") {
+
     prod_ts <- prod_df %>%
       dplyr::rename(
         CommonName = species_name_en, # Standardize column names between FAO and SAU datasets
@@ -51,14 +56,17 @@ classify_prod_dat <- function(
         country_iso3_alpha = country_iso3_code, # alpha iso code
         country_iso3_numeric = country
       ) %>% # numeric iso code
+      
       dplyr::mutate(
         CommonName = tolower(as.character(CommonName)),
         SciName = tolower(as.character(SciName))
       ) %>%
+      
       # Trim any leading/trailing whitespace
       dplyr::mutate_all(str_trim) %>%
       #Filter out groups not considered in this analysis
-      filter(
+      
+      dplyr::filter(
         !species_major_group %in%
           c(
             "PLANTAE AQUATICAE",
@@ -85,12 +93,27 @@ classify_prod_dat <- function(
       # Dev_mode: check prod_ts at this point unique(prod_ts$isscaap_group)
       # to further filter prod species by isscaap_group
       droplevels() %>%
+      
       # Remove unnecessary labels - anything with "(=" and everything after it
       # example "salmoniformes (=salmonoidei)" or "clupeiformes (=clupeoidei)" "haemulidae (=pomadasyidae)"
       # FIXIT: Is this a problem?
       mutate(
         SciName = gsub(SciName, pattern = " \\(\\=.*", replacement = "")
-      ) %>%
+      )
+
+    # Join on sciname manual corrections table to provide ARTIS corrections
+    prod_ts <- prod_ts %>% 
+      dplyr::left_join(
+        prod_sciname_corr_tbl %>% 
+          filter(prod_data_type == !!prod_data_source) %>% 
+          select(sciname_raw, sciname_corrected),
+        join_by("SciName" == "sciname_raw")
+        ) %>% 
+      dplyr::mutate(
+        SciName = case_when(
+          !is.na(sciname_corrected) ~ sciname_corrected, .default = SciName)
+      ) %>% 
+      select(!sciname_corrected)
 
       # THESE APPLY SPECIFICALLY TO FAO prod_ts
       # First do some cleaning of SciNames
@@ -100,164 +123,7 @@ classify_prod_dat <- function(
       ## Change names that list multiple taxa
       # (hybrid crosses - e.g., "morone chrysops x m. saxatilis" or "auxis thazard, a. rochei") to their common genus,
       # or other lowest-level common classification
-      mutate(
-        SciName = case_when(
-          SciName == "astacidae, cambaridae" ~ "cambaridae", # choose cambaridae, larger family
-          SciName == "auxis thazard, a. rochei" ~ "auxis spp",
-          SciName == "clarias gariepinus x c. macrocephalus" ~ "clarias spp",
-          SciName == "c. macropomum x p. brachypomus" ~ "serrasalmidae", # Colossoma macropomum x Piaractus brachypomus
-          SciName == "loliginidae, ommastrephidae" ~ "teuthida",
-          SciName == "merluccius capensis, m.paradoxus" ~ "merluccius",
-          SciName == "morone chrysops x m. saxatilis" ~ "morone spp",
-          SciName == "oreochromis aureus x o. niloticus" ~ "oreochromis",
-          SciName == "osmerus spp, hypomesus spp" ~ "osmeridae",
-          SciName == "p. mesopotamicus x c. macropomum" ~ "serrasalmidae", # Piaractus mesopotamicus x Colossoma macropomum
-          SciName == "selachimorpha (pleurotremata)" ~ "carcharhiniformes", # essentially, an unidentified shark; code currently defines sharks as a list of orders, assign to carcharhiniformes for now
-          SciName == "sepiidae, sepiolidae" ~ "sepiidae", # Sepiidae = cuttlefish; Sepiolidae = bobtail squid; assigning to cuttlefish
-          SciName == "squalidae, scyliorhinidae" ~ "carcharhiniformes", # two different orders of sharks; code currently defines sharks as a list of orders, assign to carcharhiniformes for now
-          SciName == "stolothrissa, limnothrissa" ~ "clupeidae",
-          SciName == "stolothrissa, limnothrissa spp" ~ "clupeidae",
-          SciName == "xiphopenaeus, trachypenaeus" ~ "penaeidae",
-          SciName == "xiphopenaeus, trachypenaeus spp" ~ "penaeidae",
-          SciName == "h. longifilis x c. gariepinus" ~ "clariidae", # Matched to the larger family because genus was different
-          SciName == "e. fuscoguttatus x e. lanceolatus" ~ "epinephelus", # matched by same genus
-          SciName == "alosa alosa, a. fallax" ~ "alosa spp", # common genus between both
 
-          # Manually fix outdated names
-          SciName == "branchiostegidae" ~ "malacanthidae",
-          SciName == "caspialosa spp" ~ "alosa spp",
-          SciName == "invertebrata" ~ "asteroidea", # assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum, ascidians would be omitted as chordata)
-          SciName == "mobulidae" ~ "myliobatidae",
-          SciName == "natantia" ~ "crangonidae", # natantia is obsolete term for "shrimp"; assign to order = crangonidae for now
-          SciName == "reptantia" ~ "cancridae", # reptantia is obsolete term for "crab"; multiple families of crab, assign to family = "cancridae" for now
-          SciName == "siluroidei" ~ "siluriformes",
-          SciName == "aliger gigas" ~ "lobatus gigas", # Queen Conch
-          SciName == "liza spp" ~ "planiliza spp", # Referring to mullets
-
-          # Incorrect Names (corrected via common name)
-          SciName == "mytilus unguiculatus" ~ "mytilus coruscus", # Korean Mussel
-          SciName == "tritia mutabilis" ~ "nassarius mutabilis", # Mutable/Changeable Nassa
-          SciName == "tritia reticulata" ~ "nassarius reticulatus", # Netted Dog whelk
-
-          # Fix spelling errors:
-          SciName == "herklotsichthys quadrimaculat." ~
-            "herklotsichthys quadrimaculatus",
-          SciName == "pleuronectes quadrituberculat." ~
-            "pleuronectes quadrituberculatus",
-          SciName == "pseudopleuronectes herzenst." ~
-            "pseudopleuronectes herzensteini",
-          SciName == "salmonoidei" ~ "salmonidae",
-          SciName == "mobulinae" ~ "mobulidae",
-          SciName == "moroteuthopsis ingens" ~ "onykia ingens",
-          SciName == "pandalus spp, pandalopsis spp" ~ "pandalus spp", #"pandalus spp", # prawn
-
-          # Downstream code ID's crustacea to class level; assign to branchiopoda for now; downstream code defines crustaceans as list of classes c("branchiopoda", "malacostraca", "maxillopoda", "merostomata"); reason: assuming non-crab/lobster/shrimp crustacean
-          SciName == "crustacea" ~ "branchiopoda",
-
-          # Genus with missing spp:
-          SciName == "cantherhines" ~ "cantherhines spp",
-
-          # Names not recognized by sealifebase/fishbase: Just go up one level in classification
-          SciName == "anodonta cygnea" ~ "anodonta spp", # Because of its morphological variability and its wide range of distribution, there are over 500 synonyms for this species, just use genus
-          SciName == "astacus astacus" ~ "astacus spp",
-          SciName == "austropotamobius pallipes" ~ "astacidae", # Sealifebase doesn't recognize the genus or species, just use family
-          SciName == "cherax tenuimanus" ~ "cherax spp",
-          SciName == "cipangopaludina chinensis" ~ "cipangopaludina spp",
-          SciName == "clupea pallasii" ~ "clupea pallasii pallasii", # Match to clupea pallasii pallasii to allow match with rfishbase, but then rename to clupea pallasii in the final step
-          SciName == "clupeoidei" ~ "clupeiformes",
-          SciName == "emmelichthys nitidus" ~ "emmelichthys spp",
-          SciName == "euastacus armatus" ~ "parastacidae", # sealifebase doesn't recognize the genus or species, just use family
-          SciName == "macrobrachium lar" ~ "macrobrachium spp",
-          SciName == "macrobrachium malcolmsonii" ~ "macrobrachium spp",
-          SciName == "merluccius gayi" ~ "merluccius spp",
-          #SciName == "morone" ~ "morone spp",
-          SciName == "mullus barbatus" ~ "mullus spp",
-          SciName == "oreochromis" ~ "oreochromis spp",
-          SciName == "percoidei" ~ "perciformes",
-          SciName == "procambarus clarkii" ~ "procambarus spp",
-          SciName == "scombroidei" ~ "perciformes", # fishbase doesn't list scombiformes as an order (See fishbase %>% filter(Family == "scombridae"))
-          SciName == "sebastes marinus" ~ "sebastes spp",
-          SciName == "brachyura" ~ "decapoda", # Infraorder not part of fishbase database
-          SciName == "cherax cainii" ~ "cherax spp", # maron - classified into two species both cherax cainii and cherax tenuimanus however only cherax tenuimanus accepted in sealifebase synonyms but does not occur in sealifebase taxa table
-          SciName == "sinanodonta woodiana" ~ "anodonta spp", # Check to see if could be anodonta dejecta
-          #SciName == "bryozoa" ~ "polyzoa spp", # bryozoa is a phylum that refers to aquatic invertebrates
-          SciName == "caridina denticulata" ~ "neocaridina denticulata", # synonym to accepted name that isn't caught by fb or slb
-          SciName == "anomura" ~ "decapoda", # infraorder name to order name
-          SciName == "corbicula manilensis" ~ "corbicula spp",
-          SciName == "maguimithrax spinosissimus" ~ "mithrax spp", # This is a type species of mithrax, sea spiders
-          SciName == "macroramphosidae" ~ "centriscidae", # bellowfish, macroramphosidae used to be classified as a subfamily of centriscidae
-          SciName == "austrofusus glans" ~ "buccinum spp", # whelk
-
-          # Tribe to genus name
-          SciName == "thunnini" ~ "thunnus spp",
-
-          # Additions form FAO 2025 version
-          SciName == "afruca tangeri" ~ "uca tangeri", #Worms has afruca tangeri as accepted name with uca tangeri as synonym
-          SciName == "ageneiosus dentatus" ~ "ageneiosus ucayalensis", # ageneiosus dentatus listed in Fishbase as an ambiguous synonym
-          SciName == "alitta virens (formerly nereis virens)" ~ "alitta virens", #remove note of former name
-          SciName == "amphithrax armatus" ~ "mithrax armatus", # Worms has amphithrax armatus as accepted name with mithrax armatus as original name
-          SciName == "callaus deliciosa" ~ "sciaena deliciosa", # update to name identified as accepted in Fishbase and Worms
-          SciName == "caridea" ~ "decapoda", # infraorder within decapoda, so move up
-          SciName == "colossoma macropomum x piaractus brachypomus" ~
-            "serrasalmidae", #replace with common family for hybrid
-          SciName == "dallocardia muricata" ~ "trachycardium muricatum", # dallocardia muricata is accepted in Worms, but lists trachycardium muricatum as a superseded combination
-          SciName == "epinephelus fuscoguttatus x e. lanceolatus" ~
-            "epinephelus", #replace with common genus for hybrid
-          SciName == "grimothea gregaria" ~ "munida gregaria", #grimothea gregaria is accepted in Worms, but lists munida gregaria as a superseded combination
-          SciName == "hansarsia megalops" ~ "nematoscelis megalops", # hansarsia megalops is accepted in Worms but nematoscelis megalops is superseded combination
-          SciName == "heterobranchus longifilis x clarias gariepinus" ~
-            "clariidae", # replace with common family for hybrid
-          SciName == "holothuria (holothuria) tubulosa" ~ "holothuria tubulosa",
-          SciName == "hyporthodus drummondhayi" ~ "epinephelus drummondhayi",
-          SciName == "iliochione subrugosa" ~ "chione subrugosa",
-          SciName == "larkinia grandis" ~ "anadara grandis",
-          SciName == "lutjanidae (ex caesionidae)" ~ "lutjanidae",
-          SciName == "lutraria oblonga" ~ "lutraria magna",
-          SciName == "michalisquilla parva" ~ "squilla parva",
-          SciName == "mytella strigata" ~ "mytella charruana",
-          SciName == "perciformes (others)" ~ "perciformes",
-          SciName == "perciformes (percoidei)" ~ "perciformes/percoidei",
-          SciName == "perciformes (scorpaenoidei)" ~
-            "perciformes/scorpaenoidei",
-          SciName == "piaractus mesopotamicus x colossoma macropomum" ~
-            "serrasalmidae",
-          SciName == "pinirampus argentina" ~ "megalonema argentinum",
-          SciName == "polybius depurator" ~ "liocarcinus depurator",
-          SciName == "polybius navigator" ~ "liocarcinus navigator",
-          SciName == "polybius vernalis" ~ "liocarcinus vernalis",
-          SciName == "proteopitar patagonicus" ~ "pitar patagonicus",
-          SciName == "scombriformes (scombroidei)" ~ "scombriformes",
-          SciName == "spisula sibyllae" ~ "spisula sachalinensis",
-          SciName == "uroteuthis (photololigo) duvaucelii" ~
-            "uroteuthis duvaucelii",
-          SciName == "ylistrum japonicum" ~ "amusium japonicum",
-          SciName == "labridae (ex scaridae)" ~ "labridae",
-          SciName == "batoidea or batoidimorpha (hypotremata)" ~ "batoidea",
-          SciName == "selachii or selachimorpha (pleurotremata)" ~ "selachii",
-
-          # fishbase updated class from actinoptergi to teleostei
-          # we decided to lump all actinoptergygii as osteichthyes
-          SciName == "actinopterygii" ~ "osteichthyes",
-
-          # FIXIT: Repull rfishbase data and remove this section once species are
-          # verified in the record - currently are not listed at all 2025-09
-          SciName == "lophiosilurus apurensis" ~ "osteichthyes",
-          SciName == "orthopristis chalcea" ~ "osteichthyes",
-          SciName == "meuschenia scabra" ~ "osteichthyes",
-          SciName == "ratabulus prionotus" ~ "osteichthyes",
-          # FIXIT: Temporary change to genus - remove once these specie are added to rfishbase
-          # data version (show on fishbase website search). FAO 2025 is using rfishbase "latest" version "24.07"
-          SciName == "bodianus parrae" ~ "bodianus",
-          SciName == "bodianus pulcher" ~ "bodianus",
-          SciName == "haemulopsis nitida" ~ "haemulopsis",
-          SciName == "parupeneus heptacantha" ~ "parupeneus",
-          SciName == "astacopsis franklinii" ~ "parastacidae",
-          SciName == "pimelodus yuma" ~ "pimelodus",
-
-          # Keep all other SciNames as is:
-          TRUE ~ SciName
-        )
-      ) # end of pipe
 
     # Identify taxonomic ranks
     # prod_ts will eventually be joined with fishbase classification info, use column name Genus01 to differentiate from column Genus
@@ -292,8 +158,6 @@ classify_prod_dat <- function(
 
   if (prod_data_source == "SAU") {
     prod_ts <- prod_df %>%
-      # only keep data from 1996 onward and where quantity > 0
-      filter(year >= 1996, sum > 0) %>%
       mutate(scientific_name = tolower(scientific_name)) %>%
       rename(
         quantity = sum,
@@ -329,47 +193,27 @@ classify_prod_dat <- function(
       ) %>%
       # Trim any leading/trailing whitespace
       mutate_all(str_trim) %>%
-      filter(is.na(SciName) == FALSE) %>%
+      filter(is.na(SciName) == FALSE)
+
       # THESE APPLY SPECIFICALLY TO SAU prod_ts
       # First do some cleaning of SciNames
       # List of fixes comes from finding SciNames that do not match to either the fishbase classification database or fishbase synonyms function in downstream code
       # Address non-scientific names
-      mutate(
+
+    # Join on sciname manual corrections table to provide ARTIS corrections
+    prod_ts <- prod_ts %>% 
+      dplyr::left_join(
+        prod_sciname_corr_tbl %>% 
+          filter(prod_data_type == !!prod_data_source) %>% 
+          select(sciname_raw, sciname_corrected),
+        join_by("SciName" == "sciname_raw")
+        ) %>% 
+      dplyr::mutate(
         SciName = case_when(
-          SciName == "marine finfishes not identified" ~ "osteichthyes",
-          SciName == "marine fishes not identified" ~ "osteichthyes",
-          SciName == "marine groundfishes not identified" ~ "osteichthyes",
-          SciName == "marine pelagic fishes not identified" ~ "osteichthyes",
-          SciName == "miscellaneous aquatic invertebrates" ~ "asteroidea", # assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum, ascidians would be omitted as chordata)
-          SciName == "miscellaneous diadromous fishes" ~ "osteichthyes",
-          SciName == "miscellaneous marine crustaceans" ~ "malacostraca", # assuming some sort of crab/lobster/shrimp/prawn/crayfish crustacean
-
-          # Names not recognized by fish/sealifebase, just go up one (in some cases, down) one level in classification
-          SciName == "anomura" ~ "decapoda", # fish/sealifebase doesn't go to infraorder-level of classification
-          SciName == "asterozoa" ~ "asteroidea",
-          SciName == "batoidea" ~ "rajiformes", # several potential orders, assume rajiformes for now
-          SciName == "brachyura" ~ "decapoda",
-          SciName == "dendrobranchiata" ~ "decapoda",
-          SciName == "echinozoa" ~ "echinodermata",
-          SciName == "inermiidae" ~ "haemulidae",
-          SciName == "pteriomorphia" ~ "bivalvia",
-          SciName == "scombroidea" ~ "perciformes",
-
-          # Edits because they are not getting matched to taxa table at the end
-          SciName == "liza" ~ "planiliza",
-          SciName == "scombroidei" ~ "perciformes",
-          SciName == "pleuronectoidei" ~ "pleuronectiformes", # moving from suborder to order
-          SciName == "valamugil" ~ "crenimugil",
-          SciName == 'tridacnidae' ~ 'cardiidae', # Moving from subfamily to family name
-          SciName == 'azurina cyanea' ~ 'azurina', # moving up a taxonomic level
-          SciName == 'macrostrombus costatus' ~ 'strombidae', # Move from species to family name for identification
-          SciName == 'phrontis vibex' ~ 'nassarius vibex',
-          SciName == 'sinistrofulgur sinistrum' ~ 'neogastropoda', # Move from species to order
-          SciName == "actinopterygii" ~ "osteichthyes",
-          TRUE ~ SciName
-        )
-      )
-
+          !is.na(sciname_corrected) ~ sciname_corrected, .default = SciName)
+      ) %>% 
+      select(!sciname_corrected)
+    
     prod_ts$Species01 <- 0
     prod_ts$Genus01 <- 0
     prod_ts$Family01 <- 0
