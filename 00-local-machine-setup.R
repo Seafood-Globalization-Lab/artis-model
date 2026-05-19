@@ -21,7 +21,7 @@ max_year <- 2024
 # Model Mode for 01-clean-model-inputs - TRUE for SAU; FALSE for FAO
 running_sau <- FALSE
 ## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
-need_new_fb_slb <- TRUE
+need_new_fb_slb <- FALSE
 # AM - I think this is leftover code - can set HS year and year for running tests
 test <- FALSE
 test_year <- c()
@@ -67,8 +67,8 @@ path_cnv_fct <- file.path(path_data_storage, "seafood-conversion-factors")
 #local_data_path <- glue::glue("/Users/theamarks/Documents/UW-SAFS/ARTIS/data")
 #datadir_raw <- file.path(local_data_path, glue::glue("model_inputs_raw_{artis_version}"))
 # Directory for inputs to create the ARTIS database
-datadir <- file.path(path_artis_dev, glue::glue("model_inputs_{artis_version}_{prod_data_type}"))
-outdir <- file.path(path_artis_dev, glue::glue("outputs_{artis_version}_{prod_data_type}"))
+datadir <- file.path(path_artis_dev, glue::glue("model_inputs_{artis_version}_{prod_data_type}")) # FIXIT - Change to dir_inputs (lots of downstream changes)
+outdir <- file.path(path_artis_dev, glue::glue("outputs_{artis_version}_{prod_data_type}")) # FIXIT - Change to dir_output (lots of downstream changes)
 
 # FIXIT - declare raw FAO prod file name here instead of in 01-clean-model-inputs.R? Would this work if swithc
 # to YAML config?

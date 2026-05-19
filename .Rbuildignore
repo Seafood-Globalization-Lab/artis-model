@@ -23,3 +23,7 @@
 .quarto/
 .Rproj.user
 venv/
+.env.swp
+
+
+^data-raw$
