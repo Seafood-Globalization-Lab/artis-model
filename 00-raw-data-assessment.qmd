@@ -88,7 +88,9 @@ Changes to the raw data often requires updates or tweaks to the `01_clean_input_
 - Previous: ``r fbslb_v_old``
 - Incoming: ``r fbslb_v_new``
 
-## Assessment: FAO Global Production
+# Assess: FAO Global Production
+
+## Files present in dataset
 
 ### Check that ... 
 
@@ -332,7 +334,7 @@ file_table |>
   )
 ```
 
-### Production Quantity
+## Production Quantity
 
 ::: {.callout-note}
 Not sure what we expect between versions, consistent quantity? OR is some difference ok? Created row highlighting based on percent difference threshold value at the top. 
@@ -428,7 +430,9 @@ qty_compare |>
   )
 ```
 
-### Sciname
+# Assess: FAO Global Production Taxa
+
+## Taxa unique to new ``r fao_v_new`` version
 
 ```{r fao-sciname-unique-new}
 #| include: TRUE
@@ -502,6 +506,8 @@ new_sp_tbl |>
   )
 ```
 
+## Taxa unique to old ``r fao_v_old`` version
+
 ```{r fao-unique-taxa-old}
 #| include: TRUE
 #| results: 'asis'
@@ -535,7 +541,7 @@ old_sp_tbl |>
     table.font.size           = 12,
     column_labels.font.weight = "bold",
     heading.align             = "left",
-    row.striping.include_table_body = TRUE,
+    row.striping.include_table_body = TRUE
   )
 ```
 
@@ -605,14 +611,393 @@ common_name_changes_filtered |>
   )
 ```
 
-# BACI Bilateral Trade
+# Assess: Fishbase / Sealifebase Taxa
+
+```{r fbslb-taxa-changes}
+#| include: TRUE
+#| results: 'asis'
+path_fbslb_new <- file.path(path_raw_data_new, glue("fishbase_sealifebase_{fbslb_v_new}"))
+path_fbslb_old <- file.path(path_raw_data_old, glue("fishbase_sealifebase_{fbslb_v_old}"))
+
+# Load taxa info for both databases and both versions
+fb_taxa_old  <- fread(file.path(path_fbslb_old, "fb_taxa_info.csv"))
+fb_taxa_new  <- fread(file.path(path_fbslb_new, "fb_taxa_info.csv"))
+slb_taxa_old <- fread(file.path(path_fbslb_old, "slb_taxa_info.csv"))
+slb_taxa_new <- fread(file.path(path_fbslb_new, "slb_taxa_info.csv"))
+
+# Tag each with its database label before combining
+fb_taxa_old  <- fb_taxa_old  |> mutate(database = "FishBase")
+fb_taxa_new  <- fb_taxa_new  |> mutate(database = "FishBase")
+slb_taxa_old <- slb_taxa_old |> mutate(database = "SeaLifeBase")
+slb_taxa_new <- slb_taxa_new |> mutate(database = "SeaLifeBase")
+
+taxa_old <- bind_rows(fb_taxa_old, slb_taxa_old)
+taxa_new <- bind_rows(fb_taxa_new, slb_taxa_new)
+
+display_cols <- c("database", "SpecCode", "Species", "Genus", "Family", "Order", "Class")
+
+# Taxa added in new version (present in new, absent in old) — per database
+taxa_added <- bind_rows(
+  anti_join(fb_taxa_new,  fb_taxa_old,  by = c("database", "SpecCode")),
+  anti_join(slb_taxa_new, slb_taxa_old, by = c("database", "SpecCode"))
+) |>
+  select(any_of(display_cols)) |>
+  mutate(change = "added")
+
+# Taxa removed in new version (present in old, absent in new) — per database
+taxa_removed <- bind_rows(
+  anti_join(fb_taxa_old,  fb_taxa_new,  by = c("database", "SpecCode")),
+  anti_join(slb_taxa_old, slb_taxa_new, by = c("database", "SpecCode"))
+) |>
+  select(any_of(display_cols)) |>
+  mutate(change = "removed")
+
+taxa_changes <- bind_rows(taxa_added, taxa_removed) |>
+  arrange(database, change, Species)
+```
+
+```{r fb-taxa-added-tbl}
+#| include: TRUE
+
+taxa_fb_added <- taxa_changes |>
+  filter(change == "added", database == "FishBase") |>
+  arrange(Species)
+
+taxa_fb_added |>
+  select(Species, Genus, Family, Order, Class) |>
+  gt() |>
+  tab_header(
+    title    = "FishBase — Taxa Added",
+    subtitle = glue("{fbslb_v_old} vs {fbslb_v_new}")
+  ) |>
+  cols_label(
+    Species = "Scientific Name",
+    Genus   = "Genus",
+    Family  = "Family",
+    Order   = "Order",
+    Class   = "Class"
+  ) |>
+  sub_missing(missing_text = "—") |>
+  tab_style(
+    style     = cell_text(color = "#2a7a2a", weight = "bold"),
+    locations = cells_body(columns = Species)
+  ) |>
+  tab_options(
+    table.font.size                 = 11,
+    column_labels.font.weight      = "bold",
+    heading.align                   = "left",
+    row.striping.include_table_body = TRUE,
+    row.striping.background_color   = "#efefef"
+  ) |>
+  opt_interactive(
+    use_search           = TRUE,
+    use_pagination       = FALSE,
+    use_page_size_select = FALSE
+  )
+```
+
+```{r slb-taxa-added-tbl}
+#| include: TRUE
+
+taxa_slb_added <- taxa_changes |>
+  filter(change == "added", database == "SeaLifeBase") |>
+  arrange(Species)
+
+taxa_slb_added |>
+  select(Species, Genus, Family, Order, Class) |>
+  gt() |>
+  tab_header(
+    title    = "SeaLifeBase — Taxa Added",
+    subtitle = glue("{fbslb_v_old} vs {fbslb_v_new}")
+  ) |>
+  cols_label(
+    Species = "Scientific Name",
+    Genus   = "Genus",
+    Family  = "Family",
+    Order   = "Order",
+    Class   = "Class"
+  ) |>
+  sub_missing(missing_text = "—") |>
+  tab_style(
+    style     = cell_text(color = "#2a7a2a", weight = "bold"),
+    locations = cells_body(columns = Species)
+  ) |>
+  tab_options(
+    table.font.size                 = 11,
+    column_labels.font.weight      = "bold",
+    heading.align                   = "left",
+    row.striping.include_table_body = TRUE,
+    row.striping.background_color   = "#efefef"
+  ) |>
+  opt_interactive(
+    use_search           = TRUE,
+    use_pagination       = FALSE,
+    use_page_size_select = FALSE
+  )
+```
+
+```{r fb-taxa-removed-tbl}
+#| include: TRUE
+
+taxa_fb_removed <- taxa_changes |>
+  filter(change == "removed", database == "FishBase") |>
+  arrange(Species)
+
+taxa_fb_removed |>
+  select(Species, Genus, Family, Order, Class) |>
+  gt() |>
+  tab_header(
+    title    = "FishBase — Taxa Removed",
+    subtitle = glue("{fbslb_v_old} vs {fbslb_v_new}")
+  ) |>
+  cols_label(
+    Species = "Scientific Name",
+    Genus   = "Genus",
+    Family  = "Family",
+    Order   = "Order",
+    Class   = "Class"
+  ) |>
+  sub_missing(missing_text = "—") |>
+  tab_style(
+    style     = cell_text(color = "#b94040", weight = "bold"),
+    locations = cells_body(columns = Species)
+  ) |>
+  tab_options(
+    table.font.size                 = 11,
+    column_labels.font.weight      = "bold",
+    heading.align                   = "left",
+    row.striping.include_table_body = TRUE,
+    row.striping.background_color   = "#efefef"
+  ) |>
+  opt_interactive(
+    use_search           = TRUE,
+    use_pagination       = FALSE,
+    use_page_size_select = FALSE
+  )
+```
+
+## NOT Validated yet: 
+
+```{r slb-taxa-removed-tbl}
+#| include: FALSE
+#| eval: false
+
+taxa_slb_removed <- taxa_changes |>
+  filter(change == "removed", database == "SeaLifeBase") |>
+  arrange(Species)
+
+taxa_slb_removed |>
+  select(Species, Genus, Family, Order, Class) |>
+  gt() |>
+  tab_header(
+    title    = "SeaLifeBase — Taxa Removed",
+    subtitle = glue("{fbslb_v_old} vs {fbslb_v_new}")
+  ) |>
+  cols_label(
+    Species = "Scientific Name",
+    Genus   = "Genus",
+    Family  = "Family",
+    Order   = "Order",
+    Class   = "Class"
+  ) |>
+  sub_missing(missing_text = "—") |>
+  tab_style(
+    style     = cell_text(color = "#b94040", weight = "bold"),
+    locations = cells_body(columns = Species)
+  ) |>
+  tab_options(
+    table.font.size                 = 11,
+    column_labels.font.weight      = "bold",
+    heading.align                   = "left",
+    row.striping.include_table_body = TRUE,
+    row.striping.background_color   = "#efefef"
+  ) |>
+  opt_interactive(
+    use_search           = TRUE,
+    use_pagination       = FALSE,
+    use_page_size_select = FALSE
+  )
+```
+
+```{r fbslb-taxonomy-diff}
+#| include: FALSE
+#| results: 'asis'
+#| eval: false
+
+tax_ranks <- c("Genus", "Family", "Order", "Class")
+
+# For species present in BOTH versions, pivot to long and detect rank-level changes.
+# Done separately per database so SpecCode is unambiguous, then combined.
+make_tax_diff <- function(old_df, new_df, db_label) {
+  shared_codes <- intersect(old_df$SpecCode, new_df$SpecCode)
+
+  old_long <- old_df |>
+    filter(SpecCode %in% shared_codes) |>
+    select(SpecCode, Species, all_of(tax_ranks)) |>
+    pivot_longer(all_of(tax_ranks), names_to = "rank", values_to = "old_value")
+
+  new_long <- new_df |>
+    filter(SpecCode %in% shared_codes) |>
+    select(SpecCode, Species, all_of(tax_ranks)) |>
+    pivot_longer(all_of(tax_ranks), names_to = "rank", values_to = "new_value")
+
+  old_long |>
+    left_join(new_long, by = c("SpecCode", "Species", "rank")) |>
+    filter(old_value != new_value | (is.na(old_value) != is.na(new_value))) |>
+    mutate(
+      database  = db_label,
+      rank      = factor(rank, levels = tax_ranks)
+    ) |>
+    select(database, SpecCode, Species, rank, old_value, new_value)
+}
+
+tax_diff <- bind_rows(
+  make_tax_diff(fb_taxa_old,  fb_taxa_new,  "FishBase"),
+  make_tax_diff(slb_taxa_old, slb_taxa_new, "SeaLifeBase")
+) |>
+  arrange(database, Species, rank)
+```
+
+
+
+
+```{r fbslb-taxonomy-diff-tbl}
+#| include: FALSE
+#| results: 'asis'
+#| eval: false
+
+if (nrow(tax_diff) == 0) {
+  cat("> **No higher-level taxonomy changes detected between versions.**")
+} else {
+  # Alternating stripe by Species (same pattern as fao-common-names)
+  tax_diff_groups <- tax_diff |>
+    distinct(database, Species) |>
+    arrange(database, Species) |>
+    mutate(.grp = row_number() %% 2 == 0)
+
+  tax_diff_display <- tax_diff |>
+    left_join(tax_diff_groups, by = c("database", "Species"))
+
+  tax_diff_display |>
+    select(database, Species, rank, old_value, new_value, .grp) |>
+    gt() |>
+    tab_header(
+      title    = "FishBase / SeaLifeBase — Higher-Level Taxonomy Changes",
+      subtitle = glue("{fbslb_v_old} vs {fbslb_v_new}")
+    ) |>
+    cols_label(
+      database  = "Database",
+      Species   = "Scientific Name",
+      rank      = "Rank",
+      old_value = glue("Old ({fbslb_v_old})"),
+      new_value = glue("New ({fbslb_v_new})")
+    ) |>
+    cols_hide(.grp) |>
+    sub_missing(missing_text = "—") |>
+    tab_style(
+      style     = cell_fill(color = "#efefef"),
+      locations = cells_body(rows = tax_diff_display$.grp)
+    ) |>
+    tab_style(
+      style     = cell_text(color = "#b94040", weight = "bold"),
+      locations = cells_body(columns = old_value)
+    ) |>
+    tab_style(
+      style     = cell_text(color = "#2a7a2a", weight = "bold"),
+      locations = cells_body(columns = new_value)
+    ) |>
+    tab_options(
+      table.font.size           = 11,
+      column_labels.font.weight = "bold",
+      heading.align             = "left"
+    )
+}
+```
+
+```{r fbslb-synonym-changes}
+#| include: FALSE
+#| results: 'asis'
+#| eval: false
+
+fb_syn_old  <- fread(file.path(path_fbslb_old, "fb_synonyms_clean.csv"))
+fb_syn_new  <- fread(file.path(path_fbslb_new, "fb_synonyms_clean.csv"))
+slb_syn_old <- fread(file.path(path_fbslb_old, "slb_synonyms_clean.csv"))
+slb_syn_new <- fread(file.path(path_fbslb_new, "slb_synonyms_clean.csv"))
+
+# Key columns from clean_fb_slb_synonyms(): synonym, accepted_name, spec_code
+syn_key <- c("synonym", "accepted_name", "spec_code")
+
+make_syn_diff <- function(old_df, new_df, db_label) {
+  bind_rows(
+    anti_join(old_df, new_df, by = syn_key) |> mutate(change = "removed"),
+    anti_join(new_df, old_df, by = syn_key) |> mutate(change = "added")
+  ) |>
+    mutate(database = db_label) |>
+    select(database, synonym, accepted_name, change)
+}
+
+syn_changes <- bind_rows(
+  make_syn_diff(fb_syn_old,  fb_syn_new,  "FishBase"),
+  make_syn_diff(slb_syn_old, slb_syn_new, "SeaLifeBase")
+) |>
+  arrange(database, synonym, change)
+```
+
+```{r fbslb-synonym-changes-tbl}
+#| include: FALSE
+#| results: 'asis'
+#| eval: false
+
+if (nrow(syn_changes) == 0) {
+  cat("> **No synonym mapping changes detected between versions.**")
+} else {
+  syn_groups <- syn_changes |>
+    distinct(database, synonym) |>
+    arrange(database, synonym) |>
+    mutate(.grp = row_number() %% 2 == 0)
+
+  syn_display <- syn_changes |>
+    left_join(syn_groups, by = c("database", "synonym"))
+
+  syn_display |>
+    select(database, synonym, accepted_name, change, .grp) |>
+    gt() |>
+    tab_header(
+      title    = "FishBase / SeaLifeBase — Synonym Mapping Changes",
+      subtitle = glue("{fbslb_v_old} vs {fbslb_v_new}")
+    ) |>
+    cols_label(
+      database      = "Database",
+      synonym       = "Synonym",
+      accepted_name = "Accepted Name",
+      change        = "Change"
+    ) |>
+    cols_hide(.grp) |>
+    sub_missing(missing_text = "—") |>
+    tab_style(
+      style     = cell_fill(color = "#efefef"),
+      locations = cells_body(rows = syn_display$.grp)
+    ) |>
+    tab_style(
+      style     = cell_fill(color = "#fff2cc"),
+      locations = cells_body(rows = seq_len(nrow(syn_display)))
+    ) |>
+    tab_options(
+      table.font.size           = 11,
+      column_labels.font.weight = "bold",
+      heading.align             = "left"
+    )
+}
+```
+
+# Assess: BACI International Bilateral Trade
 
 ```{r}
 path_baci_old <- file.path(path_raw_data_old, "baci_raw")
 path_baci_new <- file.path(path_raw_data_new, "baci_raw")
 ```
 
-### Countries
+## Countries
 
 ```{r}
 #| eval: false
@@ -680,7 +1065,7 @@ validation_log[[glue("BACI {baci_v_new} country code files identical across HS v
 )
 ```
 
-### Products
+## Products
 ```{r}
 #| eval: FALSE
 
@@ -778,40 +1163,4 @@ product_code_comparison |>
     style = cell_fill(color = "#f4cccc"),
     locations = cells_body(rows = n_codes_removed > 0 | n_codes_added > 0)
   )
-```
-
-# Validation Summary
-
-```{r validation-summary}
-#| eval: FALSE
-
-validation_log |>
-  tibble::enframe(name = "check", value = "result") |>
-  mutate(
-    passed = map_lgl(result, "passed"),
-    notes  = map_chr(result, "notes"),
-    status = if_else(passed, "✅ PASS", "❌ FAIL"),
-    notes  = if_else(passed, "—", notes)
-  ) |>
-  select(check, status, notes) |>
-  gt() |>
-  tab_header(title = "Raw Data Validation Summary") |>
-  cols_label(
-    check  = "Check",
-    status = "Status",
-    notes  = "Next Steps if Failing"
-  ) |>
-  tab_style(
-    style = cell_fill(color = "#f4cccc"),
-    locations = cells_body(rows = status == "❌ FAIL")
-  ) |>
-  tab_style(
-    style = cell_fill(color = "#d9ead3"),
-    locations = cells_body(rows = status == "✅ PASS")
-  ) |>
-  cols_width(
-    check ~ px(250),
-    notes ~ px(280)
-  ) |>
-  tab_options(table.font.size = 10)
 ```
