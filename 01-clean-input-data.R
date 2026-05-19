@@ -68,19 +68,42 @@ rebuilt_fao_prod <- rebuild_fao_2023_dat(
 
 # FAO Clean Taxa and Classification ---------------------------
 
-prod_list <- artis::classify_prod_dat(
-  datadir = datadir,
-  prod_data_source = "FAO",
-  prod_df = rebuilt_fao_prod,
-  fb_slb_dir = current_fb_slb_dir
+# Step 1: Clean raw FAO production data
+prod_ts_fao <- clean_prod_dat(
+  prod_df          = rebuilt_fao_prod,
+  prod_data_source = "FAO"
 )
 
-# Reassign list to separate objects - basis of prod and taxa files
-prod_data_raw <- prod_list[[1]] 
-prod_taxa_classification <- prod_list[[2]]
+# Step 2: Pass 1 — match without corrections to surface unmatched names
+pass1_fao <- match_prod_taxa_to_fbslb(
+  prod_ts         = prod_ts_fao,
+  fb_slb_dir      = current_fb_slb_dir,
+  prod_data_source = "FAO",
+  corr_tbl        = NULL
+)
+# → inspect pass1_fao$unmatched_scinames
+# → update R/build_corr_tbl_prod_sciname.R as needed, then devtools::load_all()
+
+# Step 3: Pass 2 — match with corrections applied
+pass2_fao <- match_prod_taxa_to_fbslb(
+  prod_ts         = prod_ts_fao,
+  fb_slb_dir      = current_fb_slb_dir,
+  prod_data_source = "FAO",
+  corr_tbl        = build_corr_tbl_prod_sciname()
+)
+
+# Step 4: Gap-fill taxa classification
+prod_taxa_classification <- fill_taxa_classification_gaps(
+  prod_taxa_classification = pass2_fao$prod_taxa_classification,
+  prod_ts                  = pass2_fao$prod_ts,
+  outdir                   = outdir
+)
+
+# Final objects for downstream use
+prod_data_raw <- pass2_fao$prod_ts
 
 # remove large less-clean environmental objects no longer needed
-rm(prod_list, rebuilt_fao_prod)
+rm(pass1_fao, pass2_fao, prod_ts_fao, rebuilt_fao_prod)
 
 ## FAO Taxa Manual Habitat Adds ---------------------------------
 prod_taxa_classification <- prod_taxa_classification %>%
@@ -209,36 +232,62 @@ prod_sau_raw <- fread(
   # only keep data from 1996 onward and where quantity > 0
   filter(year >= 1996, sum > 0)
 
-prod_list_sau <- classify_prod_dat(datadir = path_sau_prod_raw,
-                                   prod_data_source = "SAU", # Don't change for FAO model run
-                                   # FIXIT: Could clean up datadir and prod_df arguements, overlapping purposes. 
-                                   prod_df = prod_sau_raw,
-                                   SAU_sci_2_common = "TaxonFunctionalCommercial_Clean.csv",
-                                   fb_slb_dir = current_fb_slb_dir)
+# Step 1: Clean raw SAU production data
+prod_ts_sau <- clean_prod_dat(
+  prod_df          = prod_sau_raw,
+  prod_data_source = "SAU",
+  datadir          = path_sau_prod_raw,
+  SAU_sci_2_common = "TaxonFunctionalCommercial_Clean.csv"
+)
 
-# split list into two data objects: 1/2 production
-prod_data_sau <- prod_list_sau[[1]] %>%
+# Step 2: Pass 1 — match without corrections to surface unmatched names
+pass1_sau <- match_prod_taxa_to_fbslb(
+  prod_ts          = prod_ts_sau,
+  fb_slb_dir       = current_fb_slb_dir,
+  prod_data_source = "SAU",
+  corr_tbl         = NULL
+)
+# → inspect pass1_sau$unmatched_scinames
+# → update R/build_corr_tbl_prod_sciname.R as needed, then devtools::load_all()
+
+# Step 3: Pass 2 — match with corrections applied
+pass2_sau <- match_prod_taxa_to_fbslb(
+  prod_ts          = prod_ts_sau,
+  fb_slb_dir       = current_fb_slb_dir,
+  prod_data_source = "SAU",
+  corr_tbl         = build_corr_tbl_prod_sciname()
+)
+
+# Step 4: Gap-fill taxa classification
+prod_classification_sau <- fill_taxa_classification_gaps(
+  prod_taxa_classification = pass2_sau$prod_taxa_classification,
+  prod_ts                  = pass2_sau$prod_ts,
+  outdir                   = outdir
+)
+
+# Unpack production time series and format
+prod_data_sau <- pass2_sau$prod_ts %>%
   mutate(
-    year = as.numeric(year),
-    quantity = as.numeric(quantity))
+    year     = as.numeric(year),
+    quantity = as.numeric(quantity)
+  )
 
 # Add habitat, prod_method, and taxa_source columns
+# All SAU data is marine capture
 prod_data_sau <- prod_data_sau %>%
-  # All SAU data is marine capture
-  mutate(habitat = "marine",
-         prod_method = "capture") %>%
-  mutate(taxa_source = paste(str_replace(SciName, " ", "."), 
+  mutate(
+    habitat    = "marine",
+    prod_method = "capture"
+  ) %>%
+  mutate(taxa_source = paste(str_replace(SciName, " ", "."),
                              habitat, prod_method, sep = "_"))
 
-# split list into two data objects: 2/2 taxa classification
-prod_classification_sau <- prod_list_sau[[2]]
-
 prod_data_sau <- prod_data_sau %>%
-  # Add columns to adhear to FAO format
+  # Add columns to adhere to FAO format
   mutate(Fresh01 = 0, Saltwater01 = 1, Brack01 = 0)
 
-# remove large object from environment memory
-rm(prod_list_sau)
+# remove large objects from environment memory
+rm(pass1_sau, pass2_sau, prod_ts_sau, prod_sau_raw)
 
 # Write Clean SAU Taxa 
 fwrite(prod_classification_sau, file.path(datadir, "clean_sau_taxa.csv"), 
