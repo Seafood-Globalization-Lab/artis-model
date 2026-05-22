@@ -89,19 +89,22 @@ standardize_countries <- function(
     
   # Join input data to standardization data frame based on country_id_type
     if (country_id_type == "name_en") {
+      
+      # Need full corrections data frame to correct by country name
+      corrections_df_name <- corrections_df
 
       # set up join by naming to match input data column names to the standardization column names
       by_cols <- stats::setNames(c("country_name", "year"), c(country_col_name, year_col_name))
       
-      std_df <- data %>% 
+      std_df <- data %>%
         # remove any trailing parenthetical phrase from string values
         dplyr::mutate(
-          !!country_col_name := stringr::str_remove(.data[[country_col_name]], "\\(.+\\)$")) %>%
-        # Join to ARTIS corrections table
+          !!country_col_name := stringr::str_trim(
+            stringr::str_remove(.data[[country_col_name]], "\\(.+\\)$"))) %>%
+        #Join to ARTIS corrections table
         dplyr::left_join(
-          corrections_df, by = by_cols) %>% 
-        # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
-        # pull values from given country column
+          corrections_df_name, by = by_cols) %>%
+        # Flag countries that ARTIS corrections table did not correct (NA values in artis_* columns)
         dplyr::mutate(
           flag = dplyr::case_when(base::is.na(artis_iso3c) ~ TRUE,
                                               .default = FALSE)) %>% #,
@@ -114,12 +117,30 @@ standardize_countries <- function(
                                               # .default = artis_country_name)) %>%
         # Remove leftover corrections_df column
         dplyr::select(-iso3c)
+
+        # Join to ARTIS corrections table
+        # dplyr::left_join(
+        #   corrections_df, by = by_cols) %>%
+        # # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
+        # # pull values from given country column
+        # dplyr::mutate(
+        #   flag = dplyr::case_when(base::is.na(artis_iso3c) ~ TRUE,
+        #                                       .default = FALSE)) %>% #,
+        #       # If missing country name value (i.e. not corrected by ARTIS corrections join) add std country name via country code from original/supplied country name
+        #   # artis_country_name = dplyr::case_when(
+        #     # base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col_name]],
+        #     #                                               origin = "country.name",
+        #     #                                               destination = "country.name",
+        #     #                                               warn = FALSE),
+        #                                       # .default = artis_country_name)) %>%
+        # # Remove leftover corrections_df column
+        # dplyr::select(-iso3c)
     
       # Problem: Correcting some of the input territory names that don't have 
-      # in house ARTIS respective matches get corrected via countrycode, and
-      # countrycode corrects to the territory iso3c instead of the soverign.
+      # in house ARTIS matches get corrected via countrycode, and
+      # countrycode corrects to the territory iso3c instead of the sovereign.
       # we have flagged these rows to rejoin corrected countrycode iso3c to
-      # artis corrections to receive their soverign variants.
+      # artis corrections to receive their sovereign variants.
       
       # Sets the names (i.e., the input column variable names) of the corrections_df
       # column names to be joined (see ?setNames()) 
@@ -128,6 +149,31 @@ standardize_countries <- function(
         c("artis_iso3c", year_col_name))
       
       # Rejoin flagged data and df_corrections by iso3c and year
+      # flagged_data <- std_df %>%
+      #   dplyr::filter(flag == TRUE) %>%
+      #   dplyr::mutate(
+      #     artis_iso3c = dplyr::case_when(
+      #       base::is.na(artis_iso3c) ~ countrycode::countrycode(
+      #         .data[[country_col_name]],
+      #         origin = "country.name",
+      #         destination = "iso3c",
+      #         warn = FALSE
+      #       ),
+      #       .default = artis_iso3c
+      #     )
+      #   ) %>% 
+      #   dplyr::left_join(corrections_df %>%
+      #                      select(-artis_country_name), by = by_cols) %>%
+      #   dplyr::select(-artis_country_name, -country_name) %>%
+      #   select(-artis_iso3c) %>%
+      #   rename(artis_iso3c = artis_iso3c.y) %>%
+      #   mutate(artis_country_name = countrycode(artis_iso3c,
+      #                                           origin = "iso3c",
+      #                                           destination = "country.name")) %>%
+      #   select(-flag)
+      
+      # Two scenarios of flags: territory that needs to be corrected to sovereign
+      # 2. Sovereign that needs sovereign naming
       flagged_data <- std_df %>%
         dplyr::filter(flag == TRUE) %>%
         dplyr::mutate(
@@ -141,26 +187,37 @@ standardize_countries <- function(
             .default = artis_iso3c
           )
         ) %>% 
-        dplyr::left_join(corrections_df %>%
-                             select(-artis_country_name), by = by_cols) %>%
+        # Convert territory to sovereign (will fix sovereign to sovereign later)
+        dplyr::left_join(corrections_df_name %>%
+                           select(-artis_country_name), by = by_cols) %>%
         dplyr::select(-artis_country_name, -country_name) %>%
-        select(-artis_iso3c) %>%
-        rename(artis_iso3c = artis_iso3c.y) %>%
-        mutate(artis_country_name = countrycode(artis_iso3c,
-                                                origin = "iso3c",
-                                                destination = "country.name")) %>%
-        select(-flag)
+        # Update artis_iso3c values in two ways:
+        # When both artis_iso3c and artis_iso3c.y, prioritize & keep artis_iso3c.y value,
+        # otherwise fill artis_iso3c.y NAs with artis_iso3c value
+        # (i.e. correct artis_iso3c column through our artis corrections dataframe to
+        # correct territories to sovereign)
+        dplyr::mutate(
+          artis_iso3c = dplyr::coalesce(artis_iso3c.y, artis_iso3c)
+        ) %>%
+        dplyr::select(-artis_iso3c.y) %>%
+        dplyr::mutate(
+          artis_country_name = countrycode::countrycode(
+            artis_iso3c, origin = "iso3c", destination = "country.name")
+        )
+        # select(-artis_iso3c) %>%
+        # rename(artis_iso3c = artis_iso3c.y)
       
       nonflagged_data <- std_df %>%
         dplyr::filter(flag == FALSE) %>%
         select(-flag)
       
-      std_df <- bind_rows(flagged_data,nonflagged_data)
+      std_df <- dplyr::bind_rows(flagged_data, nonflagged_data) %>%
+        dplyr::select(-flag)
       
       # Get vector of country names that weren't standardized (i.e. have NA values)
       not_std_vec <- std_df %>%
         dplyr::filter(base::is.na(artis_country_name)) %>%
-        dplyr::select(all_of(country_col_name)) %>%
+        dplyr::select(country_col_name) %>%
         dplyr::distinct() %>%
         dplyr::pull(country_col_name)
       
@@ -199,7 +256,7 @@ standardize_countries <- function(
       # Get vector of country names that weren't standardized (i.e. have NA values)
       not_std_vec <- std_df %>%
         dplyr::filter(base::is.na(artis_iso3c)) %>%
-        dplyr::select(all_of(country_col_name)) %>%
+        dplyr::select(country_col_name) %>%
         dplyr::distinct() %>%
         dplyr::pull(country_col_name)
     }

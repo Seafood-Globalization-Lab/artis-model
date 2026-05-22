@@ -160,9 +160,11 @@ special_corrections <- tibble::tribble(
   "Madeira Isl.",                    "PRT",     "PRT",
   "Micronesia",                      "FSM",     "FSM",
   "Saba and Saint Eustaius",         "BES",     "NLD",
-  "St Martin",                       "MAF",     "FRA", 
+  "St Martin",                       "MAF",     "FRA",
+  "Saint-Martin",                    "MAF",     "FRA",
   "Tristan da Cunha Isl.",           "SHN",     "GBR",
   "US Virgin Isl.",                  "VIR",     "USA",
+  "US Virgin Islands",               "VIR",     "USA",
   "Unknown Fishing Country",         "NEI",     "NEI"
 ) %>% 
 tidyr::expand_grid(year = year_range)
