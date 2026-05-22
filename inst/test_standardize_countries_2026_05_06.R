@@ -52,34 +52,79 @@ unique(std_baci$country_iso3_alpha) %>% length() # 193 sovereign countries
 
 ## Run each raw data file through artis::standardize_countries()
 
-### Correct by iso3
-test_std_fao <- artis::standardize_countries(data = raw_fao,
+### FAO
+
+#### Correct by iso3
+test_std_fao_iso3c <- artis::standardize_countries(data = raw_fao,
                              country_id_type = "iso3c",
                              country_col_name = "country_iso3_alpha",
                              year_col_name = "year")
 
-### Correct by country name
-test_std_fao <- artis::standardize_countries(data = raw_fao,
+#### Correct by country name
+test_std_fao_name <- artis::standardize_countries(data = raw_fao,
                                              country_id_type = "name_en",
                                              country_col_name = "country_name_en",
                                              year_col_name = "year")
 
-### Compare new standardized data to input data
-x <- test_std_fao %>% distinct(artis_iso3c, year) %>%
-  rename(country_iso3_alpha = artis_iso3c) # 4740 rows
+#### Compare new standardized data to input data
+x <- test_std_fao_iso3c %>% distinct(artis_iso3c, year) %>%
+rename(country_iso3_alpha = artis_iso3c) # 4740 rows
 y <- std_fao %>% select(country_iso3_alpha, year) # 4752 rows
 
-### How our corrections currently differ: We include ZA1
-### Whats old corrections have that our corrections don't have: NEI & SDN
-setdiff(na.omit(x), y) 
-setdiff(y, x) %>% View()
+#### How our corrections currently differ: We include ZA1
+#### Whats old corrections have that our corrections don't have: NEI & SDN
+setdiff(na.omit(x), y) %>% distinct(country_iso3_alpha)
+setdiff(y, x)
 
-## Compare outputs of the new standardized data to the old standardized data
+#### Add in combined country name / iso3c corrections
+z <- bind_rows(test_std_fao_iso3c, test_std_fao_name) %>%
+   distinct(year, country_iso3_alpha = artis_iso3c)
 
-### Extract any records that don't match, and go from there
+setdiff(na.omit(z), y)  %>% distinct(country_iso3_alpha)
+setdiff(y, z)
 
-### There's the same number of records that are in the raw and standardized datasets
+### SAU
+#### Correct by iso3
+test_std_sau_name <- artis::standardize_countries(data = raw_sau,
+                                                   country_id_type = "name_en",
+                                                   country_col_name = "country_name_en",
+                                                   year_col_name = "year")
+  
+#### Compare outputs of the new standardized data to the old standardized data
+setdiff(test_std_sau_name %>% distinct(year, country_name_en = artis_country_name), std_sau)
 
+setdiff(std_sau, test_std_sau_name %>% distinct(year, country_name_en = artis_country_name))
+
+### BACI
+
+#### Correct by iso3
+test_std_baci_iso3c_exporter <- artis::standardize_countries(data = raw_baci,
+                                                   country_id_type = "iso3c",
+                                                   country_col_name = "exporter_iso3c",
+                                                   year_col_name = "year")
+
+#### Correct by country name
+test_std_baci_iso3c_importer <- artis::standardize_countries(data = raw_baci,
+                                                             country_id_type = "iso3c",
+                                                             country_col_name = "importer_iso3c",
+                                                             year_col_name = "year")
+
+#### Compare outputs of the new standardized data to the old standardized data
+
+##### Exporter iso3c
+setdiff(test_std_baci_iso3c_exporter %>%
+          select(year, exporter_iso3c = artis_iso3c), std_baci %>% distinct(exporter_iso3c, year))
+
+setdiff(std_baci %>% distinct(exporter_iso3c, year), test_std_baci_iso3c_exporter %>%
+          select(year, exporter_iso3c = artis_iso3c))
+
+
+##### Importer iso3c
+setdiff(test_std_baci_iso3c_exporter %>%
+          select(year, importer_iso3c = artis_iso3c), std_baci %>% distinct(importer_iso3c, year))
+
+setdiff(std_baci %>% distinct(exporter_iso3c, year), test_std_baci_iso3c_importer %>%
+          select(year, importer_iso3c = artis_iso3c))
 
 
 
