@@ -197,19 +197,19 @@ classify_prod_dat <- function(
       mutate_all(str_trim) %>%
       filter(is.na(SciName) == FALSE)
 
-    # # Join on sciname manual corrections table to provide ARTIS corrections
-    # prod_ts <- prod_ts %>% 
-    #   dplyr::left_join(
-    #     prod_sciname_corr_tbl %>% 
-    #       filter(prod_data_type == !!prod_data_source) %>% 
-    #       select(sciname_raw, sciname_corrected),
-    #     join_by("SciName" == "sciname_raw")
-    #     ) %>% 
-    #   dplyr::mutate(
-    #     SciName = case_when(
-    #       !is.na(sciname_corrected) ~ sciname_corrected, .default = SciName)
-    #   ) %>% 
-    #   select(!sciname_corrected)
+    # Join on sciname manual corrections table to provide ARTIS corrections
+    prod_ts <- prod_ts %>% 
+      dplyr::left_join(
+        prod_sciname_corr_tbl %>% 
+          filter(prod_data_type == !!prod_data_source) %>% 
+          select(sciname_raw, sciname_corrected),
+        join_by("SciName" == "sciname_raw")
+        ) %>% 
+      dplyr::mutate(
+        SciName = case_when(
+          !is.na(sciname_corrected) ~ sciname_corrected, .default = SciName)
+      ) %>% 
+      select(!sciname_corrected)
     
     prod_ts$Species01 <- 0
     prod_ts$Genus01 <- 0
@@ -696,7 +696,7 @@ classify_prod_dat <- function(
   prod_ts <- prod_ts %>%
     mutate(
       SciName = case_when(
-        # collapse perciformes/whatever into perciformeswhatever
+        # collapse perciformes/* into perciformes*
         str_detect(SciName, regex("^perciformes/", ignore_case = TRUE)) ~
           str_replace(SciName, "/", ""),
         TRUE ~ SciName

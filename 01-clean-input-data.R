@@ -70,33 +70,33 @@ rebuilt_fao_prod <- rebuild_fao_2023_dat(
 
 # Step 1: Clean raw FAO production data
 prod_ts_fao <- clean_prod_dat(
-  prod_df          = rebuilt_fao_prod,
+  prod_df = rebuilt_fao_prod,
   prod_data_source = "FAO"
 )
 
 # Step 2: Pass 1 — match without corrections to surface unmatched names
 pass1_fao <- match_prod_taxa_to_fbslb(
-  prod_ts         = prod_ts_fao,
-  fb_slb_dir      = current_fb_slb_dir,
+  prod_ts = prod_ts_fao,
+  fb_slb_dir = current_fb_slb_dir,
   prod_data_source = "FAO",
-  corr_tbl        = NULL
+  corr_tbl = NULL
 )
 # → inspect pass1_fao$unmatched_scinames
 # → update R/build_corr_tbl_prod_sciname.R as needed, then devtools::load_all()
 
 # Step 3: Pass 2 — match with corrections applied
 pass2_fao <- match_prod_taxa_to_fbslb(
-  prod_ts         = prod_ts_fao,
-  fb_slb_dir      = current_fb_slb_dir,
+  prod_ts = prod_ts_fao,
+  fb_slb_dir = current_fb_slb_dir,
   prod_data_source = "FAO",
-  corr_tbl        = build_corr_tbl_prod_sciname()
+  corr_tbl = build_corr_tbl_prod_sciname()
 )
 
 # Step 4: Gap-fill taxa classification
 prod_taxa_classification <- fill_taxa_classification_gaps(
   prod_taxa_classification = pass2_fao$prod_taxa_classification,
-  prod_ts                  = pass2_fao$prod_ts,
-  outdir                   = outdir
+  prod_ts = pass2_fao$prod_ts,
+  outdir = outdir
 )
 
 # Final objects for downstream use
