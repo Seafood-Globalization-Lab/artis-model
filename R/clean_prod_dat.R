@@ -75,23 +75,29 @@ clean_prod_dat <- function(
       mutate(
         SciName = gsub(SciName, pattern = " \\(\\=.*", replacement = "")
       )
-
-    # Identify taxonomic ranks
+    
+    # One-hot encoding - taxa classification ranks ------------------------
     prod_ts$Species01 <- 0
     prod_ts$Genus01   <- 0
     prod_ts$Family01  <- 0
     prod_ts$Other01   <- 0
 
+    # One-hot encoding Taxa sciname classificataion hierarchitcal rank
+    # Assign Genera by "spp" string
     prod_ts$Genus01[grepl(prod_ts$SciName, pattern = "spp")] <- 1
+    # Assign Family - No space in name and family affix
     prod_ts$Family01[
-      grepl(pattern = " ", prod_ts$SciName) == FALSE &
+      grepl(prod_ts$SciName, pattern = " ") == FALSE &
         grepl(pattern = "([^\\s])*dae", prod_ts$SciName)
     ] <- 1
+    # Assign Species - space in sciname string
     prod_ts$Species01[
       grepl(prod_ts$SciName, pattern = " ") &
         prod_ts$Family01 == 0 &
         prod_ts$Genus01  == 0
     ] <- 1
+    # Assign Other - leftovers
+    # Consistent string detection not available to classification ranks higher than family
     prod_ts$Other01[
       prod_ts$Species01 == 0 &
         prod_ts$Genus01  == 0 &
@@ -111,17 +117,16 @@ clean_prod_dat <- function(
   if (prod_data_source == "SAU") {
 
     prod_ts <- prod_df %>%
-      mutate(scientific_name = tolower(scientific_name)) %>%
+      mutate(
+        scientific_name = tolower(scientific_name),
+        common_name = tolower(common_name)
+      ) %>%
       rename(
         quantity       = sum,
         CommonName     = common_name,
         SciName        = scientific_name,
         country_name_en = fishing_entity
-      ) %>%
-      mutate(
-        SciName    = tolower(SciName),
-        CommonName = tolower(CommonName)
-      )
+      ) 
 
     sci_2_common <- fread(
       file.path(datadir, SAU_sci_2_common),
@@ -147,15 +152,19 @@ clean_prod_dat <- function(
         sci_2_common %>% select(-common_name),
         by = c("SciName" = "scientific_name")
       ) %>%
-      mutate_all(str_trim) %>%
+      # FIXIT: Superseded syntax (AM 2026-05-20)
+      # Possibly: mutate(across(where(is.character), stringr::str_trim))
+      dplyr::mutate_all(str_trim) %>%
       filter(!is.na(SciName))
 
-    # Identify taxonomic ranks from taxon_level_id
+    # Create blank columns
     prod_ts$Species01 <- 0
     prod_ts$Genus01   <- 0
     prod_ts$Family01  <- 0
     prod_ts$Other01   <- 0
 
+    # One-hot encoding Taxa sciname classificataion hierarchitcal rank
+    # Based on SAU taxon_level_id column assignments
     prod_ts$Species01[which(prod_ts$taxon_level_id == 6)] <- 1
     prod_ts$Genus01[which(prod_ts$taxon_level_id == 5)]   <- 1
     prod_ts$Family01[which(prod_ts$taxon_level_id == 4)]  <- 1
