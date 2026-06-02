@@ -23,7 +23,7 @@ rm(list=ls())
 # Run Local Machine Configuration (directory paths, parameters)
 source("00-local-machine-setup.R")
 
-# FishBase & SeaLifeDase Data ------------------------------------------------------
+# FishBase & SeaLifeBase Data ------------------------------------------------------
 # Collect new fishbase and sealifebase data files with rfishbase package wrapped in artis::collect_fb_slb_data function
 if(need_new_fb_slb == TRUE) {
   current_fb_slb_dir <- artis::collect_fb_slb_data(
@@ -83,6 +83,19 @@ pass1_fao <- match_prod_taxa_to_fbslb(
 )
 # → inspect pass1_fao$unmatched_scinames
 # → update R/build_corr_tbl_prod_sciname.R as needed, then devtools::load_all()
+
+# Pulled from match_prod_taxa_to_fbslb.R - didn't want to prematurely correct before
+# getting full no-match sciname list 
+  # # perciformes/* symbol fix ----------------------------------------------
+  # # Collapses e.g. "perciformes/percoidei" --> "perciformespercoidei"
+  # prod_ts <- prod_ts %>%
+  #   mutate(
+  #     SciName = case_when(
+  #       str_detect(SciName, regex("^perciformes/", ignore_case = TRUE)) ~
+  #         str_replace(SciName, "/", ""),
+  #       TRUE ~ SciName
+  #     )
+  #   )
 
 # Step 3: Pass 2 — match with corrections applied
 pass2_fao <- match_prod_taxa_to_fbslb(
