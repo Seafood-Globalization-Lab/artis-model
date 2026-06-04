@@ -56,13 +56,8 @@ match_prod_taxa_to_fbslb <- function(
 ) {
 
   # Load FishBase and SeaLifeBase reference tables -------------------------
-  fishbase_taxa <- fread(file.path(fb_slb_dir, "fb_taxa_info.csv"), data.table = FALSE) %>%
-    mutate_all(tolower) %>%
-    select(-SpecCode)
-
-  sealifebase_taxa <- fread(file.path(fb_slb_dir, "slb_taxa_info.csv"), data.table = FALSE) %>%
-    mutate_all(tolower) %>%
-    select(-SpecCode)
+  fishbase_taxa <- fread(file.path(fb_slb_dir, "fb_taxa_info.csv"), data.table = FALSE) 
+  sealifebase_taxa <- fread(file.path(fb_slb_dir, "slb_taxa_info.csv"), data.table = FALSE) 
 
   fb_synonyms  <- fread(file.path(fb_slb_dir, "fb_synonyms_clean.csv"),  data.table = FALSE)
   slb_synonyms <- fread(file.path(fb_slb_dir, "slb_synonyms_clean.csv"), data.table = FALSE)
@@ -97,7 +92,11 @@ match_prod_taxa_to_fbslb <- function(
   # Match Species rank values only
   prod_fb_species <- prod_taxa_names %>%
     filter(Species01 == 1) %>%
-    inner_join(fishbase_taxa, by = c("SciName" = "Species"))
+    inner_join(fishbase_taxa, by = c("SciName" = "Species")) %>% 
+    warn_fbslb_taxa_join(
+      matched_rank = "Species",
+      fb_or_slb = "fishbase"
+    )
 
   # Match Genus rank values only
   prod_fb_genus <- prod_taxa_names %>%
@@ -110,7 +109,11 @@ match_prod_taxa_to_fbslb <- function(
       by = c("SciName" = "Genus")
     ) %>%
     mutate(Genus = SciName) %>%
-    distinct()
+    distinct() %>% 
+    warn_fbslb_taxa_join(
+      matched_rank = "Genus",
+      fb_or_slb = "fishbase"
+    )
 
   # Match Family rank values only
   prod_fb_family <- prod_taxa_names %>%
@@ -123,7 +126,11 @@ match_prod_taxa_to_fbslb <- function(
       by = c("SciName" = "Family")
     ) %>%
     mutate(Family = SciName) %>%
-    distinct()
+    distinct() %>% 
+    warn_fbslb_taxa_join(
+      matched_rank = "Family",
+      fb_or_slb = "fishbase"
+    )
   
   # Match Other to Order rank values only
   prod_fb_order <- prod_taxa_names %>%
@@ -138,7 +145,11 @@ match_prod_taxa_to_fbslb <- function(
     mutate(Order = SciName) %>%
     distinct() %>%
     mutate(Order01 = 1) %>%
-    select(-Other01)
+    select(-Other01)%>% 
+    warn_fbslb_taxa_join(
+      matched_rank = "Order",
+      fb_or_slb = "fishbase"
+    )
 
   # Match Other to Class rank values only
   prod_fb_class <- prod_taxa_names %>%
@@ -153,7 +164,11 @@ match_prod_taxa_to_fbslb <- function(
     mutate(Class = SciName) %>%
     distinct() %>%
     mutate(Class01 = 1) %>%
-    select(-Other01)
+    select(-Other01) %>% 
+    warn_fbslb_taxa_join(
+      matched_rank = "Class",
+      fb_or_slb = "fishbase"
+    )
 
   # Match Other to Superclass rank values only
   prod_fb_superclass <- prod_taxa_names %>%
@@ -168,7 +183,11 @@ match_prod_taxa_to_fbslb <- function(
     mutate(SuperClass = SciName) %>%
     distinct() %>%
     mutate(Superclass01 = 1) %>%
-    select(-Other01)
+    select(-Other01) %>% 
+    warn_fbslb_taxa_join(
+      matched_rank = "SuperClass",
+      fb_or_slb = "fishbase"
+    )
 
   # Hierarchical SLB inner_joins -------------------------------------------
   # Same process as Hierarchical FB inner_joins
@@ -270,7 +289,7 @@ match_prod_taxa_to_fbslb <- function(
     select(-Other01) %>% 
     warn_fbslb_taxa_join(
       matched_rank = "Phylum",
-      fb_or_slb = "sealifebase_taxa"
+      fb_or_slb = "sealifebase"
     )
 
   # Assemble full FB and SLB tables ----------------------------------------

@@ -75,7 +75,7 @@ warn_fbslb_taxa_join <- function(
       # Flag downstream risk
       "i" = "ARTIS expects a single taxonomic record per taxa, multiple taxa classifications will cause errors",
       # Suggest remediation paths
-      "i" = "Consider adding corrections to {.fn build_corr_tbl_prod_sciname} or auditing the source data."
+      #"i" = "Consider adding corrections to {.fn build_corr_tbl_prod_sciname} or auditing the source data."
     ))
   }
 
