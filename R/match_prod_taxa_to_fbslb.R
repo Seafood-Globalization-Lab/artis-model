@@ -92,6 +92,7 @@ match_prod_taxa_to_fbslb <- function(
   # - Discard native FAO and SAU taxonomic classifications - Defer to fishbase/sealifebase  (more trustworthy)
   # - Perform joins hierarchically - match species to species, genus to genus, etc.
   # - Use `Other01` encoding for Order, Class, and Superclass joins 
+  # "many-to-many" matches are NOT expected - these should be flagged in the raw data assessment - need to be fixed. 
   
   # Match Species rank values only
   prod_fb_species <- prod_taxa_names %>%
