@@ -126,10 +126,15 @@ cli::cli_verbatim("
  / ___ |/ _, _/ / /  _/ / ___/ / 
 /_/  |_/_/ |_| /_/  /___//____/  
 ")
-cli::cli_h1(" 🦐 🐟 🦪 Configured ARTIS {.strong v{artis_version}} 🐙 🦀 🐠")
-cli:: cli_li("Production data: {.field {prod_data_type}}")
-cli:: cli_li("Years covered: {.field {test_years}}")
-cli:: cli_li("Estimate type: {.field {estimate_data_type}}")
+cli::cli_h1(" 🦐 🐟 🦪 ARTIS {.strong v{artis_version}} Configured 🐙 🦀 🐠")
+cli::cli_li("Production data: {.field {prod_data_type}}")
+if(is.null(test_years)){
+  cli::cli_li("Years covered: {.field 1996 - {max_year}}")
+} else{
+  cli::cli_li("Years covered: {.field {test_years}}")
+}
+cli::cli_li("Estimate type: {.field {estimate_data_type}}")
+cli::cli_li("Develop mode enabled: {.field {dev_mode}}")
 #cli:: cli_li("Local data path: {.file {local_data_path}}")
 
 
