@@ -44,9 +44,13 @@ collect_fb_slb_data <- function(parent_outdir) {
     # Species Codes, Scientific Names, Genus, Subfamily, Family, Order, Class, SuperClass
   fb_raw <- rfishbase::load_taxa(server = "fishbase", version = "latest") %>% distinct()
   slb_raw <- rfishbase::load_taxa(server = "sealifebase", version = "latest") %>% distinct()
+
+  # clean and apply version specific manual corrections
+  fb_clean <- artis::clean_fb_slb_taxa(fb_raw)
+  slb_clean <- artis::clean_fb_slb_taxa(slb_raw)
   
-  fwrite(fb_raw, file.path(outdir, "fb_taxa_info.csv"), row.names = FALSE)
-  fwrite(slb_raw, file.path(outdir, "slb_taxa_info.csv"), row.names = FALSE)
+  fwrite(fb_clean, file.path(outdir, "fb_taxa_info.csv"), row.names = FALSE)
+  fwrite(slb_clean, file.path(outdir, "slb_taxa_info.csv"), row.names = FALSE)
   
   # Collecting fishbase and sealifebase synonym information (RAW FB SLB DATA)
   fb_synonyms_raw <- rfishbase::fb_tbl("synonyms", server = "fishbase", version = "latest") %>% distinct()
