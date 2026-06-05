@@ -333,9 +333,13 @@ match_prod_taxa_to_fbslb <- function(
     sciname_i <- nomatch_species[i]
 
     # Match sciname_i to fb_synonyms$synonym - get accepted name(s)
-    name_fb_status  <- artis::query_synonyms(fb_synonyms,  sciname_i)
+    name_fb_status  <- artis::query_synonyms(
+      synonym_df = fb_synonyms,  
+      the_sciname = sciname_i)
     # Match sciname_i to slb_synonyms$synonym - get accepted name(s)
-    name_slb_status <- artis::query_synonyms(slb_synonyms, sciname_i)
+    name_slb_status <- artis::query_synonyms(
+      synonym_df = slb_synonyms, 
+      the_sciname = sciname_i)
 
     # Check FishBase synonyms
     if (nrow(name_fb_status) > 0) {
