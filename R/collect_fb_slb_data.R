@@ -29,30 +29,39 @@
 #' @export
 collect_fb_slb_data <- function(parent_outdir) {
   
-  # Label data folder with release version
-  # get value of most recent available release versions from rfishbase
-  release <- rfishbase::available_releases() %>% tail(n = 1)
-  outdir <- paste0("fishbase_sealifebase_", release)
+  # Label data folder with snapshot version
+  # get value of most recent available snapshot versions from rfishbase
+  snapshot <- rfishbase::available_releases() %>% tail(n = 1)
+  outdir <- paste0("fishbase_sealifebase_", snapshot)
   outdir <- file.path(parent_outdir, outdir)
   
   # Create directory if it does not exist
   # Assumes parent directory already exists
   if (!dir.exists(outdir)) { dir.create(outdir) }
   
-  # Collecting fishbase and sealifebase taxonomic classification information
-  # Contains:
-    # Species Codes, Scientific Names, Genus, Subfamily, Family, Order, Class, SuperClass
+
+# Taxonomic classification ---------------------------------------------------------------------
+  # Species Codes, Scientific Names, Genus, Subfamily, Family, Order, Class, SuperClass
   fb_raw <- rfishbase::load_taxa(server = "fishbase", version = "latest") %>% distinct()
   slb_raw <- rfishbase::load_taxa(server = "sealifebase", version = "latest") %>% distinct()
 
   # clean and apply version specific manual corrections
-  fb_clean <- artis::clean_fb_slb_taxa(fb_raw)
-  slb_clean <- artis::clean_fb_slb_taxa(slb_raw)
+  fb_clean <- artis::clean_fb_slb_taxa(
+    the_df = fb_raw,
+    the_snapshot = snapshot,
+    the_server = "fishbase"
+  )
+  slb_clean <- artis::clean_fb_slb_taxa(
+    the_df = slb_raw,
+    the_snapshot = snapshot,
+    the_server = "sealifebase"
+  )
   
   fwrite(fb_clean, file.path(outdir, "fb_taxa_info.csv"), row.names = FALSE)
   fwrite(slb_clean, file.path(outdir, "slb_taxa_info.csv"), row.names = FALSE)
   
-  # Collecting fishbase and sealifebase synonym information (RAW FB SLB DATA)
+
+# Synonyms -------------------------------------------- 
   fb_synonyms_raw <- rfishbase::fb_tbl("synonyms", server = "fishbase", version = "latest") %>% distinct()
   slb_synonyms_raw <- rfishbase::fb_tbl("synonyms", server = "sealifebase", version = "latest") %>% distinct()
   
@@ -60,13 +69,20 @@ collect_fb_slb_data <- function(parent_outdir) {
   fwrite(slb_synonyms_raw, file.path(outdir, "slb_synonyms_raw.csv"), row.names = FALSE)
   
   # Cleaning synonym information to use as translation tables
-  fb_synonyms_clean <- artis::clean_fb_slb_synonyms(fb_synonyms_raw)
-  slb_synonyms_clean <- artis::clean_fb_slb_synonyms(slb_synonyms_raw)
+  fb_synonyms_clean <- artis::clean_fb_slb_synonyms(
+    the_df = fb_synonyms_raw,
+    the_snapshot = snapshot,
+    the_server = "fishbase")
+  slb_synonyms_clean <- artis::clean_fb_slb_synonyms(
+    the_df = slb_synonyms_raw,
+    the_snapshot = snapshot,
+    the_server = "sealifebase")
   
   fwrite(fb_synonyms_clean, file.path(outdir, "fb_synonyms_clean.csv"), row.names = FALSE)
   fwrite(slb_synonyms_clean, file.path(outdir, "slb_synonyms_clean.csv"), row.names = FALSE)
   
-  # Get fishbase and sealifebase aquarium information
+
+# Aquarium information -----------------------------------------------
   fb_species_raw <- rfishbase::fb_tbl("species", server = "fishbase", version = "latest") %>%
     mutate(Species = paste(Genus, Species)) %>%
     distinct()
@@ -93,13 +109,10 @@ collect_fb_slb_data <- function(parent_outdir) {
   fwrite(fb_aquarium_clean, file.path(outdir, "fb_aquarium.csv"), row.names = FALSE)
   fwrite(slb_aquarium_clean, file.path(outdir, "slb_aquarium.csv"), row.names = FALSE)
   
-  # Collect species common names and their scientific names
+
+# Common names -------------------------------------------
   fb_common_raw <- rfishbase::fb_tbl("comnames", server = "fishbase", version = "latest")
-  # dev_mode 2025_08_14 - rfishbase error with GET query to remote slb common name table
   slb_common_raw <- rfishbase::fb_tbl("comnames", server = "sealifebase", version = "latest")
-  # NOTE: slb common name table mannually downloaded from url provided in error
-  # https://huggingface.co/datasets/cboettig/fishbase/resolve/main/data/slb/v24.07/parquet/comnames.parquet
-  #slb_common_raw <- arrow::read_parquet(file.path(outdir, "comnames.parquet"))
   
   fwrite(fb_common_raw, file.path(outdir, "fb_common_raw.csv"), row.names = FALSE)
   fwrite(slb_common_raw, file.path(outdir, "slb_common_raw.csv"), row.names = FALSE)
@@ -139,6 +152,8 @@ collect_fb_slb_data <- function(parent_outdir) {
   fwrite(slb_common_clean, file.path(outdir, "slb_common_to_sci.csv"), row.names = FALSE)
   
   # Return output directory path
+  # FIXIT: This doesn't make sense to run this whole cleaning script to just output a path, 
+  # could separate out and return a success message instead - AM 2026-06-09
   return(outdir)
 
 }

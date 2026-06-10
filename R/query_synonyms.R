@@ -45,7 +45,8 @@ query_synonyms <- function(synonym_df, the_sciname) {
       "Each {.field sciname} is expected to have a single taxonomic lineage",
       "x" = "{.field sciname} {.emph {the_sciname}} matched to a {.field {deparse(substitute(synonym_df))}} dataframe {.field synonym} value associated with more than one taxonomic lineage (i.e. more than one row)",
       "i" = "Requires developer to make a choice and add a manual data correction to {.fn clean_fb_slb_synonyms} and rerunning {.fn collect_fb_slb_data}"
-    ))
+    ),
+    call = match.call())
   } else {
 
     # if there are no results return empty out_df dataframe
