@@ -197,7 +197,7 @@ tidyr::expand_grid(year = year_range)
       # Special cases that don't use countrycode
       artis_iso3c == "NEI" ~ "Other nei",
       artis_iso3c == "SCG" ~ "Serbia and Montenegro",
-      artis_iso3c == "SDN" & year < 2012 ~ "Sudan (Former)",
+      (artis_iso3c == "SDN" & year < 2012) ~ "Sudan (Former)",
       artis_iso3c == "ZA1" ~ "So. African Customs Union",
       # Use countrycode for standard mappings
       TRUE ~ countrycode::countrycode(artis_iso3c, "iso3c", "country.name", warn = FALSE)

@@ -217,6 +217,7 @@ standardize_countries <- function(
       # Get vector of country names that weren't standardized (i.e. have NA values)
       not_std_vec <- std_df %>%
         dplyr::filter(base::is.na(artis_country_name)) %>%
+        tidyr::drop_na(country_col_name) %>%
         dplyr::select(country_col_name) %>%
         dplyr::distinct() %>%
         dplyr::pull(country_col_name)
@@ -256,6 +257,7 @@ standardize_countries <- function(
       # Get vector of country names that weren't standardized (i.e. have NA values)
       not_std_vec <- std_df %>%
         dplyr::filter(base::is.na(artis_iso3c)) %>%
+        tidyr::drop_na(country_col_name) %>%
         dplyr::select(country_col_name) %>%
         dplyr::distinct() %>%
         dplyr::pull(country_col_name)
@@ -264,8 +266,10 @@ standardize_countries <- function(
   
   # NA/missing values warning
   if (na_count > 0 | missing_count > 0) {
-    cli::cli_alert_danger("Found {missing_count} missing string values and {na_count} NA values in column {.field {country_col_name}}.")
-    cli::cli_alert_info("These values will not be standardized.")
+    cli::cli_alert_warning(c("Column {.field {country_col_name}} contains {.val {missing_count}} missing string value{?s} and {.val {na_count}} {.val NA} value{?s}."))
+    cli::cli_alert_info("These values will be turned into {.val NA}s in the output correction columns {.field artis_country_name} and {.field artis_iso3c}.")
+    # cli::cli_alert_danger("Found {missing_count} missing string values and {na_count} NA values in column {.field {country_col_name}}.")
+    # cli::cli_alert_info("These values will not be standardized.")
   }
   
   # Print a blank line to separate warnings
@@ -275,17 +279,11 @@ standardize_countries <- function(
   if (length(not_std_vec) > 0) {
     visible_list <- sapply(na.omit(not_std_vec), function(x) if (x == "") dQuote("") else dQuote(x))
     
-    if (any(is.na(not_std_vec))) {
-      # Add NA to the list of unstandardized names to be printed in warning
-      visible_list <- c(visible_list, "NA")
-    }
-    
-    # First part of the warning
-    cli::cli_alert_warning("Some values in {.field {country_col_name}} were not standardized.")
-    cli::cli_alert_info("These values were neither corrected by the ARTIS corrections table nor found by `countrycode`.")
+    cli::cli_alert_warning("Some values in user column {.field {country_col_name}} were not standardized.")
+    cli::cli_alert_info("These values were not in the ARTIS corrections table or found by {.pkg countrycode}:\n{.val {paste(visible_list, collapse = ', ')}}")
     
     # Print the unstandardized list on its own line with attention emoji
-    cli::cli_alert_info("Unstandardized values: {paste(visible_list, collapse = ', ')}")
+    # cli::cli_alert_info("Unstandardized values: ")
   }
   
   # Return invisibly so assignment doesn’t double-print

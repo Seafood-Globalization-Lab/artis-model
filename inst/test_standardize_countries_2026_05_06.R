@@ -55,26 +55,57 @@ unique(std_baci$country_iso3_alpha) %>% length() # 193 sovereign countries
 ### FAO
 
 #### Correct by iso3
-test_std_fao_iso3c <- artis::standardize_countries(data = raw_fao,
-                             country_id_type = "iso3c",
-                             country_col_name = "country_iso3_alpha",
+test_std_fao_iso3c <- artis::standardize_countries(
+  data = raw_fao,
+  country_id_type = "iso3c",
+  country_col_name = "country_iso3_alpha",
+  year_col_name = "year"
+)
+
+df_1 <- test_std_fao_iso3c %>%
+  filter(!is.na(country_iso3_alpha))
+
+
+# 6/10/2026 
+# GH ISSUE 6/3/2026
+# Figure out how to correct missing string iso3 values to standardized iso3 values (e.g., Missing iso3c value, but country name value of Sudan (Former) 
+# standardizes to NA). We may want to consider an additional join by country name for these cases.
+
+df_2 <- test_std_fao_iso3c %>%
+  filter(is.na(country_iso3_alpha)) %>%
+  select(country_iso3_alpha, country_name_en, year) %>%
+  artis::standardize_countries(country_id_type = "name_en",
+                             country_col_name = "country_name_en",
                              year_col_name = "year")
 
+test_standardized_fao <- bind_rows(df_1, df_2)
+
+
 #### Correct by country name
-test_std_fao_name <- artis::standardize_countries(data = raw_fao,
+test_std_fao_name <- artis::standardize_countries(data = raw_fao %>%
+  bind_rows(data.frame(country_name_en = "South Sudan", country_iso3_alpha = "SSD", year = 2000)),
                                              country_id_type = "name_en",
                                              country_col_name = "country_name_en",
                                              year_col_name = "year")
 
 #### Compare new standardized data to input data
-x <- test_std_fao_iso3c %>% distinct(artis_iso3c, year) %>%
+new <- test_standardized_fao %>% distinct(artis_iso3c, year) %>%
 rename(country_iso3_alpha = artis_iso3c) # 4740 rows
-y <- std_fao %>% select(country_iso3_alpha, year) # 4752 rows
+old <- std_fao %>% select(country_iso3_alpha, year) # 4752 rows
 
-#### How our corrections currently differ: We include ZA1
-#### Whats old corrections have that our corrections don't have: NEI & SDN
-setdiff(na.omit(x), y) %>% distinct(country_iso3_alpha)
-setdiff(y, x)
+# Correcting by iso3c using new methods correctly matches old methods. New country added n via new corrections: ZA1
+setdiff(new, old)
+setdiff(old, new)
+
+test_std_fao_name %>% View()
+
+
+new <- test_std_fao_name %>% distinct(artis_country_name, year) %>%
+  rename(country_name_en = artis_country_name) 
+old <- std_fao %>% select(country_name_en, year)
+
+setdiff(new, old)
+setdiff(old, new)
 
 #### Add in combined country name / iso3c corrections
 z <- bind_rows(test_std_fao_iso3c, test_std_fao_name) %>%
