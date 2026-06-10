@@ -1,25 +1,30 @@
 #' @export
 clean_fb_slb_taxa <- function(
-  df
+  the_df,
+  the_snapshot,
+  the_server
 ) {
 
-  df <- df %>% 
+  the_df <- the_df %>% 
     mutate_all(tolower) %>%
     select(-SpecCode)
 
 # Apply manual data corrections to specific versions ---------------------
+  # Apply manual corrections conditionally based on:
+  # 1) the snapshot version and
+  # 2) weather to apply to fishbase or sealifebase taxa table
+  # This prevents our manual corretions from propegating quietly into future snapshot data
   
-  # Corrections for the rfishbase sealifebase 25.04 snapshot
-  if(rfishbase::available_releases(server = "sealifebase") %>% tail(n = 1) == "25.04"){
+  # Corrections for the `rfishbase` pkg sealifebase 25.04 snapshot
+  if(the_snapshot == "25.04" & the_server == "sealifebase"){
     
     # Family veneridae had two unique values of order (nuculida and venerida). Looking 
     # at WoRMS - venerida is the correct Order value. Exclude nuculida to meet assumption
     # that each unique taxa rank value has only one set of unique higher taxa assignments. 
-    df <- df %>% 
+    the_df <- the_df %>% 
       filter(!(Family == "veneridae" & Order == "nuculida"))
   }
-  
-  # Add future corrections here
 
+  return(the_df)
 
 }
