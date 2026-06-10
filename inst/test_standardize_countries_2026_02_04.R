@@ -72,9 +72,9 @@ dummy_raw <- tibble::tibble(
 )
 
 # Give a non numeric variable to a numeric variable
-artis::standardize_countries_draft(
+artis::standardize_countries(
   data = dummy_raw,
-  country_id_type = "mmm",
+  country_id_type = "iso3c",
   country_col_name = "country_iso3_alpha",
   year_col_name = "year"
 )
