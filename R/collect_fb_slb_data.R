@@ -39,7 +39,6 @@ collect_fb_slb_data <- function(parent_outdir) {
   # Assumes parent directory already exists
   if (!dir.exists(outdir)) { dir.create(outdir) }
   
-
 # Taxonomic classification ---------------------------------------------------------------------
   # Species Codes, Scientific Names, Genus, Subfamily, Family, Order, Class, SuperClass
   fb_raw <- rfishbase::load_taxa(server = "fishbase", version = "latest") %>% distinct()
@@ -60,7 +59,6 @@ collect_fb_slb_data <- function(parent_outdir) {
   fwrite(fb_clean, file.path(outdir, "fb_taxa_info.csv"), row.names = FALSE)
   fwrite(slb_clean, file.path(outdir, "slb_taxa_info.csv"), row.names = FALSE)
   
-
 # Synonyms -------------------------------------------- 
   fb_synonyms_raw <- rfishbase::fb_tbl("synonyms", server = "fishbase", version = "latest") %>% distinct()
   slb_synonyms_raw <- rfishbase::fb_tbl("synonyms", server = "sealifebase", version = "latest") %>% distinct()
