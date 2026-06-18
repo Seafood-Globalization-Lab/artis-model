@@ -24,11 +24,12 @@ rm(list=ls())
 source("00-local-machine-setup.R")
 
 # FishBase & SeaLifeBase Data ------------------------------------------------------
-# Collect new fishbase and sealifebase data files with rfishbase package wrapped in artis::collect_fb_slb_data function
+
+# Collect new fishbase and sealifebase data files with rfishbase package via artis::collect_fb_slb_data 
 if(need_new_fb_slb == TRUE) {
-  current_fb_slb_dir <- artis::collect_fb_slb_data(
-    parent_outdir = path_fb_slb_raw)
-  cli::cli_alert_success("New fishbase and sealifebase data collected at {.file {current_fb_slb_dir}}")
+  cli_alert_info("Collecting and cleaning Fishbase and Sealifebase data.")
+  current_fb_slb_dir <- artis::collect_fb_slb_data(parent_outdir = path_fb_slb_raw)
+  cli::cli_alert_success("Finished - new FB and SLB data {.file {current_fb_slb_dir}}")
 } else {
   # Or use most recent existing fishbase and sealifebase data files
   current_fb_slb_dir <- list.dirs(path_fb_slb_raw, full.names = TRUE, recursive = FALSE) %>%
@@ -39,14 +40,12 @@ if(need_new_fb_slb == TRUE) {
   if (is.na(current_fb_slb_dir)) {
     cli::cli_abort(c(
       "x" = "No fishbase_sealifebase directory found in {.file {path_fb_slb}}",
-      "i" = "Set {.code need_new_fb_slb = TRUE} in 00-local-machine-setup.R to download new data",
+      "i" = "Set {.code need_new_fb_slb = TRUE} in {.file 00-local-machine-setup.R} to download new data",
       "i" = "OR ensure a fishbase_sealifebase_* directory exists"
     ))
   } 
   if (dir.exists(current_fb_slb_dir)) {
-    cli::cli_alert_success(
-      "Using existing FB and SLB data in {.file {current_fb_slb_dir}}}"
-    )
+    cli::cli_alert_success("Using existing FB and SLB data in {.file {current_fb_slb_dir}}}")
   }
 }
 

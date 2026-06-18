@@ -227,7 +227,7 @@ clean_fb_slb_synonyms <- function(
     cli::cli_ul(c(
       "Manual corrections are made in in {.emph Apply manual corrections} section of {.fn clean_fb_slb_synonyms}.",
       "Assumption violations documented internally in {.field syn_code_counts} data frame in {.fn clean_fb_slb_synonyms}.",
-      "Manual corrections may not be required if they are not used in the prod taxa matching process.",
+      "Manual corrections may not be required if they are not used in the prod taxa matching process."
     ))
   }
 
