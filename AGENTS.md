@@ -1,10 +1,10 @@
-# ARTIS Model — CLAUDE.md
+# AGENT
+
+For developing the ARTIS model package
 
 ## Package
-- **Name:** `artis` | R package | `devtools::load_all()` for development
-- **Description:** Estimates bilateral seafood trade flows at species level
-  by integrating FAO/SAU production data, BACI trade stats, FishBase/SeaLifeBase
-  taxonomy, and HS product codes
+- **Name:** `artis` | R package | `devtools` for development
+- **Description:** README.md | DESCRIPTION | NAMESPACE
 - **GitHub:** https://github.com/Seafood-Globalization-Lab/artis-model
 
 ## Coding Style
@@ -17,5 +17,5 @@
 ## Response Style
 - When asked for a response in markdown syntax - always bound the code with `~~~` 
 - Prefer concise responses — no filler, no sycophancy
-- Do not summarize what you just did at the end of a response
+- Do not reapeat yourself in a response
 - Warnings and errors: quote them verbatim, don't paraphrase
