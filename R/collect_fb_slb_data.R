@@ -28,7 +28,7 @@
 #'
 #' @export
 collect_fb_slb_data <- function(parent_outdir) {
-  
+
   # Label data folder with snapshot version
   # get value of most recent available snapshot versions from rfishbase
   snapshot <- rfishbase::available_releases() %>% tail(n = 1)
