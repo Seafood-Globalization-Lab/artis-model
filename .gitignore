@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 .DS_Store
+.posit/
 *.log
 demo/outputs
 venv/

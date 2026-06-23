@@ -31,16 +31,32 @@
 #'   returned by [build_corr_tbl_prod_sciname()]. Pass `NULL` (default) for
 #'   Pass 1 (no corrections); pass the table for Pass 2.
 #'
-#' @return A named list with three elements:
+#' @return A named list with four elements:
 #' \describe{
 #'   \item{`prod_ts`}{The input `prod_ts` with `SciName` updated by synonym
 #'     resolution (and corrections if `corr_tbl` supplied).}
 #'   \item{`prod_taxa_classification`}{Raw combined FB/SLB classification
 #'     table, pre-gap-filling, ready for [fill_taxa_classification_gaps()].}
+#'   \item{`synonym_resolution`}{Data frame returned by [resolve_synonyms()].
+#'     One row per species-level unmatched name, documenting resolution
+#'     outcome via `status`: `"resolved_fb"`, `"resolved_slb"`,
+#'     `"unresolved"`, `"assumption_violation_fb"`, or
+#'     `"assumption_violation_slb"`. Use this on Pass 1 to identify names
+#'     requiring manual correction.}
 #'   \item{`unmatched_scinames`}{Character vector of `SciName`s present in
 #'     `prod_ts` but absent from both FishBase and SeaLifeBase after synonym
-#'     resolution. Ideally empty on Pass 2.}
+#'     resolution. Includes non-species-level names that never enter the
+#'     synonym loop. Ideally empty on Pass 2.}
 #' }
+#'
+#' @seealso
+#' * [clean_prod_dat()] — produces the `prod_ts` input for this function
+#' * [build_corr_tbl_prod_sciname()] — builds the `corr_tbl` applied on Pass 2
+#' * [resolve_synonyms()] — called internally for synonym resolution; returns
+#'   `$synonym_resolution`
+#' * [warn_fbslb_taxa_join()] — called after each hierarchical FB/SLB join
+#' * [fill_taxa_classification_gaps()] — receives `$prod_taxa_classification`
+#'   for gap-filling
 #'
 #' @import dplyr
 #' @importFrom magrittr %>%
@@ -325,86 +341,68 @@ match_prod_taxa_to_fbslb <- function(
   # Only species-level names (binomials with a space) go through synonym lookup
   nomatch_species <- nomatch_fb_and_slb[grepl(nomatch_fb_and_slb, pattern = " ")]
 
-  # Synonym resolution loop ------------------------------------------------
-  fb_switches  <- 0
-  slb_switches <- 0
+  # Synonym resolution -----------------------------------------------------
+  synonym_resolution <- resolve_synonyms(
+    scinames     = nomatch_species,
+    fb_synonyms  = fb_synonyms,
+    slb_synonyms = slb_synonyms
+  )
 
-  for (i in seq_along(nomatch_species)) {
-    sciname_i <- nomatch_species[i]
+  # Apply name swaps to prod_ts - vectorized, no loop
+  resolved_names <- synonym_resolution %>%
+    filter(resolved) %>%
+    select(sciname_original, sciname_accepted)
 
-    # Match sciname_i to fb_synonyms$synonym - get accepted name(s)
-    name_fb_status  <- artis::query_synonyms(
-      synonym_df = fb_synonyms,  
-      the_sciname = sciname_i)
-    # Match sciname_i to slb_synonyms$synonym - get accepted name(s)
-    name_slb_status <- artis::query_synonyms(
-      synonym_df = slb_synonyms, 
-      the_sciname = sciname_i)
+  if (nrow(resolved_names) > 0) {
+    prod_ts <- prod_ts %>%
+      left_join(resolved_names, join_by(SciName == sciname_original)) %>%
+      mutate(SciName = coalesce(sciname_accepted, SciName)) %>%
+      select(-sciname_accepted)
+  }
 
-    # Check FishBase synonyms
-    if (nrow(name_fb_status) > 0) {
-      accepted_name <- tolower(name_fb_status$synonym)
+  # Extend prod_fb_full with newly resolved FB classification rows
+  fb_resolved <- synonym_resolution %>%
+    filter(source == "fb", resolved)
 
-      # Replace synonym with accepted name in classification dataframe
-      prod_fb_full_newdat <- prod_taxa_names %>%
-        filter(SciName == sciname_i) %>%
-        mutate(SciName = accepted_name) %>%
-        inner_join(fishbase_taxa, by = c("SciName" = "Species"))
+  if (nrow(fb_resolved) > 0) {
+    prod_fb_full_newdat <- prod_taxa_names %>%
+      filter(SciName %in% fb_resolved$sciname_original) %>%
+      left_join(
+        fb_resolved %>% select(sciname_original, sciname_accepted),
+        join_by(SciName == sciname_original)
+      ) %>%
+      mutate(SciName = sciname_accepted) %>%
+      select(-sciname_accepted) %>%
+      inner_join(fishbase_taxa, by = c("SciName" = "Species"))
 
-      # Replace synonym with accepted name in produciton dataframe
-      prod_ts <- prod_ts %>%
-        mutate(
-          SciName = case_when(
-            SciName == sciname_i ~ accepted_name,
-            .default = SciName
-          )
-          # SciName = if_else(
-          #   SciName == sciname_i,
-          #   true  = accepted_name,
-          #   false = SciName
-          # )
-        )
+    prod_fb_full <- prod_fb_full %>%
+      full_join(
+        prod_fb_full_newdat,
+        by = intersect(names(prod_fb_full), names(prod_fb_full_newdat))
+      )
+  }
 
-      if (nrow(prod_fb_full_newdat) > 0) {
-        nomatch_species[i] <- accepted_name
-        prod_fb_full <- prod_fb_full %>%
-          full_join(
-            prod_fb_full_newdat,
-            by = intersect(names(prod_fb_full), names(prod_fb_full_newdat))
-          )
-        fb_switches <- fb_switches + 1
-      }
-    }
+  # Extend prod_slb_full with newly resolved SLB classification rows
+  slb_resolved <- synonym_resolution %>%
+    filter(source == "slb", resolved)
 
-    # Check sealifebase synonyms
-    if (nrow(name_slb_status) > 0) {
-      accepted_name <- tolower(name_slb_status$synonym)
+  if (nrow(slb_resolved) > 0) {
+    prod_slb_full_newdat <- prod_taxa_names %>%
+      filter(SciName %in% slb_resolved$sciname_original) %>%
+      left_join(
+        slb_resolved %>% select(sciname_original, sciname_accepted),
+        join_by(SciName == sciname_original)
+      ) %>%
+      mutate(SciName = sciname_accepted) %>%
+      select(-sciname_accepted) %>%
+      inner_join(sealifebase_taxa, by = c("SciName" = "Species"))
 
-      prod_slb_full_newdat <- prod_taxa_names %>%
-        filter(SciName == sciname_i) %>%
-        mutate(SciName = accepted_name) %>%
-        inner_join(sealifebase_taxa, by = c("SciName" = "Species"))
-
-      prod_ts <- prod_ts %>%
-        mutate(
-          SciName = if_else(
-            SciName == sciname_i,
-            true  = accepted_name,
-            false = SciName
-          )
-        )
-
-      if (nrow(prod_slb_full_newdat) > 0) {
-        nomatch_species[i] <- accepted_name
-        prod_slb_full <- prod_slb_full %>%
-          full_join(
-            prod_slb_full_newdat,
-            by = intersect(names(prod_slb_full), names(prod_slb_full_newdat))
-          )
-        slb_switches <- slb_switches + 1
-      }
-    }
-  } # end of for loop
+    prod_slb_full <- prod_slb_full %>%
+      full_join(
+        prod_slb_full_newdat,
+        by = intersect(names(prod_slb_full), names(prod_slb_full_newdat))
+      )
+  }
 
   # Identify still-unmatched names after synonym resolution (Bug 2 fix) ----
   post_match_missing_species <- nomatch_species[
@@ -460,6 +458,7 @@ match_prod_taxa_to_fbslb <- function(
   list(
     prod_ts                  = prod_ts,
     prod_taxa_classification = prod_taxa_classification,
+    synonym_resolution       = synonym_resolution,
     unmatched_scinames       = unmatched_scinames
   )
 }
