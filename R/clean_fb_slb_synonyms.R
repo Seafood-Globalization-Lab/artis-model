@@ -193,12 +193,12 @@ clean_fb_slb_synonyms <- function(
     cli::cli_alert_info("{.val {length(unique(spec_code_counts$spec_code))}} {.field spec_code}{?s} matched to more than one accepted name.")
     cli::cli_alert_info("{.strong Developer Notes}:" ) 
     cli::cli_ul(c(
+      "Step into {.fn clean_fb_slb_synonyms} to see the violations in internal dataframe {.field spec_code_counts}.",
       "Need to investigate situation on WoRMS (using {.field *aphia_id} columns) and determine if a manual correction 
       should be applied in {.fn clean_fb_slb_synonyms} and rerun {.fn collect_fb_slb_data}.",
       "Manual correction may not be needed for each {.field spec_code} depending on the number of synonym violations.",
       "Can think about cross referencing production taxa names to understand if these synonym violations will interact 
-      with the data ingested into ARTIS model.",
-      "Step into {.fn clean_fb_slb_synonyms} to see the violations in internal dataframe {.field spec_code_counts}."
+      with the data ingested into ARTIS model."
     ))
   } 
 
@@ -225,8 +225,8 @@ clean_fb_slb_synonyms <- function(
       making the synonym string ambiguous in downstream prod taxa matching in {.fn query_synonyms} called in {.fn match_prod_taxa_to_fbslb}.")
     cli::cli_alert_info("{.strong Developer Notes}:") 
     cli::cli_ul(c(
-      "Manual corrections are made in in {.emph Apply manual corrections} section of {.fn clean_fb_slb_synonyms}.",
       "Assumption violations documented internally in {.field syn_code_counts} data frame in {.fn clean_fb_slb_synonyms}.",
+      "Manual corrections are made in in {.emph Apply manual corrections} section of {.fn clean_fb_slb_synonyms}.",
       "Manual corrections may not be required if they are not used in the prod taxa matching process."
     ))
   }
@@ -250,11 +250,11 @@ clean_fb_slb_synonyms <- function(
     )
     cli::cli_alert_info("{.strong Developer Notes}:")
     cli::cli_ul(c(
-      "Need to investigate situation on WoRMS (using {.field *aphia_id} columns) and determine if a manual 
-      correction should be applied in {.fn clean_fb_slb_synonyms} and rerun {.fn collect_fb_slb_data}.",
       "Need to determine if the {.val accepted name} or {.val provisionally accepted name} value should be retained; 
       No working protocol in place for this scenario.",
-      "Step into {.fn clean_fb_slb_synonyms} to see the violations in internal dataframe {.field syn_code_counts}." 
+      "Step into {.fn clean_fb_slb_synonyms} to see the violations in internal dataframe {.field syn_code_counts}.", 
+      "Investigate situation on WoRMS (using {.field *aphia_id} columns) and determine if a manual 
+      correction should be applied in {.fn clean_fb_slb_synonyms} and rerun {.fn collect_fb_slb_data}."
     ))
   }
 
