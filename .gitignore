@@ -4,6 +4,7 @@
 .Ruserdata
 .DS_Store
 .posit/
+*.log
 demo/outputs
 venv/
 model_inputs_raw*
