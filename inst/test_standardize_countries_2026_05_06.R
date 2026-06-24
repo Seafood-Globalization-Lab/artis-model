@@ -52,9 +52,12 @@ unique(std_baci$country_iso3_alpha) %>% length() # 193 sovereign countries
 
 ## Run each raw data file through artis::standardize_countries()
 
-### FAO
+### FAO ----------------------------------------------------------
 
-#### Correct by iso3
+# ------------------------------------------------------------------------
+###### This is the workflow to split up the dataframe to be standardized ##########
+
+# 1) Correct by iso3
 test_std_fao_iso3c <- artis::standardize_countries(
   data = raw_fao,
   country_id_type = "iso3c",
@@ -62,6 +65,7 @@ test_std_fao_iso3c <- artis::standardize_countries(
   year_col_name = "year"
 )
 
+# 2) filter out NA values produced
 df_1 <- test_std_fao_iso3c %>%
   filter(!is.na(country_iso3_alpha))
 
@@ -71,6 +75,7 @@ df_1 <- test_std_fao_iso3c %>%
 # Figure out how to correct missing string iso3 values to standardized iso3 values (e.g., Missing iso3c value, but country name value of Sudan (Former) 
 # standardizes to NA). We may want to consider an additional join by country name for these cases.
 
+# 3) Filter to NA values - rerun standardization on country name column
 df_2 <- test_std_fao_iso3c %>%
   filter(is.na(country_iso3_alpha)) %>%
   select(country_iso3_alpha, country_name_en, year) %>%
@@ -78,8 +83,10 @@ df_2 <- test_std_fao_iso3c %>%
                              country_col_name = "country_name_en",
                              year_col_name = "year")
 
+# 4) bind iso3c corrections and country name corrections
 test_standardized_fao <- bind_rows(df_1, df_2)
-
+# end of FAO workflow
+# ------------------------------------------------------------------------
 
 #### Correct by country name
 test_std_fao_name <- artis::standardize_countries(data = raw_fao %>%
@@ -114,17 +121,35 @@ z <- bind_rows(test_std_fao_iso3c, test_std_fao_name) %>%
 setdiff(na.omit(z), y)  %>% distinct(country_iso3_alpha)
 setdiff(y, z)
 
-### SAU
-#### Correct by iso3
-test_std_sau_name <- artis::standardize_countries(data = raw_sau,
-                                                   country_id_type = "name_en",
-                                                   country_col_name = "country_name_en",
-                                                   year_col_name = "year")
+### SAU ----------------------------------------------------------
+#### Correct by name - only name in SAU data
+test_std_sau_name <- artis::standardize_countries(
+  data = raw_sau,
+  country_id_type = "name_en",
+  country_col_name = "country_name_en",
+  year_col_name = "year"
+)
   
 #### Compare outputs of the new standardized data to the old standardized data
-setdiff(test_std_sau_name %>% distinct(year, country_name_en = artis_country_name), std_sau)
 
-setdiff(std_sau, test_std_sau_name %>% distinct(year, country_name_en = artis_country_name))
+# rows that appear in x but not y
+sau_new <- setdiff(test_std_sau_name %>% distinct(year, country_name_en = artis_country_name), std_sau)
+sau_old <- setdiff(std_sau, test_std_sau_name %>% distinct(year, country_name_en = artis_country_name))
+
+# quick test that this is doing what we expect. Yes it is. pass.
+# It does seem like old std countries function was doing this country parsing incorrectly. 
+tmp_df <- data.frame(country_name_en = "Serbia", year = 1998)
+tmp_df <- data.frame(country_name_en = "Montenegro", year = 1998)
+artis::standardize_countries(
+  data = tmp_df,
+  country_id_type = "name_en",
+  country_col_name = "country_name_en",
+  year_col_name = "year"
+)
+
+# ZAF vs ZA1 - Expected change 
+
+
 
 ### BACI
 
