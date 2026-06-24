@@ -38,7 +38,9 @@
 
 
   # --- Generate range of years to expand country corrections into ---
-standardize_country_data <- function(year_range = 1996:as.numeric(format(Sys.Date(), "%Y"))) {
+standardize_country_data <- function(
+  year_range = 1996:as.numeric(format(Sys.Date(), "%Y"))
+) {
   
    # --- TERRITORY TO Sovergn COUNTRY MAPPINGS ---
 
@@ -124,6 +126,7 @@ standardize_country_data <- function(year_range = 1996:as.numeric(format(Sys.Dat
   # South Sudan independence
   "SSD", "SDN", 1996, 2011,
   "SSD", "SSD", 2012, 2023,
+  "SDN", "SDN", 1996, 2011,
   # Southern African Customs Union dissolution
   "BWA", "ZA1", 1996, 1999,
   "BWA", "BWA", 2000, 2023,
@@ -183,11 +186,14 @@ tidyr::expand_grid(year = year_range)
   # Fill in missing country names (preserve existing ones)
   dplyr::mutate(
     country_name = dplyr::case_when(
-      # Keep existing country_name values
-      !base::is.na(country_name) ~ country_name,
-      # Fill missing ones from iso3c
-      !base::is.na(iso3c) ~ countrycode::countrycode(iso3c, "iso3c", "country.name", warn = FALSE),
-      TRUE ~ country_name
+        # Keep existing country_name values
+        !base::is.na(country_name) ~ country_name,
+        # Fill missing ones from iso3c
+        # Thea's proposed fix
+        #is.na(country_name) ~ countrycode::countrycode(iso3c, "iso3c", "country.name", warn = FALSE),
+        # existing code - proposed deleting
+        !base::is.na(iso3c) ~ countrycode::countrycode(iso3c, "iso3c", "country.name", warn = FALSE),
+        TRUE ~ country_name
     )
   ) %>% 
   
