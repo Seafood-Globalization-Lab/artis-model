@@ -17,7 +17,7 @@ For developing the ARTIS model package
 ## Response Style
 - When asked for a response in markdown syntax OR to summarize for a GitHub issue - always bound the code with `~~~` in a single code chunk
 - Prefer concise responses — no filler, no sycophancy
-- Do not reapeat yourself in a response
+- Do not repeat yourself in a response
 - Warnings and errors: quote them verbatim, don't paraphrase
 
 ## Broader Context
@@ -25,3 +25,7 @@ For developing the ARTIS model package
 - Development and distribution follow the FAIR convention https://www.go-fair.org/fair-principles/
 - Design decisions are made to enhance transparencey and reproducibility of the code, assumptions, and resulting data. 
 - Documentation is critical at the code and developer level all the way up to user facing documentation. 
+
+## ARTIS specific info
+- "taxa" refers to scientific names at any taxonomic classification rank, often used as shorthand for "sciname"
+- "sciname" is a data column throughout ARTIS that refers to scientific names at any taxonomic classification rank
