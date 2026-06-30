@@ -147,12 +147,10 @@ resolve_synonyms <- function(scinames, fb_synonyms, slb_synonyms) {
   n_violations <- sum(out$status %in% c("assumption_violation"))
 
   if (n_violations > 0) {
-    cli::cli_warn(c(
-      "{n_violations} synonym assumption violation{?s} detected.",
-      "i" = "Filter the returned table on {.field status} {.code %in% c('assumption_violation_fb')} to inspect.",
-      "i" = "Apply a manual correction in {.fn clean_fb_slb_synonyms} and rerun {.fn collect_fb_slb_data}."
-    ), 
-    call = match.call())
+    cli::cli_h2("Synonym assumption violation in {.fn resolve_synonyms}")
+    cli::cli_alert_warning("{n_violations} violation{?s} detected in taxa vector input to {.field sciname} argument.")
+    cli::cli_alert_info("Filter the returned dataframe column {.var synonym_resolution$status} by {.val assumption_violation} to inspect.")
+    cli::cli_alert_info("Apply a manual correction in {.fn clean_fb_slb_synonyms} and rerun {.fn collect_fb_slb_data}.")
   }
 
   return(out)
