@@ -7,18 +7,9 @@
 #' given name.
 #'
 #' @details
-#' Called inside [match_prod_taxa_to_fbslb()] as a replacement for the
-#' synonym resolution `for` loop. The returned lookup table is used to apply
+#' Called inside [match_prod_taxa_to_fbslb()]; The returned lookup table is used to apply
 #' name swaps to `prod_ts` and to extend `prod_fb_full` / `prod_slb_full`
 #' with newly resolved classification rows.
-#'
-#' [match_prod_taxa_to_fbslb()] is called twice in `01-clean-input-data.R`:
-#'
-#' * **Pass 1** (no corrections): unresolved names in the returned table
-#'   surface names requiring manual corrections in
-#'   [build_corr_tbl_prod_sciname()].
-#' * **Pass 2** (corrections applied): the lookup table is expected to contain
-#'   no unresolved names.
 #'
 #' ## Name cleaning
 #'
@@ -39,7 +30,7 @@
 #' synonym string ambiguity at data preparation time. Manual corrections there
 #' are the resolution path for assumption violations.
 #'
-#' @param scinames Character vector. Species-level scientific names to resolve
+#' @param scinames Character vector. Taxa scientific names to resolve
 #'   against the synonym tables. Typically the subset of unmatched names from
 #'   the hierarchical FB/SLB joins in [match_prod_taxa_to_fbslb()] that
 #'   contain a space (i.e. binomial names only).
@@ -79,15 +70,16 @@ resolve_synonyms <- function(scinames, fb_synonyms, slb_synonyms) {
 
   results <- lapply(scinames, function(sciname_i) {
 
-    # Clean the sciname
-    sciname_clean <- tolower(sciname_i)
-    sciname_clean <- gsub("\\.", "",  sciname_clean)
-    sciname_clean <- gsub(",",  "",   sciname_clean)
-    sciname_clean <- gsub("-",  " ",  sciname_clean)
+    # FIXIT - AM 2026-06-26 doesn't make sense to do this if we are tryign to identify scinames for correction
+    # # Clean the sciname
+    # sciname_clean <- tolower(sciname_i)
+    # sciname_clean <- gsub("\\.", "",  sciname_clean)
+    # sciname_clean <- gsub(",",  "",   sciname_clean)
+    # sciname_clean <- gsub("-",  " ",  sciname_clean)
 
     # Query FishBase synonyms
     fb_result <- try({
-      fb_match <- fb_synonyms %>% filter(synonym == sciname_clean)
+      fb_match <- fb_synonyms %>% filter(synonym == sciname_i)
       if (nrow(fb_match) > 1) stop("multiple rows matched")
       fb_match
     }, silent = TRUE)
@@ -96,25 +88,25 @@ resolve_synonyms <- function(scinames, fb_synonyms, slb_synonyms) {
       return(data.frame(
         sciname_original = sciname_i,
         sciname_accepted = NA_character_,
-        source           = NA_character_,
+        source           = "fb",
         resolved         = FALSE,
-        status           = "assumption_violation_fb"
+        status           = "assumption_violation"
       ))
     }
 
     if (nrow(fb_result) == 1) {
       return(data.frame(
         sciname_original = sciname_i,
-        sciname_accepted = tolower(fb_result$accepted_name),
+        sciname_accepted = fb_result$accepted_name,
         source           = "fb",
         resolved         = TRUE,
-        status           = "resolved_fb"
+        status           = "resolved"
       ))
     }
 
     # Query SeaLifeBase synonyms
     slb_result <- try({
-      slb_match <- slb_synonyms %>% filter(synonym == sciname_clean)
+      slb_match <- slb_synonyms %>% filter(synonym == sciname_i)
       if (nrow(slb_match) > 1) stop("multiple rows matched")
       slb_match
     }, silent = TRUE)
@@ -123,9 +115,9 @@ resolve_synonyms <- function(scinames, fb_synonyms, slb_synonyms) {
       return(data.frame(
         sciname_original = sciname_i,
         sciname_accepted = NA_character_,
-        source           = NA_character_,
+        source           = "slb",
         resolved         = FALSE,
-        status           = "assumption_violation_slb"
+        status           = "assumption_violation"
       ))
     }
 
@@ -135,7 +127,7 @@ resolve_synonyms <- function(scinames, fb_synonyms, slb_synonyms) {
         sciname_accepted = tolower(slb_result$accepted_name),
         source           = "slb",
         resolved         = TRUE,
-        status           = "resolved_slb"
+        status           = "resolved"
       ))
     }
 
@@ -147,20 +139,21 @@ resolve_synonyms <- function(scinames, fb_synonyms, slb_synonyms) {
       resolved         = FALSE,
       status           = "unresolved"
     )
-  })
+  }) # end of lapply()
 
   out <- bind_rows(results)
 
   # Emit a single warning if any assumption violations are present
-  n_violations <- sum(out$status %in% c("assumption_violation_fb", "assumption_violation_slb"))
+  n_violations <- sum(out$status %in% c("assumption_violation"))
 
   if (n_violations > 0) {
     cli::cli_warn(c(
       "{n_violations} synonym assumption violation{?s} detected.",
-      "i" = "Filter the returned table on {.field status} {.code %in% c('assumption_violation_fb', 'assumption_violation_slb')} to inspect.",
+      "i" = "Filter the returned table on {.field status} {.code %in% c('assumption_violation_fb')} to inspect.",
       "i" = "Apply a manual correction in {.fn clean_fb_slb_synonyms} and rerun {.fn collect_fb_slb_data}."
-    ))
+    ), 
+    call = match.call())
   }
 
-  out
+  return(out)
 }
