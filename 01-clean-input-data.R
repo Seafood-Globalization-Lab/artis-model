@@ -67,13 +67,13 @@ rebuilt_fao_prod <- rebuild_fao_2023_dat(
 
 # FAO Clean Taxa and Classification ---------------------------
 
-# -- Step 1: Clean raw FAO production data --
+## Step 1: Clean raw FAO production data ---------------------------
 prod_ts_fao <- clean_prod_dat(
   prod_df = rebuilt_fao_prod,
   prod_data_source = "FAO"
 )
 
-# -- Step 2: Pass 1 — match without corrections to surface unmatched names --
+## Pass 1 — match without corrections to surface unmatched names ---------------------------
 match_prod_taxa_results_1 <- match_prod_taxa_to_fbslb(
   prod_data = prod_ts_fao,
   fb_slb_dir = current_fb_slb_dir,
@@ -81,9 +81,10 @@ match_prod_taxa_results_1 <- match_prod_taxa_to_fbslb(
   corr_tbl = NULL
 )
 
-# -- Inspect the returned objects from match_prod_taxa_results_1() --
+## Inspect the returned objects from match_prod_taxa_results_1 ---------------------------
 
 # FAO production time series data
+# FIXIT - think about renaming prod_ts
 prod_ts <- match_prod_taxa_results_1$prod_data
 # FAO production taxa classification table
 prod_taxa_classification <- match_prod_taxa_results_1$prod_taxa_classification
@@ -93,8 +94,9 @@ synonym_resolution <- match_prod_taxa_results_1$synonym_resolution
 taxa_need_corrections <- match_prod_taxa_results_1$taxa_need_corrections
 
 
+### Instructions to apply require manual corrections
 
-
+# FIXIT - figure out where this correction belongs
 # Pulled from match_prod_taxa_to_fbslb.R - didn't want to prematurely correct before
 # getting full no-match sciname list 
   # # perciformes/* symbol fix ----------------------------------------------
@@ -108,7 +110,7 @@ taxa_need_corrections <- match_prod_taxa_results_1$taxa_need_corrections
   #     )
   #   )
 
-# Step 3: Pass 2 — match with corrections applied
+## Pass 2 — match with corrections applied ---------------------------
 match_prod_taxa_results_2 <- match_prod_taxa_to_fbslb(
   prod_ts = prod_ts_fao,
   fb_slb_dir = current_fb_slb_dir,
@@ -116,7 +118,7 @@ match_prod_taxa_results_2 <- match_prod_taxa_to_fbslb(
   corr_tbl = build_corr_tbl_prod_sciname()
 )
 
-# Step 4: Gap-fill taxa classification
+## Gap-fill taxa classification ---------------------------
 prod_taxa_classification <- fill_taxa_classification_gaps(
   prod_taxa_classification = match_prod_taxa_results_2$prod_taxa_classification,
   prod_ts = match_prod_taxa_results_2$prod_ts,
@@ -130,6 +132,7 @@ prod_data_raw <- match_prod_taxa_results_2$prod_ts
 rm(match_prod_taxa_results_1, match_prod_taxa_results_2, prod_ts_fao, rebuilt_fao_prod)
 
 ## FAO Taxa Manual Habitat Adds ---------------------------------
+# FIXIT Does this belong in the `fill_taxa_classification_gaps()`?
 prod_taxa_classification <- prod_taxa_classification %>%
   # Manually assign missing habitat coding
   mutate(
@@ -147,6 +150,8 @@ prod_taxa_classification <- prod_taxa_classification %>%
   )
 
 ## DATA CHECK ---------------------------------
+
+## FIXIT - move into function
 # Verify habitat information is complete
 missing_habitat_species <- prod_taxa_classification %>% 
   mutate(habitat_sum = Fresh01 + Brack01 + Saltwater01) %>%
@@ -165,6 +170,7 @@ write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.cs
 
 # Structure FAO prod for ARTIS -----------------------------------------------------
 
+# FIXIT - Move this restructuring into a new function? 
 # Get fishbase habitat data from prod_taxa_classification to standardize habitat info in prod_data
 prod_habitat <- prod_taxa_classification %>%
   select(SciName, Fresh01, Brack01, Saltwater01) %>%
