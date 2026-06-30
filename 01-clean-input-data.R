@@ -67,21 +67,33 @@ rebuilt_fao_prod <- rebuild_fao_2023_dat(
 
 # FAO Clean Taxa and Classification ---------------------------
 
-# Step 1: Clean raw FAO production data
+# -- Step 1: Clean raw FAO production data --
 prod_ts_fao <- clean_prod_dat(
   prod_df = rebuilt_fao_prod,
   prod_data_source = "FAO"
 )
 
-# Step 2: Pass 1 — match without corrections to surface unmatched names
-pass1_fao <- match_prod_taxa_to_fbslb(
-  prod_ts = prod_ts_fao,
+# -- Step 2: Pass 1 — match without corrections to surface unmatched names --
+match_prod_taxa_results_1 <- match_prod_taxa_to_fbslb(
+  prod_data = prod_ts_fao,
   fb_slb_dir = current_fb_slb_dir,
   prod_data_source = "FAO",
   corr_tbl = NULL
 )
-# → inspect pass1_fao$unmatched_scinames
-# → update R/build_corr_tbl_prod_sciname.R as needed, then devtools::load_all()
+
+# -- Inspect the returned objects from match_prod_taxa_results_1() --
+
+# FAO production time series data
+prod_ts <- match_prod_taxa_results_1$prod_data
+# FAO production taxa classification table
+prod_taxa_classification <- match_prod_taxa_results_1$prod_taxa_classification
+# results of the FB/SLB synonym table matching / cleaning
+synonym_resolution <- match_prod_taxa_results_1$synonym_resolution
+# leftover production taxa scinames that require manual corrections after pragmatic matching
+taxa_need_corrections <- match_prod_taxa_results_1$taxa_need_corrections
+
+
+
 
 # Pulled from match_prod_taxa_to_fbslb.R - didn't want to prematurely correct before
 # getting full no-match sciname list 
@@ -97,7 +109,7 @@ pass1_fao <- match_prod_taxa_to_fbslb(
   #   )
 
 # Step 3: Pass 2 — match with corrections applied
-pass2_fao <- match_prod_taxa_to_fbslb(
+match_prod_taxa_results_2 <- match_prod_taxa_to_fbslb(
   prod_ts = prod_ts_fao,
   fb_slb_dir = current_fb_slb_dir,
   prod_data_source = "FAO",
@@ -106,16 +118,16 @@ pass2_fao <- match_prod_taxa_to_fbslb(
 
 # Step 4: Gap-fill taxa classification
 prod_taxa_classification <- fill_taxa_classification_gaps(
-  prod_taxa_classification = pass2_fao$prod_taxa_classification,
-  prod_ts = pass2_fao$prod_ts,
+  prod_taxa_classification = match_prod_taxa_results_2$prod_taxa_classification,
+  prod_ts = match_prod_taxa_results_2$prod_ts,
   outdir = outdir
 )
 
 # Final objects for downstream use
-prod_data_raw <- pass2_fao$prod_ts
+prod_data_raw <- match_prod_taxa_results_2$prod_ts
 
 # remove large less-clean environmental objects no longer needed
-rm(pass1_fao, pass2_fao, prod_ts_fao, rebuilt_fao_prod)
+rm(match_prod_taxa_results_1, match_prod_taxa_results_2, prod_ts_fao, rebuilt_fao_prod)
 
 ## FAO Taxa Manual Habitat Adds ---------------------------------
 prod_taxa_classification <- prod_taxa_classification %>%
