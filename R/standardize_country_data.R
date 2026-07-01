@@ -216,7 +216,6 @@ tidyr::expand_grid(year = year_range)
       iso3c == "ANT" ~ "Netherlands Antilles",
       iso3c == "EAZ" ~ "Zanzibar", 
       iso3c == "SCG" ~ "Serbia and Montenegro",
-      iso3c == "NEI" ~ "Other nei",
       TRUE ~ country_name
     ),
     
