@@ -112,11 +112,13 @@ taxa_need_corrections <- match_prod_taxa_results_1$taxa_need_corrections
 
 ## Pass 2 — match with corrections applied ---------------------------
 match_prod_taxa_results_2 <- match_prod_taxa_to_fbslb(
-  prod_ts = prod_ts_fao,
+  prod_data = prod_ts,
   fb_slb_dir = current_fb_slb_dir,
   prod_data_source = "FAO",
   corr_tbl = build_corr_tbl_prod_sciname()
 )
+
+# FIXIT: Add final ref table of applied corrections (manual and synonyms) - think about cleaning scripts corrections (do they need to be included?)
 
 ## Gap-fill taxa classification ---------------------------
 prod_taxa_classification <- fill_taxa_classification_gaps(

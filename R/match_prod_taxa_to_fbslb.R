@@ -89,6 +89,10 @@ match_prod_taxa_to_fbslb <- function(
       ) %>%
       mutate(SciName = coalesce(sciname_corrected, SciName)) %>%
       select(-sciname_corrected)
+
+# FIXIT - capture successfully joined corrections (applied corrections) to document orignal and corrected prod taxa names for this version. 
+    # pass to code below for complete record. 
+
   }
 
   # Assemble distinct taxa names from prod_data ------------------------------
@@ -532,10 +536,26 @@ match_prod_taxa_to_fbslb <- function(
   # Replace empty strings with NA
   prod_data[prod_data == ""] <- NA
 
+
+  # Output messages ---------------------------------------------------------------
+  n_missing <- length(missing_scinames_post_syn)
+  {  
+  cli::cli_h2("Results: Fishbase / Sealifebase matching and synonym resolution")
+  cli::cli_h3("Found {no(n_missing)} unmatched production")
+  # FIXIT - DO I want this message here or in-code comments in 01 script? 
+  cli::cli_alert_info("{.strong Developer Notes}:")
+  cli::cli_ul(c(
+    "Manual corrections required for taxa names returned in {.var taxa_need_corrections} vector",
+    "Open {.fn build_corr_tbl_prod_sciname} to add manual corrections applied in {.fn match_prod_taxa_to_fbslb.R}",
+    "Run {.code devtools::load_all} or {.code devtools::install} and proceed running {.file 01-clean-input-data.R}"
+  ))
+  }
+
+
   list(
     prod_data                = prod_data,
     prod_taxa_classification = prod_taxa_classification,
     synonym_resolution       = synonym_resolution,
     taxa_need_corrections    = missing_scinames_post_syn
   )
-}
+  }
