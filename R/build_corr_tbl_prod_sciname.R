@@ -3,6 +3,10 @@
 #' Constructs a manually curated lookup table used in \code{classify_prod_dat()}
 #' to correct FAO and SAU production scientific names that are unresolved by
 #' FishBase and SeaLifeBase.
+#' 
+#' NOTE: This is not a final record of corrected scinames. Corrected scinames from this 
+#' table are subject to the synonym resolution step in \code{match_prod_taxa_to_fbslb()},
+#' which may further change the sciname. 
 #'
 #' @return A tibble with the following columns:
 #'   \describe{
@@ -41,9 +45,10 @@
 build_corr_tbl_prod_sciname <- function(){
 
   prod_sciname_corrections <- tribble(
-    ~prod_data_type, ~sciname_raw, ~sciname_corrected, ~correction_category, ~notes,
+    ~prod_data_type, ~sciname_raw, ~sciname_corrected, ~correction_category, ~notes, ~Species01, 
 
     # FAO - hybrid
+    # RULE: Replace hybrid name with lowest shared taxa classification name
     "FAO", "clarias gariepinus x c. macrocephalus",             "clarias spp",         "hybrid", "",
     "FAO", "c. macropomum x p. brachypomus",                    "serrasalmidae",       "hybrid", "Colossoma macropomum x Piaractus brachypomus",
     "FAO", "morone chrysops x m. saxatilis",                    "morone spp",          "hybrid", "",
@@ -57,6 +62,7 @@ build_corr_tbl_prod_sciname <- function(){
     "FAO", "piaractus mesopotamicus x colossoma macropomum",    "serrasalmidae",       "hybrid", "Replace with common family for hybrid",
 
     # FAO - multi_taxa
+    # RULE: Replace hybrid name with lowest shared taxa classification name
     "FAO", "astacidae, cambaridae",                              "cambaridae",         "multi_taxa", "Choose cambaridae as the larger family",
     "FAO", "auxis thazard, a. rochei",                          "auxis spp",           "multi_taxa", "",
     "FAO", "loliginidae, ommastrephidae",                        "teuthida",            "multi_taxa", "",
@@ -209,6 +215,8 @@ build_corr_tbl_prod_sciname <- function(){
     "SAU", "macrostrombus costatus", "strombidae",    "unresolved_taxon", "Move from species to family name for identification",
     "SAU", "sinistrofulgur sinistrum", "neogastropoda", "unresolved_taxon", "Move from species to order"
   )
+
+# FIXIT Add check to ensure there are no duplicate records or other possible join conflicts produced
 
   return(prod_sciname_corrections)
 }
