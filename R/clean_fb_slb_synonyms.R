@@ -161,8 +161,9 @@ clean_fb_slb_synonyms <- function(
   # 2) weather to apply to fishbase or sealifebase taxa table
   # This prevents our manual corretions from propegating quietly into future snapshot data
   
-  #Corrections for the `rfishbase` pkg sealifebase 25.04 snapshot
+  # Corrections for the `rfishbase` pkg 25.04 snapshot
   if(the_snapshot == "25.04" & the_server == "fishbase"){
+
     # spec_code_counts showed spec_code 25690 had 2 accepted_names - "halichoeres vrolikii" and "julis vrolikii"
     # WoRMS lists "julis vrolikii" as `status` = "unaccepted > superseded combination"
     # WoRMS lists "halichoeres vrolikii" as `status` = "accepted"
@@ -174,7 +175,45 @@ clean_fb_slb_synonyms <- function(
     # when unmatched prod taxa run through the synonyms matching loop. 
     syn_corrections <- syn_corrections %>% 
       filter(!(synonym == "alectis indica" & syn_code == 8344))
+
+    # "labeo sindensis" has two rows with two accepted names.
+    # One is a "misapplied name" status that does not show up in Worms and unlikely 
+    syn_corrections <- syn_corrections %>% 
+      filter(!(synonym == "labeo sindensis" & syn_code == 155825))
+
+    # "chrysophrys auratus" is used by two distinct species (Linnaeus 1758 -> sparus aurata;
+    # Forster 1801 -> pagrus auratus). Collapse to a single ambiguous synonym pointing to family Sparidae.
+    chrysophrys_row <- syn_corrections %>%
+      filter(synonym == "chrysophrys auratus") %>%
+      summarise(
+        synonym         = first(synonym),
+        synonym_author  = paste(synonym_author, collapse = "; "),
+        synonym_status  = NA_character_,
+        synonymy        = NA_character_,
+        syn_code        = NA_integer_,
+        aphia_id_synonym           = NA_integer_,
+        spec_code                  = NA_integer_,
+        accepted_name              = "sparidae",
+        accepted_status            = "accepted name",
+        aphia_id_accepted_name     = 125564
+      )
+
+    syn_corrections <- syn_corrections %>%
+      filter(synonym != "chrysophrys auratus") %>%
+      bind_rows(chrysophrys_row)    
+
   }
+
+  if(the_snapshot == "25.04" & the_server == "sealifebase") {      
+    
+    # "polymesoda expansa" has two rows with two accepted names
+    # One is a "misapplied name" status that does not show up in Worms and unlikely 
+    # accepted name Worms aphiaID 872679 has "unaccepted" status - remove
+    syn_corrections <- syn_corrections %>% 
+      filter(!(synonym == "polymesoda expansa" & syn_code == 92503))
+  }
+
+
 
 
 # Data assumption checks -------------------------------------------------

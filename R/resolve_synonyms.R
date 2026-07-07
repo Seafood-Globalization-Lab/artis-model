@@ -148,9 +148,15 @@ resolve_synonyms <- function(scinames, fb_synonyms, slb_synonyms) {
 
   if (n_violations > 0) {
     cli::cli_h2("Synonym assumption violation in {.fn resolve_synonyms}")
-    cli::cli_alert_warning("{n_violations} violation{?s} detected in the {.fn resolve_synonyms} taxa vector supplied to {.field sciname} argument.")
-    cli::cli_alert_info("Filter the returned dataframe column {.var synonym_resolution$status} by {.val assumption_violation} to inspect.")
-    cli::cli_alert_info("Apply a manual correction in {.fn clean_fb_slb_synonyms} and rerun {.fn collect_fb_slb_data}.")
+    cli::cli_alert_danger("{n_violations} violation{?s} detected in the {.fn resolve_synonyms} taxa vector supplied to {.field sciname} argument.")
+    cli::cli_alert_info("{.strong Developer Notes}:")
+    cli::cli_ul(c(
+      "Get current cleaned synonym tables by running:",
+      "{.code fb_synonyms  <- data.table::fread(file.path(current_fb_slb_dir, 'fb_synonyms_clean.csv'), data.table = FALSE)}",
+      "{.code slb_synonyms <- data.table::fread(file.path(current_fb_slb_dir, 'slb_synonyms_clean.csv'), data.table = FALSE)}",
+      "Filter the returned dataframe column {.var synonym_resolution$status} by {.val assumption_violation} to inspect.",
+      "Apply a manual correction in {.fn clean_fb_slb_synonyms} and rerun {.fn collect_fb_slb_data}."
+    ))
   }
 
   return(out)

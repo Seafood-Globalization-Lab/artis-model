@@ -541,15 +541,18 @@ match_prod_taxa_to_fbslb <- function(
   n_missing <- length(missing_scinames_post_syn)
   {  
   cli::cli_h2("Results: Fishbase / Sealifebase matching and synonym resolution")
-  cli::cli_h3("Found {no(n_missing)} unmatched production")
-  # FIXIT - DO I want this message here or in-code comments in 01 script? 
+  cli::cli_alert_warning("Found {no(n_missing)} unmatched production taxa")
   cli::cli_alert_info("{.strong Developer Notes}:")
   cli::cli_ul(c(
     "Manual corrections required for taxa names returned in {.var taxa_need_corrections} vector",
-    "Open {.fn build_corr_tbl_prod_sciname} to add manual corrections applied in {.fn match_prod_taxa_to_fbslb.R}",
-    "Run {.code devtools::load_all} or {.code devtools::install} and proceed running {.file 01-clean-input-data.R}"
+    "Open {.file ./R/build_corr_tbl_prod_sciname.R} to add manual corrections - follow instructions",
+    "Run {.code devtools::load_all} or {.code devtools::install} and {.code library(artis)} to integrate changes",
+    "Proceed running {.file 01-clean-input-data.R}; the second pass of {.fun match_prod_taxa_to_fbslb} will apply new corrections"
   ))
   }
+
+  # FIXIT - Add success message for length(taxa_need_corrections) > 0
+  #cli::cli_altert_success("")
 
 
   list(
