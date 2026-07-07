@@ -26,6 +26,10 @@ For developing the ARTIS model package
 - Design decisions are made to enhance transparencey and reproducibility of the code, assumptions, and resulting data. 
 - Documentation is critical at the code and developer level all the way up to user facing documentation. 
 
+## Skills (lab-genAI-toolbox)
+Project skills are in `.lab-genAI-toolbox/skills/`. At the start of any relevant task,
+check that directory and load the matching skill with the `skill` tool before proceeding.
+
 ## ARTIS specific info
 - "taxa" refers to scientific names at any taxonomic classification rank, often used as shorthand for "sciname"
 - "sciname" is a data column throughout ARTIS that refers to scientific names at any taxonomic classification rank

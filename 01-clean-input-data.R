@@ -93,8 +93,22 @@ synonym_resolution <- match_prod_taxa_results_1$synonym_resolution
 # leftover production taxa scinames that require manual corrections after pragmatic matching
 taxa_need_corrections <- match_prod_taxa_results_1$taxa_need_corrections
 
+## FIXIT - Does this need an abort here if length(taxa_need_corrections) > 0?
+# Is there every an instance when we want to source this script? Or will we always run line by line? 
 
-### Instructions to apply require manual corrections
+# Instructions to apply require manual corrections
+# (If a "Found xx unmatched production" message was thrown above - length(taxa_need_corrections) > 0)
+
+# 1) Inspect `taxa_need_corrections` scinames
+# 2) Open `./R/build_corr_tbl_prod_sciname.R`
+# 3) Read the documentation/help file `?build_corr_tbl_prod_sciname()`
+# 4) Review the correction categories and the rules for each.
+# 5) Determine the appropriate correction category for each `taxa_need_corrections` value
+# 6) Follow the existing correction rules for each category
+# 7) Check that the corrected name exists in fishbase / sealifebase taxa table 
+# 7) Identify any scinames that do not fit the categories and accompanying rules and consult another human (Jessica)
+# 8) `devtools::load_all()` and generate the table to ensure the new additions pass structure checks
+# 9) Continue running this script
 
 # FIXIT - figure out where this correction belongs
 # Pulled from match_prod_taxa_to_fbslb.R - didn't want to prematurely correct before
