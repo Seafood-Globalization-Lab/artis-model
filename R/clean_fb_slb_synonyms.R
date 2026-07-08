@@ -181,6 +181,12 @@ clean_fb_slb_synonyms <- function(
     syn_corrections <- syn_corrections %>% 
       filter(!(synonym == "labeo sindensis" & syn_code == 155825))
 
+    # "polymesoda expansa" has two rows with two accepted names
+    # One is a "misapplied name" status that does not show up in Worms and unlikely 
+    # accepted name Worms aphiaID 872679 has "unaccepted" status - remove
+    syn_corrections <- syn_corrections %>% 
+      filter(!(synonym == "polymesoda expansa" & syn_code == 92503))
+
     # "chrysophrys auratus" is used by two distinct species (Linnaeus 1758 -> sparus aurata;
     # Forster 1801 -> pagrus auratus). Collapse to a single ambiguous synonym pointing to family Sparidae.
     chrysophrys_row <- syn_corrections %>%
@@ -206,11 +212,6 @@ clean_fb_slb_synonyms <- function(
 
   if(the_snapshot == "25.04" & the_server == "sealifebase") {      
     
-    # "polymesoda expansa" has two rows with two accepted names
-    # One is a "misapplied name" status that does not show up in Worms and unlikely 
-    # accepted name Worms aphiaID 872679 has "unaccepted" status - remove
-    syn_corrections <- syn_corrections %>% 
-      filter(!(synonym == "polymesoda expansa" & syn_code == 92503))
   }
 
 

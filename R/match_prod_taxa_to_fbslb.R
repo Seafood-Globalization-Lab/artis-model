@@ -539,21 +539,31 @@ match_prod_taxa_to_fbslb <- function(
 
   # Output messages ---------------------------------------------------------------
   n_missing <- length(missing_scinames_post_syn)
-  {  
+  n_resolved <- nrow(synonym_resolution %>% 
+    filter(resolved))
+  
   cli::cli_h2("Results: Fishbase / Sealifebase matching and synonym resolution")
-  cli::cli_alert_warning("Found {no(n_missing)} unmatched production taxa")
-  cli::cli_alert_info("{.strong Developer Notes}:")
-  cli::cli_ul(c(
-    "Manual corrections required for taxa names returned in {.var taxa_need_corrections} vector",
-    "Open {.file ./R/build_corr_tbl_prod_sciname.R} to add manual corrections - follow instructions",
-    "Run {.code devtools::load_all} or {.code devtools::install} and {.code library(artis)} to integrate changes",
-    "Proceed running {.file 01-clean-input-data.R}; the second pass of {.fun match_prod_taxa_to_fbslb} will apply new corrections"
-  ))
+
+  # synonym resolution results
+  if(n_resolved > 0) {
+    cli::cli_alert_success("{.val {n_resolved}} taxa were synonyms resolved to accepted names")
+  } else {
+    cli::cli_alert_warning("{.val {no(n_resolved)}} taxa were identified as synonyms; no names were resolved")
   }
-
-  # FIXIT - Add success message for length(taxa_need_corrections) > 0
-  #cli::cli_altert_success("")
-
+  # unmatched taxa results
+  if(n_missing > 0) {
+    cli::cli_alert_warning("Found {.val {no(n_missing)}} unmatched production taxa")
+    cli::cli_alert_info("{.strong Developer Notes}:")
+    cli::cli_ul(c(
+      "Manual corrections required for taxa names returned in {.var taxa_need_corrections} vector",
+      "Open {.file ./R/build_corr_tbl_prod_sciname.R} to add manual corrections - follow instructions",
+      "Run {.code devtools::load_all} or {.code devtools::install} and {.code library(artis)} to integrate changes",
+      "Proceed running {.file 01-clean-input-data.R}; the second pass of {.fun match_prod_taxa_to_fbslb} will apply new corrections"
+    ))
+  } else if (n_missing == 0) {
+    cli::cli_alert_success("All production taxa matched to Fishbase / Sealifebase")
+    cli::cli_alert_info("No further manual corrections required - proceed with clean input data script")
+  }
 
   list(
     prod_data                = prod_data,
@@ -561,4 +571,4 @@ match_prod_taxa_to_fbslb <- function(
     synonym_resolution       = synonym_resolution,
     taxa_need_corrections    = missing_scinames_post_syn
   )
-  }
+}

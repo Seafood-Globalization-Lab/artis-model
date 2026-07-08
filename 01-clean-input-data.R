@@ -26,28 +26,13 @@ source("00-local-machine-setup.R")
 # FishBase & SeaLifeBase Data ------------------------------------------------------
 
 # Collect new fishbase and sealifebase data files with rfishbase package via artis::collect_fb_slb_data 
-if(need_new_fb_slb == TRUE) {
-  cli_alert_info("Collecting and cleaning Fishbase and Sealifebase data.")
+if(need_new_fb_slb) {
   current_fb_slb_dir <- artis::collect_fb_slb_data(parent_outdir = path_fb_slb_raw)
-  cli::cli_alert_success("Finished - new FB and SLB data {.file {current_fb_slb_dir}}")
-} else {
-  # Or use most recent existing fishbase and sealifebase data files
-  current_fb_slb_dir <- list.dirs(path_fb_slb_raw, full.names = TRUE, recursive = FALSE) %>%
-    stringr::str_subset("fishbase_sealifebase_") %>%
-    sort(decreasing = TRUE) %>%
-    .[1]
-  # Check if current_fb_slb_dir is valid
-  if (is.na(current_fb_slb_dir)) {
-    cli::cli_abort(c(
-      "x" = "No fishbase_sealifebase directory found in {.file {path_fb_slb}}",
-      "i" = "Set {.code need_new_fb_slb = TRUE} in {.file 00-local-machine-setup.R} to download new data",
-      "i" = "OR ensure a fishbase_sealifebase_* directory exists"
-    ))
-  } 
-  if (dir.exists(current_fb_slb_dir)) {
-    cli::cli_alert_success("Using existing FB and SLB data in {.file {current_fb_slb_dir}}}")
-  }
-}
+} 
+
+# clean raw data
+current_fb_slb_dir <- clean_fb_slb_data(parent_outdir = path_fb_slb_raw)
+
 
 # FAO Production Data -------------------------------
 
