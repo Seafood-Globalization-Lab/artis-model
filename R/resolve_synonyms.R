@@ -70,13 +70,6 @@ resolve_synonyms <- function(scinames, fb_synonyms, slb_synonyms) {
 
   results <- lapply(scinames, function(sciname_i) {
 
-    # FIXIT - AM 2026-06-26 doesn't make sense to do this if we are tryign to identify scinames for correction
-    # # Clean the sciname
-    # sciname_clean <- tolower(sciname_i)
-    # sciname_clean <- gsub("\\.", "",  sciname_clean)
-    # sciname_clean <- gsub(",",  "",   sciname_clean)
-    # sciname_clean <- gsub("-",  " ",  sciname_clean)
-
     # Query FishBase synonyms
     fb_result <- try({
       fb_match <- fb_synonyms %>% filter(synonym == sciname_i)
@@ -148,7 +141,7 @@ resolve_synonyms <- function(scinames, fb_synonyms, slb_synonyms) {
 
   if (n_violations > 0) {
     cli::cli_h2("Synonym assumption violation in {.fn resolve_synonyms}")
-    cli::cli_alert_danger("{n_violations} violation{?s} detected in the {.fn resolve_synonyms} taxa vector supplied to {.field sciname} argument.")
+    cli::cli_alert_danger("{.val {n_violations}} violation{?s} detected in the {.fn resolve_synonyms} taxa vector supplied to {.field sciname} argument.")
     cli::cli_alert_info("{.strong Developer Notes}:")
     cli::cli_ul(c(
       "Get current cleaned synonym tables by running:",
