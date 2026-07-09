@@ -33,7 +33,6 @@ if(need_new_fb_slb) {
 # clean raw data
 current_fb_slb_dir <- clean_fb_slb_data(parent_outdir = path_fb_slb_raw)
 
-
 # FAO Production Data -------------------------------
 
 # Read in raw FAO production data files and restructure into standard format with
@@ -70,13 +69,15 @@ match_prod_taxa_results_1 <- match_prod_taxa_to_fbslb(
 
 # FAO production time series data
 # FIXIT - think about renaming prod_ts
+# FIXIT - could we skip returning this in the first pass?
 prod_ts <- match_prod_taxa_results_1$prod_data
-# FAO production taxa classification table
+# FAO production taxa classification table 
 prod_taxa_classification <- match_prod_taxa_results_1$prod_taxa_classification
 # results of the FB/SLB synonym table matching / cleaning
 synonym_resolution <- match_prod_taxa_results_1$synonym_resolution
 # leftover production taxa scinames that require manual corrections after pragmatic matching
-taxa_need_corrections <- match_prod_taxa_results_1$taxa_need_corrections
+taxa_need_corrections <- as_tibble(match_prod_taxa_results_1$taxa_need_corrections)
+
 
 ## FIXIT - Does this need an abort here if length(taxa_need_corrections) > 0?
 # Is there every an instance when we want to source this script? Or will we always run line by line? 
@@ -111,10 +112,10 @@ taxa_need_corrections <- match_prod_taxa_results_1$taxa_need_corrections
 
 ## Pass 2 — match with corrections applied ---------------------------
 match_prod_taxa_results_2 <- match_prod_taxa_to_fbslb(
-  prod_data = prod_ts,
+  prod_data = prod_ts_fao,
   fb_slb_dir = current_fb_slb_dir,
   prod_data_source = "FAO",
-  corr_tbl = build_corr_tbl_prod_sciname()
+  corr_tbl = build_corr_tbl_prod_sciname(the_fb_slb_dir = current_fb_slb_dir)
 )
 
 # FIXIT: Add final ref table of applied corrections (manual and synonyms) - think about cleaning scripts corrections (do they need to be included?)
