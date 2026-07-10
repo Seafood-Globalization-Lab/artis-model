@@ -24,6 +24,9 @@ std_fao <- read_csv(glue("./{path_local}/dev-standardize-countries/1.2_fao_std_c
 std_sau <- read_csv(glue("./{path_local}/dev-standardize-countries/1.2_sau_std_country_combos.csv"))
 std_baci <- read_csv(glue("./{path_local}/dev-standardize-countries/1.2_baci_std_country_combos.csv"))
 
+
+# Read in test table 
+table_tsv <- read_tsv(glue("./{path_local}/dev-standardize-countries/table.tsv"))
 # Validation Outline / Plan
 
 ## Run validation check differences between raw and standardized datasets
@@ -156,84 +159,107 @@ standardize_country_data() %>% View()
 
 ### BACI ----------------------------------------------------------
 
-#### Correct by iso3
-test_std_baci_iso3c_exporter <- artis::standardize_countries(data = raw_baci,
-                                                   country_id_type = "iso3c",
-                                                   country_col_name = "exporter_iso3c",
-                                                   year_col_name = "year")
-
-#### Correct by country name
-test_std_baci_iso3c_importer <- artis::standardize_countries(data = raw_baci,
-                                                             country_id_type = "iso3c",
-                                                             country_col_name = "importer_iso3c",
-                                                             year_col_name = "year")
-
 #### Compare outputs of the new standardized data to the old standardized data
 
 # Worfklow for running BACI standardization
 
-## 1. Run standardized on exporter, rename artis_iso3c column to match exporter_iso3c column in std_baci
+# Step A. Correct by iso3c.
+# problem: NA's are produced, which will be solved in steps B and C. We remove NA's in this dataset.
+test_std_baci_iso3c <-
+  # 1. standardize exports
+  artis::standardize_countries(
+    data = raw_baci,
+    country_id_type = "iso3c",
+    country_col_name = "exporter_iso3c",
+    year_col_name = "year"
+  ) %>%
+  select(exporter_iso3c = artis_iso3c, importer_iso3c, # Keep original raw country name in data - don't overwrite with ARTIS countryname correction
+         importer_country, # Keep original raw country name in data - don't overwrite with ARTIS countryname correction
+         year) %>%
+  # 2. standardize imports
+  artis::standardize_countries(
+    # Next run through importer iso3c corrections
+    country_id_type = "iso3c",
+    country_col_name = "importer_iso3c",
+    year_col_name = "year"
+  ) %>%
+  select(exporter_iso3c, importer_iso3c = artis_iso3c, year) %>%
+  filter(!is.na(exporter_iso3c), !is.na(importer_iso3c))
 
-## 2. Run standardized on importer, rename artis_iso3c column to match importer_iso3c column in std_baci
 
-
-test_std_baci_iso3c <- artis::standardize_countries( # First run through exporter iso3c corrections
+# Step B. create standardized table that only includes NA values from iso3c corrections 
+# so we can use that output to recorrect by countryname in C, producing non NA iso3c values.
+data_for_na_std <- 
+  # 1. standardize exports
+  artis::standardize_countries( # First run through exporter iso3c corrections
   data = raw_baci,
   country_id_type = "iso3c",
   country_col_name = "exporter_iso3c",
   year_col_name = "year"
 ) %>%
   select(exporter_iso3c = artis_iso3c,
-         exporter_country, # Keep original raw country name in data - don't overwrite with ARTIS countryname correction
-         importer_iso3c, # Keep original raw country name in data - don't overwrite with ARTIS countryname correction
-         importer_country, # Keep original raw country name in data - don't overwrite with ARTIS countryname correction
+         exporter_country, # Keep as it's needed for the country name correction in step C
+         importer_iso3c, # Keep as it's needed for the next correction
+         importer_country, # Keep as it's needed for the next correction
          year) %>%
+  # 2. standardize imports
   artis::standardize_countries( # Next run through importer iso3c corrections
     country_id_type = "iso3c",
     country_col_name = "importer_iso3c",
     year_col_name = "year"
   ) %>%
   select(exporter_iso3c,
-         exporter_country,
+         exporter_country, # Keep as it's needed for the country name correction in step B
          importer_iso3c = artis_iso3c,
-         importer_country, 
+         importer_country, # Keep as it's needed for the country name correction in step B
          year) %>%
-  distinct()
+  filter(is.na(exporter_iso3c) | is.na(importer_iso3c)) # filter to only NA values in either imports or exports
 
-# Standardize any straggling NA's which include Taiwan and NEI as desired outputs
-test_std_baci_name <- test_std_baci_iso3c %>%
-  filter(is.na(exporter_iso3c) | is.na(importer_iso3c) ) %>%
-  artis::standardize_countries(
+# Step C. use standardized table to recorrect by countryname, converting NA iso3c values to their countryname assigned non-NA values.
+test_std_baci_name <- data_for_na_std %>%
+  # 1. standardize exports
+  artis::standardize_countries( # Gets rid of NA iso3c values in exporter_iso3c column
     country_id_type = "name_en",
     country_col_name = "exporter_country",
     year_col_name = "year"
   ) %>%
-  select(exporter_iso3c = artis_iso3c,
-         exporter_country, # Keep original raw country name in data - don't overwrite with ARTIS countryname correction
-         importer_iso3c, # Keep original raw country name in data - don't overwrite with ARTIS countryname correction
-         importer_country, # Keep original raw country name in data - don't overwrite with ARTIS countryname correction
+  select(exporter_iso3c = artis_iso3c, # we overwrite exporter_iso3c to artis_iso3c
+         importer_iso3c, # Keep as it's needed for the next correction
+         importer_country, # Keep as it's needed for the next correction
          year) %>%
+  # 2. standardize exports
   artis::standardize_countries( # Next run through importer country name corrections
     country_id_type = "name_en",
     country_col_name = "importer_country",
     year_col_name = "year"
   ) %>%
   select(exporter_iso3c,
-         exporter_country,
          importer_iso3c = artis_iso3c,
-         importer_country,
          year)
 
+# Bind datasets from step A and step C (i.e., corrections by iso3c & recorrections by countryname)
 new_std_baci <- bind_rows(
-  test_std_baci_iso3c %>% drop_na(), # drop corrections that will get changed to Taiwan
+  test_std_baci_iso3c,
   test_std_baci_name
-          ) %>%
-  select(exporter_iso3c, importer_iso3c, year) %>%
+  )
+
+new_std_baci_distinct <- new_std_baci %>%
   distinct()
-  
 
+# Problem: Lots of duplicate rows. Look into why this is happening because raw data does not have duplicates
+new_std_baci %>%
+  group_by(exporter_iso3c, importer_iso3c, year) %>%
+  mutate(num_rows = n()) %>%
+  filter(num_rows != 1) %>% View() nrow()
 
+# There might be a bigger issue going on with territory aggregation
+
+# Timor-Letse was not given it's Indonesia sovereign in the old standardized data - our new correction is correct
+# std_check_1 Our updates to country standardization may be correct, though duplicate country names may need to be dropped
+# If we do drop duplicate country names (e.g., NLD --> NLD) we first need to summarize consumption weights
 # See what's in the new standardization that doesn't appear in the old standardization
+# Next steps: 
+
 std_check_1 <- setdiff(new_std_baci, std_baci)
 
 # See what's in the new standardization that doesn't appear in the old standardization
@@ -242,6 +268,9 @@ std_check_2 <- setdiff(std_baci, new_std_baci)
 std_check_2 %>%
   filter(!(importer_iso3c == "TWN" | exporter_iso3c == "TWN")) %>%
   filter(!(importer_iso3c == "NEI" | exporter_iso3c == "NEI"))
+
+# Open corrections table
+corrections_table <- standardize_country_data()
 
 
 # Taiwan is not being added in properly
