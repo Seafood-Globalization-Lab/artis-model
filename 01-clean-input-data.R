@@ -118,6 +118,8 @@ match_prod_taxa_results_2 <- match_prod_taxa_to_fbslb(
   corr_tbl = build_corr_tbl_prod_sciname(the_fb_slb_dir = current_fb_slb_dir)
 )
 
+taxa_need_corrections <- as_tibble(match_prod_taxa_results_2$taxa_need_corrections)
+
 # FIXIT: Add final ref table of applied corrections (manual and synonyms) - think about cleaning scripts corrections (do they need to be included?)
 
 ## Gap-fill taxa classification ---------------------------
