@@ -42,14 +42,14 @@ clean_prod_dat <- function(
 
     prod_ts <- prod_df %>%
       dplyr::rename(
-        CommonName          = species_name_en,
-        SciName             = species_scientific_name,
-        country_iso3_alpha   = country_iso3_code,
+        CommonName = species_name_en,
+        SciName = species_scientific_name,
+        country_iso3_alpha = country_iso3_code,
         country_iso3_numeric = country
       ) %>%
       dplyr::mutate(
         CommonName = tolower(as.character(CommonName)),
-        SciName    = tolower(as.character(SciName))
+        SciName = tolower(as.character(SciName))
       ) %>%
       # Trim any leading/trailing whitespace
       dplyr::mutate_all(str_trim) %>%
@@ -69,14 +69,33 @@ clean_prod_dat <- function(
         )
       ) %>%
       # Exclude copepods: does not map to any HS code considered in ARTIS
-      filter(SciName != "calanus finmarchicus") %>%
-      droplevels() %>%
+      filter(SciName != "calanus finmarchicus") %>% 
+      # Remove columns not needed for running ARTIS
+      select(
+        !c(
+          any_of(c(
+            "alternate",
+            "multiplier",
+            "symbol",
+            "symbol_identifier",
+            "country_iso3_numeric",
+            "country_identifier",
+            "production_identifier",
+            "sort",
+            "unit_identifier"
+          )), 
+          # columns translated into non-english languages
+          contains(c("_ar", "_cn", "_es", "_fr", "_ru"))
+        )
+      ) %>%
+      droplevels()
+      # FIXIT: 2026-07-15 This seem more appropriate for manual corrections table - check 
       # Remove "(=...)" notation, e.g. "salmoniformes (=salmonoidei)"
-      mutate(
-        SciName = gsub(SciName, pattern = " \\(\\=.*", replacement = "")
-      )
-    
-    # One-hot encoding - taxa classification ranks ------------------------
+      # mutate(
+      #   SciName = gsub(SciName, pattern = " \\(\\=.*", replacement = "")
+      # )
+
+      # One-hot encoding - taxa classification ranks ------------------------
     prod_ts$Species01 <- 0
     prod_ts$Genus01   <- 0
     prod_ts$Family01  <- 0
