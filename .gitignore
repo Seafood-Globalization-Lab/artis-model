@@ -4,6 +4,7 @@
 .Ruserdata
 .DS_Store
 .posit/
+.Renviron
 *.log
 demo/outputs
 venv/
