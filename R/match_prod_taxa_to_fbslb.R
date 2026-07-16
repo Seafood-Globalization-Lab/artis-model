@@ -25,8 +25,6 @@
 #'   taxonomy and synonym CSVs (`fb_taxa_info.csv`, `slb_taxa_info.csv`,
 #'   `fb_synonyms_clean.csv`, `slb_synonyms_clean.csv`, `fb_aquarium.csv`,
 #'   `slb_aquarium.csv`).
-#' @param prod_data_source Character. One of `"FAO"` or `"SAU"`. Used to
-#'   filter `corr_tbl` to the relevant rows when `corr_tbl` is not `NULL`.
 #' @param corr_tbl Data frame or `NULL`. Manual name-correction table as
 #'   returned by [build_corr_tbl_prod_sciname()]. Pass `NULL` (default) for
 #'   Pass 1 (no corrections); pass the table for Pass 2.
@@ -67,7 +65,6 @@
 match_prod_taxa_to_fbslb <- function(
   prod_data,
   fb_slb_dir,
-  prod_data_source,
   corr_tbl = NULL
 ) {
 
@@ -83,8 +80,7 @@ match_prod_taxa_to_fbslb <- function(
     prod_data <- prod_data %>%
       left_join(
         corr_tbl %>%
-          filter(prod_data_type == prod_data_source) %>%
-          select(sciname_raw, sciname_corrected),
+          select(sciname_raw, sciname_corrected, Species01, Genus01, Family01, Other01),
         join_by(SciName == sciname_raw)
       ) %>%
       mutate(SciName = coalesce(sciname_corrected, SciName)) %>%
@@ -320,7 +316,7 @@ match_prod_taxa_to_fbslb <- function(
     full_join(prod_fb_order,      by = intersect(names(.), names(prod_fb_order))) %>%
     full_join(prod_fb_class,      by = intersect(names(.), names(prod_fb_class))) %>%
     full_join(prod_fb_superclass, by = intersect(names(.), names(prod_fb_superclass))) %>%
-    # remove binary encoded colums used for initial taxa matching to fb/slb classification info
+    # remove binary encoded columns used for initial taxa matching to fb/slb classification info
     select(-c(Species01, Genus01, Family01, Other01)) %>% 
     arrange(SciName)
 
@@ -555,8 +551,10 @@ match_prod_taxa_to_fbslb <- function(
     cli::cli_alert_warning("Found {.val {no(n_missing)}} unmatched production taxa")
     cli::cli_alert_info("{.strong Developer Notes}:")
     cli::cli_ul(c(
-      "Manual corrections required for taxa names returned in {.var taxa_need_corrections} vector",
-      "Open {.file ./R/build_corr_tbl_prod_sciname.R} to add manual corrections - follow instructions",
+      "Manual corrections required for taxa names returned in {.var taxa_need_corrections} dataframe",
+      "Open {.file ./R/build_corr_tbl_prod_sciname.R} to add manual corrections - follow instructions in help page {.code ?build_corr_tbl_prod_sciname()}",
+      "Open Fishbase taxa table with {.code fb_taxa <- fread(file.path(current_fb_slb_dir, 'fb_taxa_info.csv'), data.table = FALSE)}",
+      "Open Sealifebase taxa table with {.code slb_taxa <- fread(file.path(current_fb_slb_dir, 'slb_taxa_info.csv'), data.table = FALSE)}",
       "Run {.code devtools::load_all} or {.code devtools::install} and {.code library(artis)} to integrate changes",
       "Proceed running {.file 01-clean-input-data.R}; the second pass of {.fun match_prod_taxa_to_fbslb} will apply new corrections"
     ))

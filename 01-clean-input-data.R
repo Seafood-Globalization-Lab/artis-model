@@ -31,6 +31,9 @@ if(need_new_fb_slb) {
 } 
 
 # clean raw data
+# FIXIT: AM 20206-07-15 move data structure checks within clean_fb_slb_data() to the raw data assessment script. 
+# Messages are too detailed and not necessarily relevant to the clean-input-data script as many of the violations 
+# do not necessitate corrections because they do not affect production data. 
 current_fb_slb_dir <- clean_fb_slb_data(parent_outdir = path_fb_slb_raw)
 
 # FAO Production Data -------------------------------
@@ -61,7 +64,6 @@ prod_ts_fao <- clean_prod_dat(
 match_prod_taxa_results_1 <- match_prod_taxa_to_fbslb(
   prod_data = prod_ts_fao,
   fb_slb_dir = current_fb_slb_dir,
-  prod_data_source = "FAO",
   corr_tbl = NULL
 )
 
@@ -96,25 +98,10 @@ taxa_need_corrections <- as_tibble(match_prod_taxa_results_1$taxa_need_correctio
 # 8) `devtools::load_all()` and generate the table to ensure the new additions pass structure checks
 # 9) Continue running this script
 
-# FIXIT - figure out where this correction belongs
-# Pulled from match_prod_taxa_to_fbslb.R - didn't want to prematurely correct before
-# getting full no-match sciname list 
-  # # perciformes/* symbol fix ----------------------------------------------
-  # # Collapses e.g. "perciformes/percoidei" --> "perciformespercoidei"
-  # prod_ts <- prod_ts %>%
-  #   mutate(
-  #     SciName = case_when(
-  #       str_detect(SciName, regex("^perciformes/", ignore_case = TRUE)) ~
-  #         str_replace(SciName, "/", ""),
-  #       TRUE ~ SciName
-  #     )
-  #   )
-
 ## Pass 2 — match with corrections applied ---------------------------
 match_prod_taxa_results_2 <- match_prod_taxa_to_fbslb(
   prod_data = prod_ts_fao,
   fb_slb_dir = current_fb_slb_dir,
-  prod_data_source = "FAO",
   corr_tbl = build_corr_tbl_prod_sciname(the_fb_slb_dir = current_fb_slb_dir)
 )
 
@@ -182,12 +169,14 @@ prod_habitat <- prod_taxa_classification %>%
 
 # Filter down and restructure FAO production data for ARTIS
 prod_data <- prod_data_raw %>%
-  # Remove columns not needed for running ARTIS
-  select(!c(any_of(c("alternate", "multiplier", "symbol", "symbol_identifier", 
-                    "country_iso3_numeric", "country_identifier", "production_identifier", 
-                    "sort", "unit_identifier")), # "species_identifier" still available here
-            contains(c("_ar", "_cn", "_es", "_fr", "_ru")),
-            CommonName)) %>%
+  # Moved to clean_prod_dat.R (2026-07-15)
+  # # Remove columns not needed for running ARTIS
+  # select(!c(any_of(c("alternate", "multiplier", "symbol", "symbol_identifier", 
+  #                   "country_iso3_numeric", "country_identifier", "production_identifier", 
+  #                   "sort", "unit_identifier")), # "species_identifier" still available here
+  #           contains(c("_ar", "_cn", "_es", "_fr", "_ru")),
+  #           CommonName)) %>%
+  # FIXIT: CommonName may need to be repoved again at this point. 
   # clean up habitat and production method values
   mutate(fao_habitat = case_when(habitat == "Inland waters" ~ "inland",
                              habitat == "Marine areas" ~ "marine",

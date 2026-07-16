@@ -21,7 +21,7 @@
 #' category a taxa name falls under to identify the appropriate correction strategy to apply.
 #' 
 #' * `"hybrid"`, `"mutli_taxa"`, `"name_formatting"`, and `"informal_name"` are often easy to visually identify
-#' * `"rank_mismatch"`, `"adjust_to_fb_slb"`, `"adjust_to_fb_slb"`, and `"fixit_temporary"` require a deeper dive 
+#' * `"rank_mismatch"`, `"adjust_to_fb_slb"`, and `"adjust_to_fb_slb"` require a deeper dive 
 #'   to understand what is happening. 
 #' 
 #' ## 3) Determine best `sciname_corrected` value
@@ -95,16 +95,6 @@
 #' 2) Replace with the name (even though it might be outdated) that is represented in the Fishbase or Sealifebase taxa tables
 #'   ("fb_taxa_info.csv", "slb_taxa_info.csv").
 #' 
-#' ## `"fixit_temporary"` correction instructions
-#' 
-#' **RULE: Replace taxa name with the lowest taxa classification rank name that exists in the current Fishbase/Sealifebase snapshot version taxa tables.**
-#' 
-#' 1) Investigate taxa on [WoRMS](https://www.marinespecies.org/)
-#' 3) Investigate taxa on live [Fishbase](https://www.fishbase.org/) or [Sealifebase](https://sealifebase.org/search.php) database pages (may not be the same
-#'    as the snapshot version ingested into ARTIS)
-#' 2) Replace with the name (even though it might be outdated or a rank above) that is represented in the Fishbase or Sealifebase taxa tables
-#'   ("fb_taxa_info.csv", "slb_taxa_info.csv").
-#' 
 #' @param the_fb_slb_dir File path to the directory containing the current version of Fishbase and Sealifebase data.
 #' 
 #' @return
@@ -120,7 +110,6 @@
 #'   * `"rank_mismatch"`
 #'   * `"adjust_to_fb_slb"``
 #'   * `"spelling_error"``
-#'   * `"fixit_temporary"`
 #'   * `"informal_name"`
 #' * `notes` — additional context or rationale for the correction.
 #' * `Species01`, `Genus01`, `Family01`, `Other01` — binary (0/1) one-hot
@@ -186,7 +175,7 @@ build_corr_tbl_prod_sciname <- function(
     "squalidae, scyliorhinidae",                          "carcharhiniformes",   "multi_taxa", "Two different orders of sharks; code defines sharks as list of orders so assign to carcharhiniformes for now",
     "stolothrissa, limnothrissa",                         "clupeidae",           "multi_taxa", "",
     "xiphopenaeus, trachypenaeus",                        "penaeidae",           "multi_taxa", "",
-    "alosa alosa, a. fallax",                            "alosa spp",           "multi_taxa", "Common genus between both",
+    "alosa alosa, a. fallax",                             "alosa spp",           "multi_taxa", "Common genus between both",
 
     # name_formatting
     # RULE: Replace non-standard formatted taxa name with an expected format that aligns with Fishbase/Sealifebase formatting
@@ -214,7 +203,7 @@ build_corr_tbl_prod_sciname <- function(
     "reptantia",                  "cancridae",                "rank_mismatch", "Reptantia is obsolete term for crab; multiple families of crab so assign to family = cancridae for now",
 
     # adjust_to_fb_slb
-    # RULE: Replace the taxa name with its Fishbase/Sealifebase accepted name.
+    # RULE: Replace the taxa name with its Fishbase/Sealifebase accepted name. 
     "liza spp",                             "planiliza spp",              "adjust_to_fb_slb", "Referring to mullets",
     "tritia reticulata",                    "nassarius reticulatus",      "adjust_to_fb_slb", "Netted Dog whelk",
     "afruca tangeri",                       "uca tangeri",                "adjust_to_fb_slb", "Worms has afruca tangeri as accepted name with uca tangeri as synonym",
@@ -239,14 +228,21 @@ build_corr_tbl_prod_sciname <- function(
     "cantherhines",                         "cantherhines spp",           "adjust_to_fb_slb", "Genus with missing spp",
     "cherax cainii",                        "cherax spp",                 "adjust_to_fb_slb", "Maron - classified into two species both cherax cainii and cherax tenuimanus however only cherax tenuimanus accepted in sealifebase synonyms but does not occur in sealifebase taxa table",
     "austrofusus glans",                    "buccinum spp",               "adjust_to_fb_slb", "Whelk",
+    "lophiosilurus apurensis",              "osteichthyes",               "adjust_to_fb_slb", "FIXIT: Repull rfishbase data and remove once species is verified in the record - currently not listed at all (2025-09)",
+    "pimelodus yuma",                       "pimelodus spp",              "adjust_to_fb_slb", "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
+    "astacopsis franklinii",                "parastacidae spp",           "adjust_to_fb_slb", "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
+    "adinaefiola aurantiaca",               "sepiola aurantiaca",         "adjust_to_fb_slb", "sepiola aurantiaca is unaccepted (original combination) in Worms, with adinaefiola aurantiaca as the accepted name. Sealifebase uses old name",
+    "amphiarius rugispinis",                "notarius rugispinis",        "adjust_to_fb_slb", "amphiarius rugispinis is accepted on worms, unaccepted synonym is used by fishbase",
+    "auxis",                                "auxis spp",                  "adjust_to_fb_slb", "missing spp in genus name",
+    "brycinus imberi",                      "brachyalestes imberi",       "adjust_to_fb_slb", "accepted on worms, unaccepted name used on Fishbase. Listed as synonym on Fishbase website, likely to showup in synonym table in an updated snapshot",
+    "brycinus nurse",                       "brachyalestes nurse",        "adjust_to_fb_slb", "accepted on worms, unaccepted name used on Fishbase. Listed as synonym on Fishbase website, likely to showup in synonym table in an updated snapshot",
+    "buccinum",                             "buccinum spp",               "adjust_to_fb_slb", "Genus with missing spp",                        
 
+   
     # FAO - spelling_error
 
-    # fixit_temporary
-    # RULE: Replace taxa name with the lowest taxa classification rank name that exists in the current Fishbase/Sealifebase snapshot version taxa tables.
-    "lophiosilurus apurensis",   "osteichthyes",     "fixit_temporary", "FIXIT: Repull rfishbase data and remove once species is verified in the record - currently not listed at all (2025-09)",
-    "pimelodus yuma",            "pimelodus spp",    "fixit_temporary", "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
-    "astacopsis franklinii",     "parastacidae spp", "fixit_temporary", "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
+  # SAU corrections --------------------------------------------------------
+  # As of 2026-07-15 These corrections are being retained until the next SAU version is released to have a record of our corrections. This section will also be culled of unused corrections. 
 
 
     # SAU - informal_name
