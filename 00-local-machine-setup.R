@@ -15,6 +15,7 @@ fao_prod_version <- "2026.1.0"
 fao_pop_version <- "2026_03_09" # last update date from website
 # change this when ingesting new data with new years represented 
 max_year <- 2024
+max_comtrade_h <- 6
 #local_data_path <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data"
 
 # 01-clean-model-inputs parameters --------------------------------
