@@ -1,9 +1,10 @@
 # 00-raw-data-download.R
 
+# Run Local Machine Configuration (directory paths, parameters)
+source("00-local-machine-setup.R")
 
 # Comtrade ---------------------------------------------------------------
 
-library(pak)
 pak::pak("comtradr")
 library(comtradr)
 
@@ -13,7 +14,12 @@ library(comtradr)
 # `dataset_id` must be one of "B4", "B5", "EB02", "EB10", "EB10S", "EB", "HS", "H0", "H1", "H2", "H3", "H4", "H5", "H6", "S1", "S2", "S3", "S4", "SS", "reporter",
 # "partner", "mode_of_transport", "flow_direction", "customs_code", "frequency", "mode_of_supply", "units_of_quantity", or "available_variables"
 
-descriptions <- ct_get_ref_table("H2")
+# create character vector of "H0", "H1", "H2", "H3", "H4", "H5", "H6" etc based on provided max_comtrade_H variable
+comtrade_hs_vec <- paste0("H", 0:as.integer(max_comtrade_h))
+
+# For each 
+foreach comtrade_hs_vec
+descriptions <- ct_get_ref_table("HS")
 
 # - Get all products and HS versions raw
 # - filter to aquatic products

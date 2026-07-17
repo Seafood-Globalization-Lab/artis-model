@@ -21,6 +21,7 @@ fao_prod_version <- "2026.1.0"
 fao_pop_version <- "2026_03_09" # last update date from website
 # change this when ingesting new data with new years represented 
 max_year <- 2024
+max_comtrade_h <- 6
 #local_data_path <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data"
 
 # Regex to filter to ARTIS-relevant HS codes (chapter 03, 05/0511, 16/1604/1605, 23/2301)
