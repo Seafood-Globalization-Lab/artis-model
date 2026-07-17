@@ -60,17 +60,6 @@
 #'   species ID.
 #'
 #' @seealso
-#' * [collect_fb_slb_data()] — calls this function and writes the output to
-#'   disk
-#' * [query_synonyms()] — performs the synonym lookup using the output CSV
-#' * [match_prod_taxa_to_fbslb()] — reads the output CSV and passes it to
-#'   [query_synonyms()] for synonym resolution
-#' * [classify_prod_dat()] — reads the output CSV and passes it to
-#'   [query_synonyms()] for synonym resolution
-#' * [clean_hs()] — reads the output CSV and passes it to
-#'   [query_synonyms()] for synonym resolutions
-#' * [compile_cf()] — reads the output CSV and passes it to
-#'   [query_synonyms()] for synonym resolution
 #' * FishBase SYNONYMS table documentation:
 #'   <https://www.fishbase.se/manual/english/FishBaseThe_SYNONYMS_Table.htm>
 #'
@@ -172,7 +161,7 @@ clean_fb_slb_synonyms <- function(
       filter(accepted_name != "julis vrolikii")
 
     # Single synonym name with different syn_code and accepted names - causes a one-to-many join problem
-    # when unmatched prod taxa run through the synonyms matching loop. 
+    # when unmatched prod taxa run through the synonyms matching loop. Alectis indica 
     syn_corrections <- syn_corrections %>% 
       filter(!(synonym == "alectis indica" & syn_code == 8344))
 

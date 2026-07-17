@@ -53,7 +53,7 @@ collect_fb_slb_data <- function(parent_outdir) {
   slb_synonyms_raw <- rfishbase::fb_tbl("synonyms", server = "sealifebase", version = "latest") %>% distinct()
   
   fwrite(fb_synonyms_raw, file.path(outdir, "fb_synonyms_raw.csv"), row.names = FALSE)
-  fwrite(slb_synonyms_raw, file.path(outdir, "fb_synonyms_raw.csv"), row.names = FALSE)
+  fwrite(slb_synonyms_raw, file.path(outdir, "slb_synonyms_raw.csv"), row.names = FALSE)
   
 
 # Aquarium information -----------------------------------------------

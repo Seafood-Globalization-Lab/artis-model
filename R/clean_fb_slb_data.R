@@ -66,7 +66,7 @@ clean_fb_slb_data <- function(parent_outdir) {
   # Synonyms ---------------------------------------------------------------
 
   fb_synonyms_raw <- fread(file.path(fb_slb_dir, "fb_synonyms_raw.csv"), data.table = FALSE)
-  slb_synonyms_raw <- fread(file.path(fb_slb_dir, "fb_synonyms_raw.csv"), data.table = FALSE)
+  slb_synonyms_raw <- fread(file.path(fb_slb_dir, "slb_synonyms_raw.csv"), data.table = FALSE)
 
   # Cleaning synonym information to use as translation tables
   fb_synonyms_clean <- artis::clean_fb_slb_synonyms(

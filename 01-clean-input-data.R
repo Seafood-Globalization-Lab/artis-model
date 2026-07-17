@@ -34,7 +34,7 @@ if(need_new_fb_slb) {
 # FIXIT: AM 20206-07-15 move data structure checks within clean_fb_slb_data() to the raw data assessment script. 
 # Messages are too detailed and not necessarily relevant to the clean-input-data script as many of the violations 
 # do not necessitate corrections because they do not affect production data. 
-current_fb_slb_dir <- clean_fb_slb_data(parent_outdir = path_fb_slb_raw)
+current_fb_slb_dir <- artis::clean_fb_slb_data(parent_outdir = path_fb_slb_raw)
 
 # FAO Production Data -------------------------------
 
@@ -45,7 +45,7 @@ current_fb_slb_dir <- clean_fb_slb_data(parent_outdir = path_fb_slb_raw)
 # FAO files are not always consistent schemaq, so multiple version exist of the function
 # to account for these differences.
 
-rebuilt_fao_prod <- rebuild_fao_2023_dat(
+rebuilt_fao_prod <- artis::rebuild_fao_2023_dat(
   datadir = path_fao_prod_raw,
   filename = glue::glue("GlobalProduction_{fao_prod_version}.zip")
 ) %>%
@@ -55,13 +55,13 @@ rebuilt_fao_prod <- rebuild_fao_2023_dat(
 # FAO Clean Taxa and Classification ---------------------------
 
 ## Step 1: Clean raw FAO production data ---------------------------
-prod_ts_fao <- clean_prod_dat(
+prod_ts_fao <- artis::clean_prod_dat(
   prod_df = rebuilt_fao_prod,
   prod_data_source = "FAO"
 )
 
 ## Pass 1 — match without corrections to surface unmatched names ---------------------------
-match_prod_taxa_results_1 <- match_prod_taxa_to_fbslb(
+match_prod_taxa_results_1 <- artis::match_prod_taxa_to_fbslb(
   prod_data = prod_ts_fao,
   fb_slb_dir = current_fb_slb_dir,
   corr_tbl = NULL
@@ -78,7 +78,7 @@ prod_taxa_classification <- match_prod_taxa_results_1$prod_taxa_classification
 # results of the FB/SLB synonym table matching / cleaning
 synonym_resolution <- match_prod_taxa_results_1$synonym_resolution
 # leftover production taxa scinames that require manual corrections after pragmatic matching
-taxa_need_corrections <- as_tibble(match_prod_taxa_results_1$taxa_need_corrections)
+taxa_need_corrections_1 <- as_tibble(match_prod_taxa_results_1$taxa_need_corrections)
 
 
 ## FIXIT - Does this need an abort here if length(taxa_need_corrections) > 0?
@@ -105,7 +105,7 @@ match_prod_taxa_results_2 <- match_prod_taxa_to_fbslb(
   corr_tbl = build_corr_tbl_prod_sciname(the_fb_slb_dir = current_fb_slb_dir)
 )
 
-taxa_need_corrections <- as_tibble(match_prod_taxa_results_2$taxa_need_corrections)
+taxa_need_corrections_2 <- as_tibble(match_prod_taxa_results_2$taxa_need_corrections)
 
 # FIXIT: Add final ref table of applied corrections (manual and synonyms) - think about cleaning scripts corrections (do they need to be included?)
 

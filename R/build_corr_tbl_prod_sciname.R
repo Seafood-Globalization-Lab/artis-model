@@ -232,11 +232,11 @@ build_corr_tbl_prod_sciname <- function(
     "pimelodus yuma",                       "pimelodus spp",              "adjust_to_fb_slb", "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
     "astacopsis franklinii",                "parastacidae spp",           "adjust_to_fb_slb", "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
     "adinaefiola aurantiaca",               "sepiola aurantiaca",         "adjust_to_fb_slb", "sepiola aurantiaca is unaccepted (original combination) in Worms, with adinaefiola aurantiaca as the accepted name. Sealifebase uses old name",
-    "amphiarius rugispinis",                "notarius rugispinis",        "adjust_to_fb_slb", "amphiarius rugispinis is accepted on worms, unaccepted synonym is used by fishbase",
-    "auxis",                                "auxis spp",                  "adjust_to_fb_slb", "missing spp in genus name",
-    "brycinus imberi",                      "brachyalestes imberi",       "adjust_to_fb_slb", "accepted on worms, unaccepted name used on Fishbase. Listed as synonym on Fishbase website, likely to showup in synonym table in an updated snapshot",
-    "brycinus nurse",                       "brachyalestes nurse",        "adjust_to_fb_slb", "accepted on worms, unaccepted name used on Fishbase. Listed as synonym on Fishbase website, likely to showup in synonym table in an updated snapshot",
-    "buccinum",                             "buccinum spp",               "adjust_to_fb_slb", "Genus with missing spp",                        
+    #"amphiarius rugispinis",                "notarius rugispinis",        "adjust_to_fb_slb", "amphiarius rugispinis is accepted on worms, unaccepted synonym is used by fishbase",
+    #"auxis",                                "auxis spp",                  "adjust_to_fb_slb", "missing spp in genus name",
+    #"brycinus imberi",                      "brachyalestes imberi",       "adjust_to_fb_slb", "accepted on worms, unaccepted name used on Fishbase. Listed as synonym on Fishbase website, likely to showup in synonym table in an updated snapshot",
+    #"brycinus nurse",                       "brachyalestes nurse",        "adjust_to_fb_slb", "accepted on worms, unaccepted name used on Fishbase. Listed as synonym on Fishbase website, likely to showup in synonym table in an updated snapshot",
+    #"buccinum",                             "buccinum spp",               "adjust_to_fb_slb", "Genus with missing spp",                        
 
    
     # FAO - spelling_error
