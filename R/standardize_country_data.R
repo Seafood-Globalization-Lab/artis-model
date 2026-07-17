@@ -42,6 +42,9 @@ standardize_country_data <- function(
   year_range = 1996:as.numeric(format(Sys.Date(), "%Y"))
 ) {
   
+  # Get latest year in the year range
+  max_year <- max(year_range)
+  
    # --- TERRITORY TO Sovergn COUNTRY MAPPINGS ---
 
   territory_mappings <- tibble::tribble(
@@ -116,29 +119,31 @@ standardize_country_data <- function(
   ~iso3c, ~artis_iso3c, ~start_year, ~end_year,
   # Timor Leste independence
   "TLS", "IDN", 1996, 2001,
-  "TLS", "TLS", 2002, 2023,
+  "TLS", "TLS", 2002, max_year,
   # Serbia and Montenegro split
   "SCG", "SCG", 1996, 2005,
   "SRB", "SCG", 1996, 2005,
-  "SRB", "SRB", 2006, 2023,
+  "SRB", "SRB", 2006, max_year,
   "MNE", "SCG", 1996, 2005, 
-  "MNE", "MNE", 2006, 2023,
+  "MNE", "MNE", 2006, max_year,
   # South Sudan independence
   "SSD", "SDN", 1996, 2011,
-  "SSD", "SSD", 2012, 2023,
+  "SSD", "SSD", 2012, max_year,
   "SDN", "SDN", 1996, 2011,
   # Southern African Customs Union dissolution
   "BWA", "ZA1", 1996, 1999,
-  "BWA", "BWA", 2000, 2023,
+  "BWA", "BWA", 2000, max_year,
   "LSO", "ZA1", 1996, 1999,
-  "LSO", "LSO", 2000, 2023,
+  "LSO", "LSO", 2000, max_year,
   "NAM", "ZA1", 1996, 1999,
-  "NAM", "NAM", 2000, 2023,
+  "NAM", "NAM", 2000, max_year,
   "SWZ", "ZA1", 1996, 1999,
-  "SWZ", "SWZ", 2000, 2023
-) |>
-tidyr::expand_grid(year = year_range) |>
-dplyr::filter(year >= start_year & year <= end_year) |>
+  "SWZ", "SWZ", 2000, max_year,
+  "ZAF", "ZA1", 1996, 1999,
+  "ZAF", "ZAF", 2000, max_year,
+) %>%
+tidyr::expand_grid(year = year_range) %>%
+dplyr::filter(year >= start_year & year <= end_year) %>%
 dplyr::select(-start_year, -end_year)
   
 special_corrections <- tibble::tribble(
@@ -168,7 +173,11 @@ special_corrections <- tibble::tribble(
   "Tristan da Cunha Isl.",           "SHN",     "GBR",
   "US Virgin Isl.",                  "VIR",     "USA",
   "US Virgin Islands",               "VIR",     "USA",
-  "Unknown Fishing Country",         "NEI",     "NEI"
+  "Unknown Fishing Country",         "NEI",     "NEI",
+  
+  # Countrycode doesn't correct this
+  "FS Micronesia",                   "FSM",        "FSM",
+  # "So. African Customs Union",       "",        "ZA1"
 ) %>% 
 tidyr::expand_grid(year = year_range)
   
