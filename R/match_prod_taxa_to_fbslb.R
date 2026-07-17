@@ -83,10 +83,17 @@ match_prod_taxa_to_fbslb <- function(
           select(sciname_raw, sciname_corrected, Species01, Genus01, Family01, Other01),
         join_by(SciName == sciname_raw)
       ) %>%
-      mutate(SciName = coalesce(sciname_corrected, SciName)) %>%
-      select(-sciname_corrected)
+    # consolidate records to use .y columns when there is a join match (a value in the correction .y columns)
+    mutate(
+      SciName   = coalesce(sciname_corrected, SciName),
+      Species01 = coalesce(Species01.y, Species01.x),
+      Genus01   = coalesce(Genus01.y,   Genus01.x),
+      Family01  = coalesce(Family01.y,  Family01.x),
+      Other01   = coalesce(Other01.y,   Other01.x)
+    ) %>%
+    select(-sciname_corrected, -ends_with(".x"), -ends_with(".y"))
 
-# FIXIT - capture successfully joined corrections (applied corrections) to document orignal and corrected prod taxa names for this version. 
+# FIXIT - capture successfully joined corrections (applied corrections) to document original and corrected prod taxa names for this version. 
     # pass to code below for complete record. 
 
   }
