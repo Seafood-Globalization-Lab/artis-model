@@ -189,6 +189,7 @@ build_corr_tbl_prod_sciname <- function(
     "labridae (ex scaridae)",                    "labridae",                   "name_formatting", "",
     "alitta virens (formerly nereis virens)",    "alitta virens",              "name_formatting", "Remove note of former name",
     "batoidea or batoidimorpha (hypotremata)",   "batoidea",                   "name_formatting", "",
+    "cantherhines (=navodon)",                   "cantherhines spp",           "name_formatting", "",
 
     # rank_mismatch
     # RULE: Replace the rank name that is not part of Fishbase/Sealifebase (ARTIS) with the taxa rank name one step up that is included in Fishbase/Sealifebase (ARTIS).
