@@ -7,6 +7,7 @@ source("00-local-machine-setup.R")
 
 pak::pak("comtradr")
 library(comtradr)
+library(dplyr)
 
 # Get commodity descriptions
 # Need to go through each HS version 
@@ -17,11 +18,39 @@ library(comtradr)
 # create character vector of "H0", "H1", "H2", "H3", "H4", "H5", "H6" etc based on provided max_comtrade_H variable
 comtrade_hs_vec <- paste0("H", 0:as.integer(max_comtrade_h))
 
-# For each 
-foreach comtrade_hs_vec
-descriptions <- ct_get_ref_table("HS")
+# Lookup table mapping Comtrade H-codes to standard HS year labels
+hs_version_lookup <- c(
+  H0 = "HS88", H1 = "HS96", H2 = "HS02",
+  H3 = "HS07", H4 = "HS12", H5 = "HS17", H6 = "HS22"
+)
 
-# - Get all products and HS versions raw
+# Fetch commodity descriptions for each HS version and bind into one data frame
+descriptions <- purrr::map(comtrade_hs_vec, \(hs) {
+  ct_get_ref_table(hs) %>% 
+    dplyr::mutate(
+      classification = hs,
+      hs_version = hs_version_lookup[hs]
+    )
+}) %>% 
+  dplyr::bind_rows() %>% 
+  # remove header rows in each HS version
+  dplyr::filter(id != "TOTAL")
+
+descriptions_clean <- descriptions %>% 
+  # trim leading "{id} - " prefix from text column where present
+  dplyr::mutate(text = stringr::str_remove(text, "^\\d+ - "))
+
+# Regex to filter to ARTIS-relevant HS codes (chapter 03, 05/0511, 16/1604/1605, 23/2301)
+artis_hs_regex <- "^03$|^03[0-9]{2}$|^16$|^160[45]$|^23$|^03[0-9]{4}$|^160[45][0-9]{2}$|^2301$|^230120$|^051191$|^05$|^0511$"
+
+desc_aquatic <- descriptions_clean %>% 
+  dplyr::filter(stringr::str_detect(id, artis_hs_regex))
+
+# desc_comp <- desc_aquatic %>% 
+#   mutate(old_desc = id) %>% 
+
+
+# x Get all products and HS versions raw
 # - filter to aquatic products
 # - clean up "text" column to remove redundant hs6 codes
 # - mutate new hs_version column - classification? H0, H1, H2
