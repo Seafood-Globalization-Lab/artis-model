@@ -166,8 +166,8 @@ build_corr_tbl_prod_sciname <- function(
 
     # multi_taxa
     # RULE: Replace multiple taxa names with lowest shared taxa classification rank name
-    "astacidae, cambaridae",                              "cambaridae",         "multi_taxa", "Choose cambaridae as the larger family",
-    "auxis thazard, a. rochei",                          "auxis spp",           "multi_taxa", "",
+    "astacidae, cambaridae",                              "cambaridae",          "multi_taxa", "Choose cambaridae as the larger family",
+    "auxis thazard, a. rochei",                          "auxis spp",            "multi_taxa", "",
     "loliginidae, ommastrephidae",                        "teuthida",            "multi_taxa", "",
     "merluccius capensis, m.paradoxus",                  "merluccius spp",       "multi_taxa", "",
     "selachimorpha (pleurotremata)",                      "carcharhiniformes",   "multi_taxa", "Essentially an unidentified shark; code defines sharks as list of orders so assign to carcharhiniformes for now",
@@ -176,20 +176,28 @@ build_corr_tbl_prod_sciname <- function(
     "stolothrissa, limnothrissa",                         "clupeidae",           "multi_taxa", "",
     "xiphopenaeus, trachypenaeus",                        "penaeidae",           "multi_taxa", "",
     "alosa alosa, a. fallax",                             "alosa spp",           "multi_taxa", "Common genus between both",
+    "osmerus, hypomesus",                                 "osmeridae",           "multi_taxa", "two genera, bump to common family name",
+    "pandalus, pandalopsis",                              "pandalidae",          "multi_taxa", "two genera, bump to common family name",
 
     # name_formatting
     # RULE: Replace non-standard formatted taxa name with an expected format that aligns with Fishbase/Sealifebase formatting
     "holothuria (holothuria) tubulosa",          "holothuria tubulosa",        "name_formatting", "",
-    "uroteuthis (photololigo) duvaucelii",       "uroteuthis duvaucelii",      "name_formatting", "",
-    "perciformes (others)",                      "perciformes",                "name_formatting", "",
-    "perciformes (percoidei)",                   "perciformes/percoidei",      "name_formatting", "",
-    "perciformes (scorpaenoidei)",               "perciformes/scorpaenoidei",  "name_formatting", "",
+    "uroteuthis (photololigo) duvaucelii",       "uroteuthis duvaucelii",      "name_formatting", "",                              
+    "percoidei (perciformes)",                   "perciformes/percoidei",      "name_formatting","",
+    "scorpaenoidei (perciformes)",               "perciformes/scorpaenoidei",  "name_formatting", "",
+    "scombroidei (scombriformes)",               "perciformes/scorpaenoidei",  "name_formatting", "",
     "scombriformes (scombroidei)",               "scombriformes",              "name_formatting", "",
+    
     "lutjanidae (ex caesionidae)",               "lutjanidae",                 "name_formatting", "",
     "labridae (ex scaridae)",                    "labridae",                   "name_formatting", "",
     "alitta virens (formerly nereis virens)",    "alitta virens",              "name_formatting", "Remove note of former name",
     "batoidea or batoidimorpha (hypotremata)",   "batoidea",                   "name_formatting", "",
-    "cantherhines (=navodon)",                   "cantherhines spp",           "name_formatting", "",
+    "cantherhines (=navodon)",                   "cantherhines spp",           "name_formatting", "remove parentheses and any content within (inherited handling form previous ARTIS versions where this cleaning was hard coded in depricated classify_prod_dat()",
+    "clupeiformes (=clupeoidei)",                "clupeiformes",               "name_formatting", "remove parentheses and any content within (inherited handling form previous ARTIS versions where this cleaning was hard coded in depricated classify_prod_dat()",
+    "haemulidae (=pomadasyidae)",                "haemulidae",                 "name_formatting", "remove parentheses and any content within (inherited handling form previous ARTIS versions where this cleaning was hard coded in depricated classify_prod_dat()",   
+    "salmoniformes (=salmonoidei)",              "salmoniformes",              "name_formatting", "remove parentheses and any content within (inherited handling form previous ARTIS versions where this cleaning was hard coded in depricated classify_prod_dat()",   
+    "selachii or selachimorpha (pleurotremata)", "selachii",                   "name_formatting", "three names for the same infraclass. Selachii is accepted on Worms and an approved departure from FB/SLB taxonomic schema in order to provide important resolution",
+    "siluriformes (=siluroidei)",                "siluriformes",               "name_formatting", "remove parentheses and any content within (inherited handling form previous ARTIS versions where this cleaning was hard coded in depricated classify_prod_dat()",
 
     # rank_mismatch
     # RULE: Replace the rank name that is not part of Fishbase/Sealifebase (ARTIS) with the taxa rank name one step up that is included in Fishbase/Sealifebase (ARTIS).
@@ -202,7 +210,7 @@ build_corr_tbl_prod_sciname <- function(
     "invertebrata",               "asteroidea",               "rank_mismatch", "Assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum ascidians would be omitted as chordata)",
     "natantia",                   "crangonidae",              "rank_mismatch", "Natantia is obsolete term for shrimp; assign to order = crangonidae for now",
     "reptantia",                  "cancridae",                "rank_mismatch", "Reptantia is obsolete term for crab; multiple families of crab so assign to family = cancridae for now",
-
+    
     # adjust_to_fb_slb
     # RULE: Replace the taxa name with its Fishbase/Sealifebase accepted name. 
     "liza spp",                             "planiliza spp",              "adjust_to_fb_slb", "Referring to mullets",
@@ -229,18 +237,21 @@ build_corr_tbl_prod_sciname <- function(
     "cantherhines",                         "cantherhines spp",           "adjust_to_fb_slb", "Genus with missing spp",
     "cherax cainii",                        "cherax spp",                 "adjust_to_fb_slb", "Maron - classified into two species both cherax cainii and cherax tenuimanus however only cherax tenuimanus accepted in sealifebase synonyms but does not occur in sealifebase taxa table",
     "austrofusus glans",                    "buccinum spp",               "adjust_to_fb_slb", "Whelk",
-    "lophiosilurus apurensis",              "osteichthyes",               "adjust_to_fb_slb", "FIXIT: Repull rfishbase data and remove once species is verified in the record - currently not listed at all (2025-09)",
+    #"lophiosilurus apurensis",              "osteichthyes",               "adjust_to_fb_slb", "FIXIT: Repull rfishbase data and remove once species is verified in the record - currently not listed at all (2025-09)",
     "pimelodus yuma",                       "pimelodus spp",              "adjust_to_fb_slb", "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
     "astacopsis franklinii",                "parastacidae spp",           "adjust_to_fb_slb", "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
     "adinaefiola aurantiaca",               "sepiola aurantiaca",         "adjust_to_fb_slb", "sepiola aurantiaca is unaccepted (original combination) in Worms, with adinaefiola aurantiaca as the accepted name. Sealifebase uses old name",
-    #"amphiarius rugispinis",                "notarius rugispinis",        "adjust_to_fb_slb", "amphiarius rugispinis is accepted on worms, unaccepted synonym is used by fishbase",
-    #"auxis",                                "auxis spp",                  "adjust_to_fb_slb", "missing spp in genus name",
-    #"brycinus imberi",                      "brachyalestes imberi",       "adjust_to_fb_slb", "accepted on worms, unaccepted name used on Fishbase. Listed as synonym on Fishbase website, likely to showup in synonym table in an updated snapshot",
-    #"brycinus nurse",                       "brachyalestes nurse",        "adjust_to_fb_slb", "accepted on worms, unaccepted name used on Fishbase. Listed as synonym on Fishbase website, likely to showup in synonym table in an updated snapshot",
-    #"buccinum",                             "buccinum spp",               "adjust_to_fb_slb", "Genus with missing spp",                        
+    "caspialosa",                           "alosa",                      "adjust_to_fb_slb", "unaccepted genus name, the genus is listed in FB synonym table but not a record with only the genus on its own",
+    "crenimugil crenilabis",                "moolgarda crenilabis",       "adjust_to_fb_slb", "unaccepted > superseded combination, update to accepted species in Fishbases",
+    "leiarius perruno",                     "perrunichthys perruno",      "adjust_to_fb_slb", "accepted name on WoRMS, but perrunichthys perruno uses origninal name",
+    "mytella strigata",                     "mytella bicolor",            "adjust_to_fb_slb", "FIXIT: temporary use of synonym until new Sealife base snapshot is available. mytella guyanensis is the provisionally accepted name not in current slb_taxa table. mytella bicolor is is the synonym used for this version",
+    "lophiosilurus apurensis",              "cephalosilurus apurensis",   "adjust_to_fb_slb", "species name accepted on WoRMS with basis of record from ECoF, corrected name listed as synonym. FB uses synonym.",
+    "plectorhinchus pica (formerly p. picus)", "plectorhinchus picus",    "adjust_to_fb_slb", "WoRMS has name as accepted and picus as synonym, FB has picus as accepted",
+    "polybius corrugatus",                  "liocarcinus corrugatus",     "adjust_to_fb_slb", "name in Worms and not sealifebase, in slb snapshot taxa table only polybius henslowii in the genus. Found synonym on Worms that is in SLB.",
+    "uroteuthis (photololigo) edulis",      "uroteuthis edulis",          "adjust_to_fb_slb", "name is an alternative representation on Worms. Adjust to accepted names used by worms and SLB.",
 
-   
-    # FAO - spelling_error
+    # FAO - spelling_errors
+    "polyamblyodon germanus",               "polyamblyodon germanum",     "spelling_error",   "name is not in WoRMS or FB or web search. Likely spelling mistake for germanum (not germanus)",
 
   # SAU corrections --------------------------------------------------------
   # As of 2026-07-15 These corrections are being retained until the next SAU version is released to have a record of our corrections. This section will also be culled of unused corrections. 
@@ -313,8 +324,8 @@ build_corr_tbl_prod_sciname <- function(
   prod_sciname_corrections <- prod_sciname_corrections %>%
     mutate(sciname_corrected = gsub(sciname_corrected, pattern = " spp", replacement = ""))
 
-
   # Checks ----------------------------------
+
   # Check for duplicate records
   n_duplicates <- prod_sciname_corrections %>% 
     group_by(sciname_raw) %>% 
@@ -327,7 +338,7 @@ build_corr_tbl_prod_sciname <- function(
     filter(n_raw > 1)
 
   if(nrow(n_raw)) {
-    cli::cli_h2("Malformed manual corrections table - Check 1")
+    cli::cli_h2("Malformed prod taxa manual corrections table - Check 1")
     cli::cli_alert_warning("{.fn build_corr_tbl_prod_sciname} table has duplicate {.field sciname_raw} values.")
     cli::cli_alert_info("Multiple rows detected for: {n_raw$sciname_raw}")
   }
@@ -339,13 +350,16 @@ build_corr_tbl_prod_sciname <- function(
     filter(n_ones > 1)
 
   if(nrow(add_to_one)) {
-    cli::cli_h2("Malformed manual corrections table - Check 2")
+    cli::cli_h2("Malformed prod taxa manual corrections table - Check 2")
     cli::cli_alert_warning("Some {.field sciname_raw} values have more than one {.field Species01, Genus01, Family01, Other01} assignments.")
     cli::cli_alert_info("Check {.fn build_corr_tbl_prod_sciname} for duplicate {.field sciname_raw} values or other entry errors.")
     cli::cli_alert_info("Multiple encoded values detected for: {.val add_to_one$sciname_raw}")
   }
 
   # Check corrected names show up in FB/SLB taxa tables
+  
+  snapshot <- sub(".*_(\\d+\\.\\d+)$", "\\1", basename(the_fb_slb_dir))
+
   fb_taxa <- fread(file.path(the_fb_slb_dir, "fb_taxa_info.csv"), data.table = FALSE)
   slb_taxa <- fread(file.path(the_fb_slb_dir, "slb_taxa_info.csv"), data.table = FALSE)
 
@@ -358,9 +372,9 @@ build_corr_tbl_prod_sciname <- function(
     filter(!sciname_corrected %in% all_taxa_vec)
 
   if(nrow(not_valid_taxa)) {
-    cli::cli_h2("Malformed manual corrections table - Check 3")
-    cli::cli_alert_warning("{.val {nrow(not_valid_taxa)}} {.field sciname_corrected} values that are not found within Fishbase and Sealifebase taxa tables.")
-    cli::cli_alert_info("{.fn build_corr_tbl_prod_sciname} {.field sciname_corrected} values not in FB/SLB: {.val {not_valid_taxa}} ")
+    cli::cli_h2("Malformed prod taxa manual corrections table - Check 3")
+    cli::cli_alert_warning("{.val {nrow(not_valid_taxa)}} {.field sciname_corrected} value{?s} in {.fn build_corr_tbl_prod_sciname} {?is/are} not found within 
+    Fishbase and Sealifebase {.val {snapshot}} version taxa tables:  {.val {not_valid_taxa}}")
     cli::cli_alert_info("Make corrections where possible, but there may be instances where we choose to insert taxa not represented 
     in FB/SLB into the ARTIS. These instance are contained within the downstream {.fn fill_taxa_classification_gaps} function.")
   }

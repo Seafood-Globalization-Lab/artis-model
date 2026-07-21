@@ -112,17 +112,27 @@ clean_fb_slb_synonyms <- function(
   ) %>% 
   distinct()
 
-  # Separate non-accepted names as the basis of the corrections table. 
-  # NOTE: This assumes that all non-accepted names are synonyms, which is not always the case, 
-  # This level of documentation from FishBase is not available to our knowledge - need to verify that this 
+  # Separate non-accepted names as the basis of the corrections table.
+  # NOTE: This assumes that all non-accepted names are synonyms, which is not always the case,
+  # This level of documentation from FishBase is not available to our knowledge - need to verify that this
   # assumption that `status` "misapplied name" "ambiguous synonym" etc. can be 1:1 be applied to their associated `spec_code`
-  synonyms_df <- the_df %>% 
-    filter(!status %in% c("accepted name", "provisionally accepted name")) %>%
+  synonyms_df <- the_df %>%
+    # remove accepted names and certain kinds of synonyms
+    filter(
+      !status %in%
+        c(
+          "accepted name",
+          "provisionally accepted name",
+          "misapplied name"#,
+          # alectis indica synonym fix requires keeping ambiguous synonym category
+          # "ambiguous synonym" # FIXIT: Do we want to exclude this? Check with old code https://github.com/Seafood-Globalization-Lab/artis-model/blob/f43e9aa87ffc6cf9868488e19fe8ecb31b543577/R/clean_fb_slb_synonyms.R#L13-L26
+        )
+    ) %>%
     rename(
       synonym = sciname,
       synonym_status = status,
       aphia_id_synonym = aphia_id
-    ) %>% 
+    ) %>%
     distinct()
  
   # Assemble synonym corrections table 
@@ -158,7 +168,7 @@ clean_fb_slb_synonyms <- function(
     # WoRMS lists "halichoeres vrolikii" as `status` = "accepted"
     # Correction is to remove "julis vrolikii" as an accepted name
     syn_corrections <- syn_corrections %>% 
-      filter(accepted_name != "julis vrolikii")
+      filter(!(accepted_name == "julis vrolikii" & syn_code == 119353))
 
     # Single synonym name with different syn_code and accepted names - causes a one-to-many join problem
     # when unmatched prod taxa run through the synonyms matching loop. Alectis indica 
