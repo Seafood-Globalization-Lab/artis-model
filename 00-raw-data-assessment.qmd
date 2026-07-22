@@ -1164,3 +1164,53 @@ product_code_comparison |>
     locations = cells_body(rows = n_codes_removed > 0 | n_codes_added > 0)
   )
 ```
+
+# Assess: UN Comtrade
+
+## Code Descriptions 
+
+This assessment is currently a separate approach to the above comparisons. 
+As of writing this (2026-07-2) It makes sense to run this script off of the 00-local-machine-setup parameters set to make it a bit more dynamic. This come trade description comparison will eventually be integrated into this script, but just needs to live in a spot and run now. 
+
+```{r}
+source("00-local-machine-setup.R")
+
+file_name <- glue("un_comtrade_codes_descr_{first(hs_version_lookup)}_{last(hs_version_lookup)}_clean_ARTIS")
+hs_codes_new <- arrow::read_parquet(file.path(path_hs_codes_raw, glue("{file_name}.parquet")))
+hs_codes_old <- data.table::fread(
+  file.path(path_data_storage, "all-hs-codes", "ALL_HS_Codes.csv"),
+  colClasses = "character",
+  data.table = FALSE)
+
+
+# artis_hs_regex <- "^03$|^03[0-9]{2}$|^16$|^160[45]$|^23$|^03[0-9]{4}$|^160[45][0-9]{2}$|^2301$|^230120$|^051191$|^05$|^0511$"
+
+
+hs_codes_comp <- hs_codes_old %>% 
+  left_join(
+    hs_codes_new,
+    join_by(Classification, Code)
+    ) %>% 
+  select(
+    Classification,
+    Code,
+    Desc_old = Description.x,
+    Desc_new = Description.y
+  ) %>% 
+  mutate(Desc_diff = (Desc_old == Desc_new))
+  
+file_name <- glue("all_hs_codes_comparison_20206-07-22.csv")
+data.table::fwrite(hs_codes_comp, file.path("AM_local", "dev-artis-3.0", file_name))
+
+# x Get all products and HS versions raw
+# - filter to aquatic products
+# - clean up "text" column to remove redundant hs6 codes
+# - mutate new hs_version column - classification? H0, H1, H2
+# - remove header column
+# - verify that there are no conflicts in specific description text between this version and our previous all_hs_codes. 
+# - create new column "old_description" then run through clean_hs() to generate cleaned column - detect when the columns are NOT equal to review.
+
+
+# Think about how to validate if manually cleaned taxonomic names in hs6 descriptions become outdated / updated in the production taxa cleaning. 
+
+```
