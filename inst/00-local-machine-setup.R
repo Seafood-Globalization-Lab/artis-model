@@ -21,7 +21,7 @@ fao_prod_version <- "2026.1.0"
 fao_pop_version <- "2026_03_09" # last update date from website
 # change this when ingesting new data with new years represented 
 max_year <- 2024
-max_comtrade_h <- 6
+hs_version_range <- c("HS96", "HS02", "HS07", "HS12", "HS17", "HS22")
 #local_data_path <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data"
 
 # Regex to filter to ARTIS-relevant HS codes (chapter 03, 05/0511, 16/1604/1605, 23/2301)
@@ -64,8 +64,9 @@ path_fao_prod_raw <- file.path(path_data_storage, "fao-global-production")
 path_sau_prod_raw <- file.path(path_data_storage, "sau-production")
 path_fao_pop_raw <- file.path(path_data_storage, "fao-annual-population", glue::glue("Population_E_All_Data_{fao_pop_version}"))
 path_fb_slb_raw <- file.path(path_data_storage, "fishbase-sealifebase")
+path_comtrade_raw <- file.path(path_data_storage, "un-comtrade")
 
-path_hs_codes_raw <- file.path(path_data_storage, "all-hs-codes")
+path_hs_codes_raw <- file.path(path_comtrade_raw, "hs-codes-descriptions")
 path_EUMOFA <- file.path(path_data_storage, "EUMOFA")
 path_cnv_fct <- file.path(path_data_storage, "seafood-conversion-factors")
 
