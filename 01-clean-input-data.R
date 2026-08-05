@@ -31,12 +31,12 @@ if(need_new_fb_slb) {
 } 
 
 # clean raw data
-# FIXIT: AM 20206-07-15 move data structure checks within clean_fb_slb_data() to the raw data assessment script. 
+# FIXIT: AM 2026-07-15 move data structure checks within clean_fb_slb_data() to the raw data assessment script. 
 # Messages are too detailed and not necessarily relevant to the clean-input-data script as many of the violations 
 # do not necessitate corrections because they do not affect production data. 
 current_fb_slb_dir <- artis::clean_fb_slb_data(parent_outdir = path_fb_slb_raw)
 
-# FAO Production Data -------------------------------
+# FAO Production Restructure -------------------------------
 
 # Read in raw FAO production data files and restructure into standard format with
 # `rebuild_fao_[yyyy]_dat` function
@@ -103,6 +103,7 @@ match_prod_taxa_results_2 <- match_prod_taxa_to_fbslb(
 
 taxa_need_corrections_2 <- as_tibble(match_prod_taxa_results_2$taxa_need_corrections)
 
+# FIXIT: taxa_need_corrections_2 values that are OK - "batoidea", "perciformes", "selachii". Known deviations/exceptions to Fishbase/Sealifebase taxonomic schema  
 # FIXIT: Add final ref table of applied corrections (manual and synonyms) - think about cleaning scripts corrections (do they need to be included?)
 
 ## Gap-fill taxa classification ---------------------------

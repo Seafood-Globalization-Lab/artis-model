@@ -1,4 +1,4 @@
-#' Fill gaps and finalise the taxa classification table
+#' Fill gaps and finalize the taxa classification table
 #'
 #' @description
 #' Pure function. Takes the raw `prod_taxa_classification` table from
@@ -18,7 +18,7 @@
 #'   `missing_scinames_YYYY-MM-DD_HHMM.csv` if any `SciName`s in `prod_ts`
 #'   cannot be matched to classification. Required; no default.
 #'
-#' @return A data frame (`prod_taxa_classification_clean`) — the finalised,
+#' @return A data frame (`prod_taxa_classification_clean`) — the finalized,
 #'   de-duplicated, gap-filled taxa classification table filtered to names
 #'   present in `prod_ts`.
 #'
@@ -47,10 +47,9 @@ fill_taxa_classification_gaps <- function(
     distinct()
 
   classification_to_fix <- data.frame(table(classification_check$SciName)) %>%
-    filter(Freq > 1) %>%
-    pull(Var1)
+    filter(Freq > 1) 
 
-  if (length(classification_to_fix) > 0) {
+  if (nrow(classification_to_fix) > 0) {
     cli_warn(c(
       "!" = "{length(classification_to_fix)} SciName{?s} have conflicting classification \\
              rows in {.field prod_taxa_classification}. Discrepant columns will be set to \\
