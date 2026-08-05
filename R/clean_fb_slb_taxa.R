@@ -13,7 +13,7 @@ clean_fb_slb_taxa <- function(
   # Apply manual corrections conditionally based on:
   # 1) the snapshot version and
   # 2) weather to apply to fishbase or sealifebase taxa table
-  # This prevents our manual corretions from propegating quietly into future snapshot data
+  # This prevents our manual corrections from propagating quietly into future snapshot data
   
   # Corrections for the `rfishbase` pkg sealifebase 25.04 snapshot
   if(the_snapshot == "25.04" & the_server == "sealifebase"){

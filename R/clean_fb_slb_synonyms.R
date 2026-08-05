@@ -123,9 +123,8 @@ clean_fb_slb_synonyms <- function(
         c(
           "accepted name",
           "provisionally accepted name",
-          "misapplied name"#,
-          # alectis indica synonym fix requires keeping ambiguous synonym category
-          # "ambiguous synonym" # FIXIT: Do we want to exclude this? Check with old code https://github.com/Seafood-Globalization-Lab/artis-model/blob/f43e9aa87ffc6cf9868488e19fe8ecb31b543577/R/clean_fb_slb_synonyms.R#L13-L26
+          "misapplied name",
+          "ambiguous synonym" # FIXIT: Do we want to exclude this? Check with old code https://github.com/Seafood-Globalization-Lab/artis-model/blob/f43e9aa87ffc6cf9868488e19fe8ecb31b543577/R/clean_fb_slb_synonyms.R#L13-L26
         )
     ) %>%
     rename(
@@ -169,11 +168,6 @@ clean_fb_slb_synonyms <- function(
     # Correction is to remove "julis vrolikii" as an accepted name
     syn_corrections <- syn_corrections %>% 
       filter(!(accepted_name == "julis vrolikii" & syn_code == 119353))
-
-    # Single synonym name with different syn_code and accepted names - causes a one-to-many join problem
-    # when unmatched prod taxa run through the synonyms matching loop. Alectis indica 
-    syn_corrections <- syn_corrections %>% 
-      filter(!(synonym == "alectis indica" & syn_code == 8344))
 
     # "labeo sindensis" has two rows with two accepted names.
     # One is a "misapplied name" status that does not show up in Worms and unlikely 
