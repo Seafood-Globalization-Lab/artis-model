@@ -155,7 +155,7 @@ artis::standardize_countries(
 # ZAF vs ZA1 - Expected change
 # 7/1 issue: Unknown fishing country now maps to NEI
 
-standardize_country_data() %>% View()
+# standardize_country_data() %>% View()
 
 ### BACI ----------------------------------------------------------
 
@@ -240,6 +240,37 @@ new_std_baci <- bind_rows(
 
 ############ Testing
 
+
+### Delete this
+test_this <- data_for_na_std %>%
+  filter(exporter_country == "Belgium-Luxembourg") %>%
+  # 1. standardize imports
+  artis::standardize_countries( # Gets rid of NA iso3c values in exporter_iso3c column
+    country_id_type = "name_en",
+    country_col_name = "exporter_country",
+    year_col_name = "year"
+  ) %>%
+  select(exporter_iso3c = artis_iso3c, # we overwrite exporter_iso3c to artis_iso3c
+         importer_iso3c, # Keep as it's needed for the next correction
+         importer_country, # Keep as it's needed for the next correction
+         year) %>%
+  # 2. standardize exports
+  artis::standardize_countries( # Next run through importer country name corrections
+    country_id_type = "name_en",
+    country_col_name = "importer_country",
+    year_col_name = "year"
+  ) %>%
+  select(exporter_iso3c,
+         importer_iso3c = artis_iso3c,
+         year)
+
+### Delete this
+countries <- c("Belgium","Luxembourg", "Belgium-Luxembourg")
+
+raw_baci %>%
+  filter(
+    (exporter_country %in% countries | importer_country %in% countries)) %>% View()
+
 # Get only distinct rows in new standardization
 new_std_baci_distinct <- new_std_baci %>%
   distinct()
@@ -249,7 +280,7 @@ nrow(new_std_baci_distinct) # new standardization
 
 # There might be a bigger issue going on with territory aggregation
 
-# Timor-Letse was not given it's Indonesia sovereign in the old standardized data - our new correction is correct
+
 # std_check_1 Our updates to country standardization may be correct, though duplicate country names may need to be dropped
 # If we do drop duplicate country names (e.g., NLD --> NLD) we first need to summarize consumption weights
 # See what's in the new standardization that doesn't appear in the old standardization
@@ -258,11 +289,28 @@ nrow(new_std_baci_distinct) # new standardization
 
 # See what's in the new standardization that doesn't appear in the old standardization
 std_check_1 <- setdiff(new_std_baci, std_baci)
+  
+# See which of setdiff #1 doesn't have ZA1 in the rows
+# Timor-Letse was not given it's Indonesia sovereign in the old standardized data - our new correction is correct
+
+# std_check_1 %>% 
+#   filter(!(exporter_iso3c == "ZA1" |
+#            importer_iso3c == "ZA1")) %>% View()
+
+# Althea: ZA1 might hide another case? - think about
 
 # See what's in the old standardization that doesn't appear in the new standardization
 std_check_2 <- setdiff(std_baci, new_std_baci)
 
 # fix NEI's, fix belarus, and fix SACU to ensure that is correcting properly 7/17/2026
+
+# 8/5/2026
+# NEI is fixed* pending Jessica says that "US Misc. Pacific Isds" can remain as 
+# NEI or should map to USA
+# TLS isn't a problem because in the old ARTIS workflow
+# ZAF also isn't a problem
+
+
 std_check_2 %>%
   filter(importer_iso3c != "ZAF",
          exporter_iso3c != "ZAF",
@@ -271,9 +319,19 @@ std_check_2 %>%
          importer_iso3c != "TLS",
          exporter_iso3c != "TLS") %>% View()
 
+# 
+
 # std_check_2 %>%
 #   filter(!(importer_iso3c == "TWN" | exporter_iso3c == "TWN")) %>%
 #   filter(!(importer_iso3c == "NEI" | exporter_iso3c == "NEI"))
+
+
+raw_baci %>%
+  filter(str_detect(exporter_country, "Other"),
+         str_detect(importer_country, "Lux"))
+
+new_std_baci %>%
+  filter(exporter_iso3c == "TWN") %>% View()
 
 # Open corrections table
 corrections_table <- standardize_country_data()
