@@ -37,65 +37,8 @@ fill_taxa_classification_gaps <- function(
   outdir
 ) {
 
-  # Unique SciName deduplication loop (Bug 3: now warns) -------------------
-  # After removing CommonName, all SciNames should be unique.
-  # If not, there are multiple conflicting classification rows per SciName —
-  # standardize by setting discrepant columns to NA.
-
-  classification_check <- prod_taxa_classification %>%
-    select(-CommonName) %>%
-    distinct()
-
-  classification_to_fix <- data.frame(table(classification_check$SciName)) %>%
-    filter(Freq > 1) 
-
-  if (nrow(classification_to_fix) > 0) {
-    cli_warn(c(
-      "!" = "{length(classification_to_fix)} SciName{?s} have conflicting classification \\
-             rows in {.field prod_taxa_classification}. Discrepant columns will be set to \\
-             {.val NA}.",
-      "i" = "Affected names: {.val {as.character(classification_to_fix)}}"
-    ))
-  }
-
-  prod_taxa_fix <- NULL
-  for (i in seq_along(classification_to_fix)) {
-    prod_taxa_i <- prod_taxa_classification %>%
-      filter(SciName == classification_to_fix[i])
-
-    test_taxa_i <- prod_taxa_i %>%
-      mutate(across(everything(), as.factor)) %>%
-      mutate(across(everything(), as.numeric)) %>%
-      colSums(na.rm = TRUE) %>%
-      t()
-
-    # ColSums == 0               → all NA (no conflict)
-    # ColSums == nrow(prod_taxa_i) → all identical (no conflict)
-    # anything else              → discrepancy → set to NA
-    fix_columns <- colnames(test_taxa_i)[
-      test_taxa_i != 0 & test_taxa_i != nrow(prod_taxa_i)
-    ]
-
-    if (length(fix_columns) > 0) {
-      cli_warn(c(
-        "i" = "SciName {.val {as.character(classification_to_fix[i])}}: \\
-               columns set to NA → {.field {fix_columns}}"
-      ))
-    }
-
-    prod_taxa_i[, fix_columns] <- NA
-
-    prod_taxa_fix <- prod_taxa_fix %>%
-      bind_rows(prod_taxa_i %>% distinct())
-  }
-
-  prod_taxa_classification_clean <- prod_taxa_classification %>%
-    filter(!SciName %in% classification_to_fix) %>%
-    bind_rows(prod_taxa_fix) %>%
-    arrange(SciName)
-
   # Fill missing Phyla -------------------------------------------------------
-  prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
+  prod_taxa_classification_clean <- prod_taxa_classification %>%
     mutate(
       Phylum = case_when(
         Class %in% c(

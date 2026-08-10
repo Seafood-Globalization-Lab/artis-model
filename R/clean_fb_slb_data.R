@@ -59,8 +59,8 @@ clean_fb_slb_data <- function(parent_outdir) {
     the_server = "sealifebase"
   )
   
-  fwrite(fb_clean, file.path(fb_slb_dir, "fb_taxa_info.csv"), row.names = FALSE)
-  fwrite(slb_clean, file.path(fb_slb_dir, "slb_taxa_info.csv"), row.names = FALSE)
+  fwrite(fb_clean, file.path(fb_slb_dir, "fb_taxa_info.csv"), row.names = FALSE, na = "NA")
+  fwrite(slb_clean, file.path(fb_slb_dir, "slb_taxa_info.csv"), row.names = FALSE, na = "NA")
 
 
   # Synonyms ---------------------------------------------------------------
