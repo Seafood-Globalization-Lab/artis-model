@@ -42,8 +42,8 @@ query_synonyms <- function(synonym_df, the_sciname) {
   if (nrow(result) > 1){
     cli::cli_h2("ARTIS Assumption Violated")
     cli::cli_abort(c(
-      "Each {.field sciname} is expected to have a single taxonomic lineage",
-      "x" = "{.field sciname} {.val {the_sciname}} matched to a {.field {deparse(substitute(synonym_df))}} dataframe {.field synonym} value associated with more than one taxonomic lineage (i.e. more than one row)",
+      "Each {.field sciname} is expected to have a single hierarchical taxonomic classification scheme",
+      "x" = "{.field sciname} {.val {the_sciname}} matched to a {.field {deparse(substitute(synonym_df))}} dataframe {.field synonym} value associated with more than one taxonomic scheme (i.e. more than one row)",
       "i" = "Requires developer to make a choice and add a manual data correction to {.fn clean_fb_slb_synonyms} and rerunning {.fn collect_fb_slb_data}"
     ),
     call = match.call())

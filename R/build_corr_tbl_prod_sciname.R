@@ -330,7 +330,7 @@ build_corr_tbl_prod_sciname <- function(
   n_duplicates <- prod_sciname_corrections %>% 
     group_by(sciname_raw) %>% 
     mutate(
-      n_raw = n_distinct(sciname_raw)
+      n_raw = n()
     ) 
 
   # Check for duplicate raw scinames

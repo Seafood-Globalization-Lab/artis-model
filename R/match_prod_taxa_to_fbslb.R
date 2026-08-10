@@ -538,6 +538,7 @@ match_prod_taxa_to_fbslb <- function(
 
   # Replace empty strings with NA
   prod_data[prod_data == ""] <- NA
+  prod_taxa_classification[prod_taxa_classification == ""] <- NA
 
 
   # Output messages ---------------------------------------------------------------

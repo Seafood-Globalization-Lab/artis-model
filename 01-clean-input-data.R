@@ -7,6 +7,7 @@
 rm(list=ls())
 
 # load packages
+# FIXIT: Use pak here
 {
   library(artis)
   library(rfishbase)

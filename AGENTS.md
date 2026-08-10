@@ -14,6 +14,9 @@ For developing the ARTIS model package
 - `dplyr::join_by()` for joins, `.by` over `group_by()`, `across()` for column-wise ops
 - Roxygen2 documentation
 
+## Language Style
+- use American z's in words like "Standardizing" rather than "Standardizing" or "visualization" vs "visualisation" 
+
 ## Response Style
 - When asked for a response in markdown syntax OR to summarize for a GitHub issue - always bound the code with `~~~` in a single code chunk
 - Prefer concise responses — no filler, no sycophancy
