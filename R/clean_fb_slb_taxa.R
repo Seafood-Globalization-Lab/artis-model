@@ -8,17 +8,23 @@
 #'
 #' ## Hierarchical classification assumption
 #'
-#' ARTIS requires a strict many-to-one relationship at each rank transition —
-#' each unique lower-rank value must map to exactly one value of the next
-#' higher rank. The rank schemas differ slightly between databases:
+#' ARTIS requires that each unique taxon value maps to exactly one upstream
+#' classification scheme across all ranks above it. The rank schemas differ
+#' slightly between databases:
 #'
 #' * **FishBase:** Species → Genus → Subfamily → Family → Order → Class → SuperClass
 #' * **SeaLifeBase:** Species → Genus → Subfamily → Family → Order → Class → Phylum → Kingdom
 #'
-#' A violation means the same taxon (e.g. a Family) appears in the source data
-#' with two conflicting parent-rank values (e.g. two Orders). This is a data
-#' error in the snapshot that must be resolved by a targeted manual correction
-#' before the data can be used reliably downstream.
+#' A violation means a taxon (e.g. a Genus) appears in the source data with two
+#' or more distinct combinations of all upstream ranks (e.g. two different
+#' Family + Order + Class + SuperClass schemes). This is a data error in the
+#' snapshot that must be resolved by a targeted manual correction before the
+#' data can be used reliably downstream.
+#'
+#' Placeholder taxa values (e.g. `"Incertae sedis"` in Subfamily) are excluded
+#' from the scheme check because they are intentionally used across unrelated
+#' clades and would produce expected, non-actionable violations. They are
+#' replaced with `NA` in the returned data frame.
 #'
 #' ## Manual corrections
 #'
@@ -101,39 +107,48 @@ clean_fb_slb_taxa <- function(
   }
 
   # Hierarchical classification assumption checks ----------------------------
-  # ARTIS assumes a strict many-to-one relationship at each rank transition.
-  # Schemas differ between databases:
+  # ARTIS requires that each unique taxon value maps to exactly one upstream
+  # classification scheme across all ranks above it. Schemas differ between
+  # databases:
   #   FishBase:    Species > Genus > Subfamily > Family > Order > Class > SuperClass
   #   SeaLifeBase: Species > Genus > Subfamily > Family > Order > Class > Phylum > Kingdom
   #
-  # NA values in the parent rank are replaced with the sentinel "missing_value"
-  # before n_distinct() is computed. This ensures that a taxon with one record
-  # carrying a real parent-rank value and another carrying NA is correctly
-  # flagged as a conflict, rather than the NA row being silently dropped.
+  # NA values in any upstream rank are replaced with the sentinel "missing_value"
+  # before counting distinct schemes. This ensures a taxon with some records
+  # carrying a real upstream value and others carrying NA is flagged as a
+  # conflict rather than the NA rows being silently dropped.
 
-  rank_pairs <- if (the_server == "fishbase") {
+  upstream_ranks <- if (the_server == "fishbase") {
     list(
-      c("Species",   "Genus"),
-      c("Genus",     "Subfamily"),
-      c("Subfamily", "Family"),
-      c("Family",    "Order"),
-      c("Order",     "Class"),
-      c("Class",     "SuperClass")
+      Species   = c("Genus", "Subfamily", "Family", "Order", "Class", "SuperClass"),
+      Genus     = c("Subfamily", "Family", "Order", "Class", "SuperClass"),
+      Subfamily = c("Family", "Order", "Class", "SuperClass"),
+      Family    = c("Order", "Class", "SuperClass"),
+      Order     = c("Class", "SuperClass"),
+      Class     = c("SuperClass")
     )
-  } else {
+  } else if (the_server == "sealifebase"){
     list(
-      c("Species",   "Genus"),
-      c("Genus",     "Subfamily"),
-      c("Subfamily", "Family"),
-      c("Family",    "Order"),
-      c("Order",     "Class"),
-      c("Class",     "Phylum"),
-      c("Phylum",    "Kingdom")
+      Species   = c("Genus", "Subfamily", "Family", "Order", "Class", "Phylum", "Kingdom"),
+      Genus     = c("Subfamily", "Family", "Order", "Class", "Phylum", "Kingdom"),
+      Subfamily = c("Family", "Order", "Class", "Phylum", "Kingdom"),
+      Family    = c("Order", "Class", "Phylum", "Kingdom"),
+      Order     = c("Class", "Phylum", "Kingdom"),
+      Class     = c("Phylum", "Kingdom"),
+      Phylum    = c("Kingdom")
     )
   }
 
+  # Placeholder taxa values to exclude from the scheme check, keyed by rank.
+  # These taxa names are used by FishBase/SeaLifeBase across unrelated clades
+  # and would produce expected, non-actionable violations if included.
+  # They are retained in the_df and replaced with NA at the end of this function.
+  rank_placeholder_taxa <- list(
+    Subfamily = "Incertae sedis"
+  )
+
   # Warn if any expected rank column is absent from the_df
-  expected_cols <- unique(unlist(rank_pairs))
+  expected_cols <- unique(c(names(upstream_ranks), unlist(upstream_ranks)))
   missing_cols  <- expected_cols[!expected_cols %in% names(the_df)]
 
   if (length(missing_cols) > 0) {
@@ -144,46 +159,59 @@ clean_fb_slb_taxa <- function(
     ))
   }
 
-  # Run check for each rank pair and collect violations
-  # Creates list of dataframes. Each df is the results of each child/parent evaluation.
-  # Each evaluation may contain multiple violations. 
-  hierarchy_violations <- lapply(rank_pairs, function(pair) {
-    child_rank  <- pair[1]
-    parent_rank <- pair[2]
+  # Run holistic scheme check for each focal rank and collect violations.
+  # Each element of the returned list is a data frame of taxa at that rank
+  # whose upstream scheme is not unique (n_schemes > 1).
+  hierarchy_violations <- lapply(names(upstream_ranks), function(a_focal_rank) {
+    parents <- upstream_ranks[[a_focal_rank]]
+    excl    <- rank_placeholder_taxa[[a_focal_rank]]
+    if (is.null(excl)) excl <- character(0)
 
     the_df %>%
-      # Only evaluate rows where the child rank value is known
-      filter(!is.na(.data[[child_rank]])) %>%
-      # Sentinel: surfaces real-value vs NA conflicts as distinct values
-      mutate(across(all_of(parent_rank), ~coalesce(., "missing_value"))) %>%
-      distinct(.data[[child_rank]], .data[[parent_rank]]) %>%
-      summarize(
-        n_parent = n_distinct(.data[[parent_rank]]),
-        .by      = all_of(child_rank)
-      ) %>%
-      filter(n_parent > 1) %>%
+      # Drop rows where the focal rank is NA or is a known placeholder (rank_exclude).
+      # NA focal-rank rows have no taxon identity to group by, so they would be
+      # lumped together arbitrarily and produce false violations.
+      # Placeholder values (e.g. "Incertae sedis") span unrelated clades by design
+      # and are excluded here; they remain in the_df for downstream handling.
+      # Note: NA values in *upstream* (parent) ranks are intentionally kept — they
+      # are evaluated by the sentinel coalesce() step below.
+      filter(!is.na(.data[[a_focal_rank]]), !(.data[[a_focal_rank]] %in% excl)) %>%
+      # Sentinel: replace NA in any upstream rank with the literal "missing_value".
+      # This makes a real-value vs NA conflict visible as two distinct scheme entries
+      # rather than silently collapsing NA rows out of the distinct() count.
+      mutate(across(all_of(parents), ~coalesce(., "missing_value"))) %>%
+      # Collapse to unique focal-rank + full upstream combinations.
+      # Each row here represents one distinct classification scheme for that taxon.
+      distinct(across(all_of(c(a_focal_rank, parents)))) %>%
+      # Count how many distinct upstream schemes each focal-rank value has.
+      # A well-formed hierarchy has n_schemes == 1 for every taxon.
+      summarize(n_schemes = n(), .by = all_of(a_focal_rank)) %>%
+      # Keep only taxa with more than one upstream scheme — these are the violations.
+      filter(n_schemes > 1) %>%
       rename(taxon = 1) %>%
-      mutate(child_rank = child_rank, parent_rank = parent_rank)
+      mutate(a_focal_rank = a_focal_rank, upstream_ranks = paste(parents, collapse = ", "))
   })
 
-  # Keep only rank pairs that produced at least one violation
+  names(hierarchy_violations) <- names(upstream_ranks)
+
+  # Keep only focal ranks that produced at least one violation
   hierarchy_violations <- Filter(
     function(v) nrow(v) > 0,
     hierarchy_violations
   )
 
   if (length(hierarchy_violations) > 0) {
-    cli::cli_h2("Hierarchical classification assumption violation - {the_server}")
+    cli::cli_h2("Taxonomic classification assumption violation - {the_server}")
     cli::cli_alert_warning(
-      "Each unique taxa rank value must map to exactly one value of the next higher rank."
+      "Each unique taxon value must map to exactly one upstream classification scheme."
     )
 
     for (v in hierarchy_violations) {
-      child_rank  <- unique(v$child_rank)
-      parent_rank <- unique(v$parent_rank)
+      focal <- unique(v$a_focal_rank)
+      ups   <- unique(v$upstream_ranks)
       cli::cli_alert_info(
-        "{.val {nrow(v)}} {.field {child_rank}} values map(s) to multiple {.field {parent_rank}} values. {.field {child_rank}} value(s):
-        {.val {v$taxon}}"
+        "{.val {nrow(v)}} {.field {focal}} value{?s} map{?s/} to multiple upstream schemes \\
+        ({ups}). {.field {focal}} value{?s}: {.val {v$taxon}}"
       )
     }
 
@@ -201,11 +229,19 @@ clean_fb_slb_taxa <- function(
     ))
   }
 
-  # Lowercase all values as the final step — after corrections and checks so
-  # that filter comparisons above match raw source capitalization and violation
-  # messages report taxa names as they appear in the original data.
+  # Replace taxonomic placeholder values (rank_exclude) with NA before
+  # lowercasing, so comparisons match the original source capitalization in
+  # rank_exclude. Scoped to only the columns that have exclusions.
   the_df <- the_df %>%
+    mutate(across(
+      all_of(names(rank_placeholder_taxa)),
+      ~if_else(. %in% rank_placeholder_taxa[[cur_column()]], NA_character_, .)
+    )) %>%
+    # Lowercase all values as the final step — after corrections and checks so
+    # that filter comparisons above match raw source capitalization and violation
+    # messages report taxa names as they appear in the original data.
     mutate_all(tolower)
+
 
   return(the_df)
 }
