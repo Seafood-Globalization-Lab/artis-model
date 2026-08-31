@@ -109,8 +109,8 @@ taxa_need_corrections_2 <- as_tibble(match_prod_taxa_results_2$taxa_need_correct
 
 ## Gap-fill taxa classification ---------------------------
 prod_taxa_classification <- fill_taxa_classification_gaps(
-  prod_taxa_classification = match_prod_taxa_results_2$prod_taxa_classification,
-  prod_ts = match_prod_taxa_results_2$prod_ts,
+  the_prod_taxa_classification = match_prod_taxa_results_2$prod_taxa_classification,
+  the_prod_data = match_prod_taxa_results_2$prod_data,
   outdir = outdir
 )
 
