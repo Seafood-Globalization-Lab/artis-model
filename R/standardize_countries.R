@@ -1,63 +1,98 @@
 #' Standardize country identifiers to ARTIS naming conventions
 #'
-#' This function harmonizes country identifiers in an input dataset to the
-#' ARTIS standard using a combination of the ARTIS corrections table and
-#' fallback mappings from the `countrycode` package. It supports workflows
-#' where the incoming country identifier is either an English country name
-#' or an ISO3c code, and returns a consistent pair of standardized fields:
-#' `artis_country_name` and `artis_iso3c`.
-#'
-#' The function:
-#' (1) Cleans input country strings by removing trailing parenthetical phrases.
-#' (2) Joins the input data to the ARTIS corrections table using user‑specified
-#'   country and year column names.
-#' (3) Applies ARTIS overrides where available, and uses `countrycode` to fill
-#'   in any remaining unmapped identifiers.
-#' (4) Warns when values cannot be standardized by either source.
-#' (5) Preserves all original columns and appends standardized identifiers.
-#'
-#' @param data A data frame containing country and year identifiers to be standardized.
-#' @param country_id_type Character string indicating the type of identifier
-#'   supplied in `country_col_name`. Must be either `"name_en"` for English
-#'   country names or `"iso3c"` for ISO3c codes.
-#' @param country_col_name Character string giving the name of the column in
-#'   `data` that contains the country identifier to standardize.
-#' @param year_col_name Character string giving the name of the column in
-#'   `data` that contains the year used for joining to the ARTIS corrections table.
-#'
-#' @return A data frame containing all original columns plus:
-#'   (1) `artis_country_name`: standardized ARTIS country name
-#'   (2) `artis_iso3c`: standardized ARTIS ISO3c code (empty string if unresolved)
+#' @description
+#' Harmonizes country identifiers in an input data frame to the ARTIS standard
+#' using the ARTIS corrections table and fallback mappings from the
+#' \code{countrycode} package. Accepts either English country names or ISO3c
+#' codes and appends two standardized output columns: \code{artis_country_name}
+#' and \code{artis_iso3c}.
 #'
 #' @details
-#' The ARTIS corrections table may contain multiple historical mappings for a
-#' given country-year combination. The join uses both the country identifier
-#' and year to ensure the correct mapping is applied. When no ARTIS mapping
-#' exists, the function falls back to `countrycode` to infer a standardized
-#' name and ISO3c code. Any identifiers that cannot be resolved by either
-#' source are reported in a warning.
+#' Called by \code{\link{std_artis_input_countries}} as the core standardization
+#' step applied to each ARTIS data source. The corrections table is produced by
+#' \code{\link{build_std_countries_tbl}} and joined to the input data by country
+#' identifier and year, ensuring the historically correct sovereign-country
+#' mapping is applied for time-dependent political changes.
+#'
+#' \strong{Input validation}
+#'
+#' Aborts with an informative error if the country column is not character type,
+#' the year column is not numeric, or \code{country_id_type} is not one of
+#' \code{"name_en"} or \code{"iso3c"}.
+#'
+#' \strong{Standardization logic}
+#'
+#' When \code{country_id_type = "name_en"}, trailing parenthetical phrases are
+#' stripped from country name strings before joining. Rows not matched by the
+#' ARTIS corrections table are flagged and re-processed: \code{countrycode} is
+#' used to infer an ISO3c code, which is then re-joined to the corrections table
+#' to resolve the correct sovereign country. This two-pass approach handles
+#' territory names that \code{countrycode} maps to a territory ISO3c rather than
+#' a sovereign one.
+#'
+#' When \code{country_id_type = "iso3c"}, the join is performed directly on the
+#' ISO3c code and year. Unmatched rows fall back to \code{countrycode} for both
+#' \code{artis_iso3c} and \code{artis_country_name}.
+#'
+#' In both paths, country identifiers that cannot be resolved by either source
+#' are reported as a \code{cli} warning and returned as \code{NA} in the output
+#' columns.
+#'
+#' @param the_data Data frame. Input table containing country and year identifiers
+#'   to be standardized.
+#' @param country_id_type Character. Type of country identifier supplied in
+#'   \code{country_col_name}. One of \code{"name_en"} (English country name) or
+#'   \code{"iso3c"} (ISO 3166-1 alpha-3 code).
+#' @param country_col_name Character. Name of the column in \code{the_data}
+#'   containing the country identifier to standardize.
+#' @param year_col_name Character. Name of the column in \code{the_data} containing
+#'   the year, used to join the time-dependent ARTIS corrections table.
+#'
+#' @return
+#' A data frame with all original columns from \code{the_data} plus:
+#' \describe{
+#'   \item{artis_country_name}{Standardized ARTIS sovereign country name.
+#'     \code{NA} if the identifier could not be resolved.}
+#'   \item{artis_iso3c}{Standardized ARTIS ISO3c code. \code{NA} if the
+#'     identifier could not be resolved.}
+#' }
+#'
+#' @note
+#' When \code{country_id_type = "name_en"}, the \code{iso3c} column introduced
+#' by the corrections join is removed from the output. Unresolvable country
+#' identifiers produce \code{NA} in output columns and are reported via
+#' \code{cli} warning rather than causing an error.
+#'
+#' @seealso
+#' \itemize{
+#'   \item \code{\link{build_std_countries_tbl}} — produces the ARTIS corrections
+#'     table used internally by this function
+#'   \item \code{\link{std_artis_input_countries}} — calls this function as the
+#'     core standardization step for FAO, BACI, and SAU pipeline inputs
+#' }
 #'
 #' @importFrom countrycode countrycode
 #' @importFrom stats setNames
-#' @importFrom stringr str_remove
+#' @importFrom stringr str_remove str_trim
+#' @importFrom tidyr drop_na
 #' @import dplyr
 #' @import cli
 #' @export
 
 standardize_countries <- function(
-  data,
+  the_data,
   country_id_type = c("name_en", "iso3c"),
   country_col_name,
   year_col_name 
 ) {
 
     # Check incoming data for missing values
-    na_count <- sum(is.na(data[[country_col_name]]))
-    missing_count <- sum(na.omit(data[[country_col_name]] == ""))
+    na_count <- sum(is.na(the_data[[country_col_name]]))
+    missing_count <- sum(na.omit(the_data[[country_col_name]] == ""))
     
     # --- Validate input column types before doing anything ---
     # Validate country column type
-    if (!is.character(data[[country_col_name]])) {
+    if (!is.character(the_data[[country_col_name]])) {
       cli::cli_abort(c(
         "x" = "The input column {.field {country_col_name}} you supplied as {.var country_col_name} does not appear to be a character type",
         "i" = "Country names or ISO3c codes should be character strings (e.g., 'USA', 'FRA')."
@@ -65,7 +100,7 @@ standardize_countries <- function(
     }
     
     # Validate year column type
-    if (!is.numeric(data[[year_col_name]])) {
+    if (!is.numeric(the_data[[year_col_name]])) {
       cli::cli_abort(c(
         "x" = "The input column {.field {year_col_name}} you supplied as {.var year_col_name} does not appear to be numeric.",
         "i" = "Year values must be numeric (e.g., 2010, 2015)."
@@ -82,7 +117,7 @@ standardize_countries <- function(
     }
 
   # get dataframe with country corrections
-  corrections_df <- artis::standardize_country_data()
+  corrections_df <- artis::build_std_countries_tbl()
 
   # Set up join by naming to match input data column names to the standardization column names
   # by_cols <- setNames(c("iso3c", "year"), c(country_col_name, year_col_name))
@@ -96,7 +131,7 @@ standardize_countries <- function(
       # set up join by naming to match input data column names to the standardization column names
       by_cols <- stats::setNames(c("country_name", "year"), c(country_col_name, year_col_name))
       
-      std_df <- data %>%
+      std_df <- the_data %>%
         # remove any trailing parenthetical phrase from string values
         dplyr::mutate(
           !!country_col_name := stringr::str_trim(
@@ -234,7 +269,7 @@ standardize_countries <- function(
       by_cols <- stats::setNames(c("iso3c", "year"), c(country_col_name, year_col_name))
 
       # Join input data to standardization data frame based on iso3c
-      std_df <- data %>% 
+      std_df <- the_data %>% 
         # remove any trailing parenthetical phrase from string values
         # Join to ARTIS corrections table
         dplyr::left_join(corrections_df_iso3c, by = by_cols) %>% 
