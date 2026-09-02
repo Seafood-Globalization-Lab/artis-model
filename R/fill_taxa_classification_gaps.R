@@ -105,8 +105,6 @@ fill_taxa_classification_gaps <- function(
       tribble(
         ~SciName,          ~CommonName,            ~Genus, ~Subfamily, ~Family, ~Order,           ~Infraclass,    ~Class,          ~Superclass,   ~Phylum,    ~Kingdom,   ~Aquarium, ~Fresh01, ~Brack01, ~Saltwater01,
         "perciformes",     "tuna-like fishes nei", NA,     NA,         NA,      "perciformes",    NA,             "teleostei",     "osteichthyes", "chordata", "animalia", NA,        NA,       NA,       NA,
-       #  "perch-like fishes"
-        # "scorpaeniformes", "mail-cheeked fishes",  NA,     NA,         NA,      "scorpaeniformes",NA,             "teleostei",      NA,          "chordata", "animalia", NA,        NA,       NA,       NA,
         "batoidea",        "rays",                 NA,     NA,         NA,      NA,               "batoidea",     "elasmobranchii", "chondrichthyes", "chordata", "animalia", NA,        NA,       NA,       NA,
         "selachii",        "sharks",               NA,     NA,         NA,      NA,               "selachii",     "elasmobranchii", "chondrichthyes", "chordata", "animalia", NA,        NA,       NA,       NA,
       ))
@@ -126,12 +124,12 @@ fill_taxa_classification_gaps <- function(
     # Fill missing CommonName for osteichthyes -----------------------------------
   
     # FIXIT: AM 2026-08-31 - multiple common names originating from production data. Do we want to overwrite this distinction? 
-    mutate(
-      CommonName = case_when(
-        SciName == "osteichthyes" ~ "ray-finned fishes",
-        TRUE ~ CommonName
-      )
-    ) %>%
+    # mutate(
+    #   CommonName = case_when(
+    #     SciName == "osteichthyes" ~ "ray-finned fishes",
+    #     TRUE ~ CommonName
+    #   )
+    # ) %>%
   
     # Only keep taxa represented in prod_data -----------------------------------
 
