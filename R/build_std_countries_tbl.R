@@ -1,21 +1,15 @@
-#' Standardize Country Data
+#' Build ARTIS sovereign country correction table
 #'
-#' Creates a correction key that maps country names and iso3c codes to their ARTIS
-#' sovereign country equivalents, accounting for territories, time-dependent
-#' political changes, and special cases. The year range is automatically
-#' set to 1996 through the current year.
-#'
-#' @return A tibble with the following columns:
-#'   \describe{
-#'     \item{country_name}{Country name as a character string.}
-#'     \item{iso3c}{ISO 3166-1 alpha-3 country code.}
-#'     \item{year}{Year as an integer.}
-#'     \item{artis_country_name}{Sovereign country name used in ARTIS.}
-#'     \item{artis_iso3c}{Sovereign ISO3C code used in ARTIS. Non-standard}
-#'       codes include \code{"NEI"} (not elsewhere identified).
-#'   }
+#' Creates a correction key that maps country names and ISO3c codes to their
+#' ARTIS sovereign country equivalents, accounting for territories,
+#' time-dependent political changes, and special cases.
 #'
 #' @details
+#' Supplies the reference corrections table used when harmonizing country
+#' identifiers in FAO, BACI, and SAU input data. The output tibble is joined
+#' against input data by country identifier and year to resolve the correct
+#' sovereign-country mapping.
+#'
 #' Three types of mappings are combined:
 #' \itemize{
 #'   \item \strong{Territory mappings}: Dependent territories mapped to their
@@ -27,18 +21,46 @@
 #'     and small states grouped under \code{"NEI"}.
 #' }
 #'
-#' @examples
-#' corrections <- standardize_country_data()
+#' @param year_range Integer vector. Range of years over which the corrections
+#'   table is expanded. Each country-to-sovereign mapping is replicated for
+#'   every year in this vector. Default: \code{1996} through the current year.
+#'
+#' @return
+#' A tibble with one row per unique combination of country identifier and year.
+#' Columns:
+#' \describe{
+#'   \item{country_name}{Country name as a character string.}
+#'   \item{iso3c}{ISO 3166-1 alpha-3 country code as character string.}
+#'   \item{year}{Year as an integer.}
+#'   \item{artis_country_name}{Sovereign country name used in ARTIS as character string.}
+#'   \item{artis_iso3c}{Sovereign ISO3c code used in ARTIS as character string. Non-standard
+#'     codes include \code{"NEI"} (not elsewhere identified),
+#'     \code{"SCG"} (Serbia and Montenegro), and \code{"ZA1"}
+#'     (Southern African Customs Union).}
+#' }
+#'
+#' @note Rows where \code{year} or \code{artis_iso3c} are \code{NA} are
+#'   dropped from the final output. Time-dependent mappings are filtered so
+#'   that only the correct sovereign assignment for each year is retained.
+#'
+#' @seealso
+#' \itemize{
+#'   \item \code{\link{standardize_countries}} — uses the ARTIS corrections
+#'     table produced by this function to harmonize country identifiers
+#'   \item \code{\link{std_countries_artis}} — higher-level wrapper that
+#'     applies standardization to FAO, BACI, and SAU data
+#' }
 #'
 #' @importFrom tibble tribble
 #' @importFrom tidyr expand_grid
 #' @importFrom dplyr filter select mutate case_when bind_rows distinct arrange
 #' @importFrom countrycode countrycode
+#' @importFrom magrittr %>%
 #' @export
 
 
   # --- Generate range of years to expand country corrections into ---
-standardize_country_data <- function(
+build_std_countries_tbl <- function(
   year_range = 1996:as.numeric(format(Sys.Date(), "%Y"))
 ) {
   
