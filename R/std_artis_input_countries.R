@@ -1,12 +1,65 @@
-#' Title
+#' Standardize countries in ARTIS pipeline input data by source type
 #'
-#' @param type 
+#' Orchestrates source-specific country standardization for the three ARTIS
+#' input data types: FAO, BACI, and SAU. Applies the correct column mapping
+#' and correction strategy for each source by calling
+#' \code{\link{standardize_countries}} one or more times per source.
+#'
+#' @details
+#' Used in the ARTIS data preparation pipeline to standardize raw input data
+#' from each upstream source before downstream processing. Each branch applies
+#' a tailored strategy to account for differences in how each source encodes
+#' country identifiers.
+#'
+#' \strong{FAO}: Runs a two-pass correction. The first pass standardizes by
+#' ISO3c code (\code{country_iso3_alpha}). Rows where \code{country_iso3_alpha}
+#' is \code{NA} are extracted and re-standardized by English country name
+#' (\code{country_name_en}). Results from both passes are combined.
+#'
+#' \strong{BACI}: Standardizes both exporter and importer country columns.
+#' The first pass corrects exporter and importer ISO3c codes. Rows with
+#' remaining \code{NA} values are re-standardized by country name in a second
+#' pass. Circular trade flows (rows where the standardized exporter and importer
+#' ISO3c codes are identical) are removed from the output.
+#'
+#' \strong{SAU}: Runs a single-pass correction by English country name
+#' (\code{country_name_en}) only, as SAU data does not include ISO3c codes.
+#'
+#' @param the_data Data frame. Raw input table for the specified source type.
+#'   Expected columns vary by \code{the_data_type}:
+#'   \itemize{
+#'     \item \strong{FAO}: \code{country_iso3_alpha}, \code{country_name_en},
+#'       \code{year}
+#'     \item \strong{BACI}: \code{exporter_iso3c}, \code{exporter_country},
+#'       \code{importer_iso3c}, \code{importer_country}, \code{year}
+#'     \item \strong{SAU}: \code{country_name_en}, \code{year}
+#'   }
+#' @param the_data_type Character. Source type of the input data. One of
+#'   \code{"FAO"}, \code{"BACI"}, or \code{"SAU"}. Determines which
+#'   standardization strategy is applied. Defaults to \code{"FAO"} if not
+#'   specified.
 #'
 #' @return
-#' @export
+#' A data frame of the same general structure as \code{the_data} with country
+#' identifiers resolved to ARTIS sovereign-country conventions. Specific output
+#' columns depend on the source type and follow the output contract of
+#' \code{\link{standardize_countries}}.
 #'
-#' @examples
-std_countries_artis <- function(
+#' @note
+#' The BACI branch removes circular trade flows (rows where the standardized
+#' \code{exporter_iso3c} equals \code{importer_iso3c}) from the output.
+#'
+#' @seealso
+#' \itemize{
+#'   \item \code{\link{standardize_countries}} — core standardization function
+#'     called within each source branch
+#'   \item \code{\link{build_std_countries_tbl}} — produces the ARTIS corrections
+#'     table used by \code{\link{standardize_countries}}
+#' }
+#'
+#' @import dplyr
+#' @export
+std_artis_input_countries <- function(
   the_data, 
   the_data_type = c("FAO", "BACI", "SAU")) {
   
