@@ -6,13 +6,15 @@
 #' @export
 #'
 #' @examples
-std_countries_artis <- function(the_data, data_type = c("FAO", "BACI", "SAU")) {
+std_countries_artis <- function(
+  the_data, 
+  the_data_type = c("FAO", "BACI", "SAU")) {
   
   # data type must be one of FAO, BACI, or SAU. Return an error if the user
   # inputs something outside these three data sources
-  data_type <- match.arg(data_type)
+  the_data_type <- match.arg(the_data_type)
   
-  if (data_type == "FAO") {
+  if (the_data_type == "FAO") {
     
     # 1) Correct by iso3
     fao_iso3c <- artis::standardize_countries(
@@ -37,7 +39,7 @@ std_countries_artis <- function(the_data, data_type = c("FAO", "BACI", "SAU")) {
     # 4) bind iso3c corrections and country name corrections
     the_std_data <- bind_rows(fao_no_na, fao_country_name)
     
-  } else if (data_type == "BACI") {
+  } else if (the_data_type == "BACI") {
     
     # Step A. Correct by iso3c.
     baci_iso3c <-
@@ -125,7 +127,7 @@ std_countries_artis <- function(the_data, data_type = c("FAO", "BACI", "SAU")) {
     # Also need to add a group_by() and summarize
     
     ## End of workflow
-  } else if (data_type == "SAU") {
+  } else if (the_data_type == "SAU") {
     
     #### Correct by name - only name in SAU data
     the_std_data <- artis::standardize_countries(
