@@ -25,8 +25,8 @@
 #' \strong{SAU}: Runs a single-pass correction by English country name
 #' (\code{country_name_en}) only, as SAU data does not include ISO3c codes.
 #'
-#' @param the_data Data frame. Raw input table for the specified source type.
-#'   Expected columns vary by \code{the_data_type}:
+#' @param data Data frame. Raw input table for the specified source type.
+#'   Expected columns vary by \code{data_source}:
 #'   \itemize{
 #'     \item \strong{FAO}: \code{country_iso3_alpha}, \code{country_name_en},
 #'       \code{year}
@@ -34,13 +34,13 @@
 #'       \code{importer_iso3c}, \code{importer_country}, \code{year}
 #'     \item \strong{SAU}: \code{country_name_en}, \code{year}
 #'   }
-#' @param the_data_type Character. Source type of the input data. One of
+#' @param data_source Character. Source type of the input data. One of
 #'   \code{"FAO"}, \code{"BACI"}, or \code{"SAU"}. Determines which
 #'   standardization strategy is applied. Defaults to \code{"FAO"} if not
 #'   specified.
 #'
 #' @return
-#' A data frame of the same general structure as \code{the_data} with country
+#' A data frame of the same general structure as \code{data} with country
 #' identifiers resolved to ARTIS sovereign-country conventions. Specific output
 #' columns depend on the source type and follow the output contract of
 #' \code{\link{standardize_countries}}.
@@ -59,22 +59,23 @@
 #'
 #' @import dplyr
 #' @export
+
 std_artis_input_countries <- function(
-  the_data, 
-  the_data_type = c("FAO", "BACI", "SAU")) {
+  data, 
+  data_source = c("FAO", "BACI", "SAU")) {
   
   # data type must be one of FAO, BACI, or SAU. Return an error if the user
   # inputs something outside these three data sources
-  the_data_type <- match.arg(the_data_type)
+  data_source <- match.arg(data_source)
   
-  if (the_data_type == "FAO") {
+  if (data_source == "FAO") {
     
     # 1) Correct by iso3
     fao_iso3c <- artis::standardize_countries(
-      data = the_data,
-      country_id_type = "iso3c",
-      country_col_name = "country_iso3_alpha",
-      year_col_name = "year"
+      data = data,
+      country_id_format = "iso3c",
+      country_col = "country_iso3_alpha",
+      year_col = "year"
     )
     
     # 2) filter out NA values produced
@@ -84,24 +85,30 @@ std_artis_input_countries <- function(
     # 3) Filter to NA values - rerun standardization on country name column
     fao_country_name <- fao_iso3c %>%
       filter(is.na(country_iso3_alpha)) %>%
-      select(country_iso3_alpha, country_name_en, year) %>%
-      artis::standardize_countries(country_id_type = "name_en",
-                                   country_col_name = "country_name_en",
-                                   year_col_name = "year")
+      select(
+        country_iso3_alpha, 
+        country_name_en, 
+        year) %>%
+      artis::standardize_countries(
+        country_id_format = "name_en",
+        country_col = "country_name_en",
+        year_col = "year")
     
     # 4) bind iso3c corrections and country name corrections
-    the_std_data <- bind_rows(fao_no_na, fao_country_name)
+    the_std_data <- bind_rows(fao_no_na, fao_country_name) %>% 
+    # 5) aggregate data across all columns except for quantity
+      group_by(across(!quantity)) %>% 
+      summarize(quantity = sum(quantity, na.rm = TRUE))
     
-  } else if (the_data_type == "BACI") {
+  } else if (data_source == "BACI") {
     
-    # Step A. Correct by iso3c.
-    baci_iso3c <-
-      # 1. standardize exports
-      artis::standardize_countries(
-        data = the_data,
-        country_id_type = "iso3c",
-        country_col_name = "exporter_iso3c",
-        year_col_name = "year"
+    # 1) Correct by iso3c.
+    # standardize exports
+    baci_iso3c <- artis::standardize_countries(
+      data = data,
+      country_id_format = "iso3c",
+      country_col = "exporter_iso3c",
+      year_col = "year"
       ) %>%
       select(
         exporter_iso3c = artis_iso3c,
@@ -112,41 +119,46 @@ std_artis_input_countries <- function(
         importer_country,
         year
         ) %>%
-      # 2. standardize imports
+      # standardize imports
       artis::standardize_countries(
         # Next run through importer iso3c corrections
-        country_id_type = "iso3c",
-        country_col_name = "importer_iso3c",
-        year_col_name = "year"
+        country_id_format = "iso3c",
+        country_col = "importer_iso3c",
+        year_col = "year"
       ) %>%
-      select(exporter_iso3c,
-             exporter_country,
-             importer_iso3c = artis_iso3c,
-             importer_country,
-             year)
+      select(
+        exporter_iso3c,
+        exporter_country,
+        importer_iso3c = artis_iso3c,
+        importer_country,
+        year)
     
-    # Problem: NA's are produced, which will be solved in steps B and C. We remove NA's in this dataset.
+    # Problem: NA's are produced, which will be solved in steps 2 and 3. We remove NA's in this dataset.
     # Obtain data that contains non NA's that standardize on the first go
     baci_no_na <- baci_iso3c %>%
       filter(
         !is.na(exporter_iso3c),
         !is.na(importer_iso3c)
         ) %>%
-      select(exporter_iso3c, importer_iso3c, year)
+      select(
+        exporter_iso3c, 
+        importer_iso3c, 
+        year)
     
-    # Step B. create standardized table that only includes NA values from iso3c corrections 
+    # 2) create standardized table that only includes NA values from iso3c corrections 
     # so we can use that output to recorrect by countryname in C, producing non NA iso3c values.
     data_for_na_std <- base_df %>%
       filter(is.na(exporter_iso3c) | is.na(importer_iso3c))
     
-    # Step C. use standardized table to recorrect by countryname, converting NA iso3c values to their countryname assigned non-NA values.
+    # 3) use standardized table to recorrect by countryname, converting NA iso3c values 
+    # to their countryname assigned non-NA values.
     baci_std_name <- data_for_na_std %>%
       # 1. standardize exports
       # Gets rid of NA iso3c values in exporter_iso3c column
       artis::standardize_countries(
-        country_id_type = "name_en",
-        country_col_name = "exporter_country",
-        year_col_name = "year"
+        country_id_format = "name_en",
+        country_col = "exporter_country",
+        year_col = "year"
       ) %>%
       # we overwrite exporter_iso3c to artis_iso3c
       select(
@@ -157,12 +169,12 @@ std_artis_input_countries <- function(
         importer_country,
         year
         ) %>%
-      # 2. standardize exports
+      # 2. standardize importer
       # Next run through importer country name corrections
       artis::standardize_countries(
-        country_id_type = "name_en",
-        country_col_name = "importer_country",
-        year_col_name = "year"
+        country_id_format = "name_en",
+        country_col = "importer_country",
+        year_col = "year"
       ) %>%
       select(
         exporter_iso3c,
@@ -179,15 +191,16 @@ std_artis_input_countries <- function(
       filter(exporter_iso3c != importer_iso3c) 
     # Also need to add a group_by() and summarize
     
+    
     ## End of workflow
-  } else if (the_data_type == "SAU") {
+  } else if (data_source == "SAU") {
     
     #### Correct by name - only name in SAU data
     the_std_data <- artis::standardize_countries(
-      data = the_data,
-      country_id_type = "name_en",
-      country_col_name = "country_name_en",
-      year_col_name = "year"
+      data = data,
+      country_id_format = "name_en",
+      country_col = "country_name_en",
+      year_col = "year"
     )
     
   }

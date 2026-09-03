@@ -17,12 +17,12 @@
 #' \strong{Input validation}
 #'
 #' Aborts with an informative error if the country column is not character type,
-#' the year column is not numeric, or \code{country_id_type} is not one of
+#' the year column is not numeric, or \code{country_id_format} is not one of
 #' \code{"name_en"} or \code{"iso3c"}.
 #'
 #' \strong{Standardization logic}
 #'
-#' When \code{country_id_type = "name_en"}, trailing parenthetical phrases are
+#' When \code{country_id_format = "name_en"}, trailing parenthetical phrases are
 #' stripped from country name strings before joining. Rows not matched by the
 #' ARTIS corrections table are flagged and re-processed: \code{countrycode} is
 #' used to infer an ISO3c code, which is then re-joined to the corrections table
@@ -30,7 +30,7 @@
 #' territory names that \code{countrycode} maps to a territory ISO3c rather than
 #' a sovereign one.
 #'
-#' When \code{country_id_type = "iso3c"}, the join is performed directly on the
+#' When \code{country_id_format = "iso3c"}, the join is performed directly on the
 #' ISO3c code and year. Unmatched rows fall back to \code{countrycode} for both
 #' \code{artis_iso3c} and \code{artis_country_name}.
 #'
@@ -38,18 +38,18 @@
 #' are reported as a \code{cli} warning and returned as \code{NA} in the output
 #' columns.
 #'
-#' @param the_data Data frame. Input table containing country and year identifiers
+#' @param data Data frame. Input table containing country and year identifiers
 #'   to be standardized.
-#' @param country_id_type Character. Type of country identifier supplied in
-#'   \code{country_col_name}. One of \code{"name_en"} (English country name) or
+#' @param country_id_format Character. Type of country identifier supplied in
+#'   \code{country_col}. One of \code{"name_en"} (English country name) or
 #'   \code{"iso3c"} (ISO 3166-1 alpha-3 code).
-#' @param country_col_name Character. Name of the column in \code{the_data}
+#' @param country_col Character. Name of the column in \code{data}
 #'   containing the country identifier to standardize.
-#' @param year_col_name Character. Name of the column in \code{the_data} containing
+#' @param year_col Character. Name of the column in \code{data} containing
 #'   the year, used to join the time-dependent ARTIS corrections table.
 #'
 #' @return
-#' A data frame with all original columns from \code{the_data} plus:
+#' A data frame with all original columns from \code{data} plus:
 #' \describe{
 #'   \item{artis_country_name}{Standardized ARTIS sovereign country name.
 #'     \code{NA} if the identifier could not be resolved.}
@@ -58,7 +58,7 @@
 #' }
 #'
 #' @note
-#' When \code{country_id_type = "name_en"}, the \code{iso3c} column introduced
+#' When \code{country_id_format = "name_en"}, the \code{iso3c} column introduced
 #' by the corrections join is removed from the output. Unresolvable country
 #' identifiers produce \code{NA} in output columns and are reported via
 #' \code{cli} warning rather than causing an error.
@@ -80,38 +80,38 @@
 #' @export
 
 standardize_countries <- function(
-  the_data,
-  country_id_type = c("name_en", "iso3c"),
-  country_col_name,
-  year_col_name 
+  data,
+  country_id_format = c("name_en", "iso3c"),
+  country_col,
+  year_col 
 ) {
 
     # Check incoming data for missing values
-    na_count <- sum(is.na(the_data[[country_col_name]]))
-    missing_count <- sum(na.omit(the_data[[country_col_name]] == ""))
+    na_count <- sum(is.na(data[[country_col]]))
+    missing_count <- sum(na.omit(data[[country_col]] == ""))
     
     # --- Validate input column types before doing anything ---
     # Validate country column type
-    if (!is.character(the_data[[country_col_name]])) {
+    if (!is.character(data[[country_col]])) {
       cli::cli_abort(c(
-        "x" = "The input column {.field {country_col_name}} you supplied as {.var country_col_name} does not appear to be a character type",
+        "x" = "The input column {.field {country_col}} you supplied as {.var country_col} does not appear to be a character type",
         "i" = "Country names or ISO3c codes should be character strings (e.g., 'USA', 'FRA')."
       ))
     }
     
     # Validate year column type
-    if (!is.numeric(the_data[[year_col_name]])) {
+    if (!is.numeric(data[[year_col]])) {
       cli::cli_abort(c(
-        "x" = "The input column {.field {year_col_name}} you supplied as {.var year_col_name} does not appear to be numeric.",
+        "x" = "The input column {.field {year_col}} you supplied as {.var year_col} does not appear to be numeric.",
         "i" = "Year values must be numeric (e.g., 2010, 2015)."
       ))
     }
     
-    # Validate country_id_type
+    # Validate country_id_format
     valid_types <- c("name_en", "iso3c")
-    if (!country_id_type %in% valid_types) {
+    if (!country_id_format %in% valid_types) {
       cli::cli_abort(c(
-        "x" = "Invalid value supplied for {.arg country_id_type}: '{country_id_type}'.",
+        "x" = "Invalid value supplied for {.arg country_id_format}: '{country_id_format}'.",
         "i" = "Accepted values are {.val name_en} or {.val iso3c}."
       ))
     }
@@ -120,22 +120,22 @@ standardize_countries <- function(
   corrections_df <- artis::build_std_countries_tbl()
 
   # Set up join by naming to match input data column names to the standardization column names
-  # by_cols <- setNames(c("iso3c", "year"), c(country_col_name, year_col_name))
+  # by_cols <- setNames(c("iso3c", "year"), c(country_col, year_col))
     
-  # Join input data to standardization data frame based on country_id_type
-    if (country_id_type == "name_en") {
+  # Join input data to standardization data frame based on country_id_format
+    if (country_id_format == "name_en") {
       
       # Need full corrections data frame to correct by country name
       corrections_df_name <- corrections_df
 
       # set up join by naming to match input data column names to the standardization column names
-      by_cols <- stats::setNames(c("country_name", "year"), c(country_col_name, year_col_name))
+      by_cols <- stats::setNames(c("country_name", "year"), c(country_col, year_col))
       
-      std_df <- the_data %>%
+      std_df <- data %>%
         # remove any trailing parenthetical phrase from string values
         dplyr::mutate(
-          !!country_col_name := stringr::str_trim(
-            stringr::str_remove(.data[[country_col_name]], "\\(.+\\)$"))) %>%
+          !!country_col := stringr::str_trim(
+            stringr::str_remove(.data[[country_col]], "\\(.+\\)$"))) %>%
         #Join to ARTIS corrections table
         dplyr::left_join(
           corrections_df_name, by = by_cols) %>%
@@ -145,7 +145,7 @@ standardize_countries <- function(
                                               .default = FALSE)) %>% #,
               # If missing country name value (i.e. not corrected by ARTIS corrections join) add std country name via country code from original/supplied country name
           # artis_country_name = dplyr::case_when(
-            # base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col_name]],
+            # base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col]],
             #                                               origin = "country.name",
             #                                               destination = "country.name",
             #                                               warn = FALSE),
@@ -163,7 +163,7 @@ standardize_countries <- function(
         #                                       .default = FALSE)) %>% #,
         #       # If missing country name value (i.e. not corrected by ARTIS corrections join) add std country name via country code from original/supplied country name
         #   # artis_country_name = dplyr::case_when(
-        #     # base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col_name]],
+        #     # base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col]],
         #     #                                               origin = "country.name",
         #     #                                               destination = "country.name",
         #     #                                               warn = FALSE),
@@ -181,7 +181,7 @@ standardize_countries <- function(
       # column names to be joined (see ?setNames()) 
       by_cols <- stats::setNames(
         c("iso3c", "year"), 
-        c("artis_iso3c", year_col_name))
+        c("artis_iso3c", year_col))
       
       # Rejoin flagged data and df_corrections by iso3c and year
       # flagged_data <- std_df %>%
@@ -189,7 +189,7 @@ standardize_countries <- function(
       #   dplyr::mutate(
       #     artis_iso3c = dplyr::case_when(
       #       base::is.na(artis_iso3c) ~ countrycode::countrycode(
-      #         .data[[country_col_name]],
+      #         .data[[country_col]],
       #         origin = "country.name",
       #         destination = "iso3c",
       #         warn = FALSE
@@ -214,7 +214,7 @@ standardize_countries <- function(
         dplyr::mutate(
           artis_iso3c = dplyr::case_when(
             base::is.na(artis_iso3c) ~ countrycode::countrycode(
-              .data[[country_col_name]],
+              .data[[country_col]],
               origin = "country.name",
               destination = "iso3c",
               warn = FALSE
@@ -252,12 +252,12 @@ standardize_countries <- function(
       # Get vector of country names that weren't standardized (i.e. have NA values)
       not_std_vec <- std_df %>%
         dplyr::filter(base::is.na(artis_country_name)) %>%
-        tidyr::drop_na(country_col_name) %>%
-        dplyr::select(country_col_name) %>%
+        tidyr::drop_na(country_col) %>%
+        dplyr::select(country_col) %>%
         dplyr::distinct() %>%
-        dplyr::pull(country_col_name)
+        dplyr::pull(country_col)
       
-    } else if (country_id_type == "iso3c") {
+    } else if (country_id_format == "iso3c") {
       
       # filter out duplicate entires (i.e., multiple country names matched to the same input iso3c - we don't need these input country names since we will get an output country name)
       corrections_df_iso3c <- corrections_df %>%
@@ -266,24 +266,24 @@ standardize_countries <- function(
         tidyr::drop_na()
       
       # set up join by naming to match input data column names to the standardization column names
-      by_cols <- stats::setNames(c("iso3c", "year"), c(country_col_name, year_col_name))
+      by_cols <- stats::setNames(c("iso3c", "year"), c(country_col, year_col))
 
       # Join input data to standardization data frame based on iso3c
-      std_df <- the_data %>% 
+      std_df <- data %>% 
         # remove any trailing parenthetical phrase from string values
         # Join to ARTIS corrections table
         dplyr::left_join(corrections_df_iso3c, by = by_cols) %>% 
         # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
         # Probably not common to need this, but will output an NA when countrycode() does not register. 
         dplyr::mutate(artis_iso3c = dplyr::case_when(
-          is.na(artis_iso3c) ~ countrycode::countrycode(.data[[country_col_name]],
+          is.na(artis_iso3c) ~ countrycode::countrycode(.data[[country_col]],
                                                       origin = "iso3c",
                                                       destination = "iso3c",
                                                       warn = FALSE),
                                        .default = artis_iso3c)) %>%
         dplyr::mutate(artis_country_name = dplyr::case_when(
           # FIXIT: take a look at to see whether we should apply this to all names
-          base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col_name]], 
+          base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col]], 
                                                             origin = "iso3c",
                                                             destination = 'country.name',
                                                             warn = FALSE),
@@ -292,18 +292,18 @@ standardize_countries <- function(
       # Get vector of country names that weren't standardized (i.e. have NA values)
       not_std_vec <- std_df %>%
         dplyr::filter(base::is.na(artis_iso3c)) %>%
-        tidyr::drop_na(country_col_name) %>%
-        dplyr::select(country_col_name) %>%
+        tidyr::drop_na(country_col) %>%
+        dplyr::select(country_col) %>%
         dplyr::distinct() %>%
-        dplyr::pull(country_col_name)
+        dplyr::pull(country_col)
     }
   
   
   # NA/missing values warning
   if (na_count > 0 | missing_count > 0) {
-    cli::cli_alert_warning(c("Column {.field {country_col_name}} contains {.val {missing_count}} missing string value{?s} and {.val {na_count}} {.val NA} value{?s}."))
+    cli::cli_alert_warning(c("Column {.field {country_col}} contains {.val {missing_count}} missing string value{?s} and {.val {na_count}} {.val NA} value{?s}."))
     cli::cli_alert_info("These values will be turned into {.val NA}s in the output correction columns {.field artis_country_name} and {.field artis_iso3c}.")
-    # cli::cli_alert_danger("Found {missing_count} missing string values and {na_count} NA values in column {.field {country_col_name}}.")
+    # cli::cli_alert_danger("Found {missing_count} missing string values and {na_count} NA values in column {.field {country_col}}.")
     # cli::cli_alert_info("These values will not be standardized.")
   }
   
@@ -314,7 +314,7 @@ standardize_countries <- function(
   if (length(not_std_vec) > 0) {
     visible_list <- sapply(na.omit(not_std_vec), function(x) if (x == "") dQuote("") else dQuote(x))
     
-    cli::cli_alert_warning("Some values in user column {.field {country_col_name}} were not standardized.")
+    cli::cli_alert_warning("Some values in user column {.field {country_col}} were not standardized.")
     cli::cli_alert_info("These values were not in the ARTIS corrections table or found by {.pkg countrycode}:\n{.val {paste(visible_list, collapse = ', ')}}")
     
     # Print the unstandardized list on its own line with attention emoji

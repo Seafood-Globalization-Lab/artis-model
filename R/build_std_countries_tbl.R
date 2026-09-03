@@ -21,9 +21,9 @@
 #'     and small states grouped under \code{"NEI"}.
 #' }
 #'
-#' @param year_range Integer vector. Range of years over which the corrections
-#'   table is expanded. Each country-to-sovereign mapping is replicated for
-#'   every year in this vector. Default: \code{1996} through the current year.
+#' @param max_year Numeric. The final year of the corrections table. Must be
+#'   greater than \code{1996} and no later than the current year. The table
+#'   will cover \code{1996} through \code{max_year}. Default: the current year.
 #'
 #' @return
 #' A tibble with one row per unique combination of country identifier and year.
@@ -39,9 +39,14 @@
 #'     (Southern African Customs Union).}
 #' }
 #'
-#' @note Rows where \code{year} or \code{artis_iso3c} are \code{NA} are
-#'   dropped from the final output. Time-dependent mappings are filtered so
-#'   that only the correct sovereign assignment for each year is retained.
+#' @note The lower bound of the year range is fixed at \code{1996} and is not
+#'   user-configurable; only \code{max_year} can be adjusted. Rows where
+#'   \code{year} or \code{artis_iso3c} are \code{NA} are dropped from the
+#'   final output. Time-dependent mappings are filtered so that only the
+#'   correct sovereign assignment for each year is retained — entries whose
+#'   \code{start_year} falls after \code{max_year} (e.g., post-independence
+#'   state codes for a \code{max_year} before independence) produce no rows,
+#'   which is historically correct.
 #'
 #' @seealso
 #' \itemize{
@@ -61,13 +66,28 @@
 
   # --- Generate range of years to expand country corrections into ---
 build_std_countries_tbl <- function(
-  year_range = 1996:as.numeric(format(Sys.Date(), "%Y"))
+  max_year = as.numeric(format(Sys.Date(), "%Y"))
 ) {
   
-  # Get latest year in the year range
-  max_year <- max(year_range)
-  
-   # --- TERRITORY TO Sovergn COUNTRY MAPPINGS ---
+  current_year <- as.numeric(format(Sys.Date(), "%Y"))
+
+  if (max_year <= 1996) {
+    cli::cli_abort(c(
+      "x" = "{.arg max_year} must be greater than 1996, not {.val {max_year}}.",
+      "i" = "ARTIS data begins in 1996; the corrections table requires at least one year after the start year."
+    ))
+  }
+
+  if (max_year > current_year) {
+    cli::cli_abort(c(
+      "x" = "{.arg max_year} must be {current_year} or earlier, not {.val {max_year}}.",
+      "i" = "Supply a year within the range of available data."
+    ))
+  }
+
+  year_range <- 1996:max_year
+
+  # --- TERRITORY TO Sovergn COUNTRY MAPPINGS ---
 
   territory_mappings <- tibble::tribble(
     ~iso3c, ~artis_iso3c,
