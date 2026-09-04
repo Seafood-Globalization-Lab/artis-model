@@ -1,197 +1,383 @@
-#' Build the Production Scientific Name Corrections Table
+#' Build the production sciname manual corrections table
 #'
-#' Constructs a manually curated lookup table used in \code{classify_prod_dat()}
-#' to correct FAO and SAU production scientific names that are unresolved by
-#' FishBase and SeaLifeBase.
+#' Constructs a manual correction table of scientific name
+#' for FAO and SAU production data that were unmatched by the 
+#' FishBase and SeaLifeBase taxa and synonym tables. The function then one-hot encodes 
+#' the taxonomic rank of each corrected name to re-run through the FB/SLB matching process
+#' which is subset by taxanomic rank. Called by [match_prod_taxa_to_fbslb()] to resolve production 
+#' scinames that fail to match the FishBase/SeaLifeBase taxa table.
 #'
-#' @return A tibble with the following columns:
-#'   \describe{
-#'     \item{prod_data_type}{Data source; one of \code{"FAO"} or \code{"SAU"}.}
-#'     \item{sciname_raw}{The unresolved scientific name as it appears in the source data.}
-#'     \item{sciname_corrected}{The corrected name to use downstream.}
-#'     \item{correction_category}{Reason category for the correction. One of:
-#'       \code{"multi_taxa"} (entry refers to multiple taxa; resolved to best representative),
-#'       \code{"outdated_name"} (taxonomically obsolete name replaced with accepted name),
-#'       \code{"incorrect_name"} (wrong name replaced with correct accepted name),
-#'       \code{"spelling_error"} (typographical or truncation error in source data),
-#'       \code{"unrecognized_name"} (name not found in FishBase/SeaLifeBase; resolved to higher taxon),
-#'       \code{"tribe_to_genus"} (tribe-level name resolved to genus),
-#'       \code{"fao_2025_addition"} (new entries added for the FAO 2025 data release),
-#'       \code{"actinopterygii_class"} (FishBase class reclassification from actinopterygii to osteichthyes),
-#'       \code{"fixit_temporary"} (temporary correction pending FishBase/rfishbase data update).}
-#'     \item{notes}{Additional context or rationale for the correction.}
-#'   }
+#' @details
+#' # Workflow to make manual corrections:
+#' 
+#' ## 1) Identify which taxa need corrections
 #'
-#' @seealso \code{\link{classify_prod_dat}}
+#' * The `taxa_need_corrections` dataframe is output from `match_prod_taxa_to_fbslb()`, view 
+#'   this dataframe to see which taxa require manual corrections. 
+#' 
+#' ## 2) Review common correction categories
+#' 
+#' Often unmatched taxa fall in one of several common correction categories. Identify which correction
+#' category a taxa name falls under to identify the appropriate correction strategy to apply.
+#' 
+#' * `"hybrid"`, `"mutli_taxa"`, `"name_formatting"`, and `"informal_name"` are often easy to visually identify
+#' * `"rank_mismatch"`, `"adjust_to_fb_slb"`, and `"adjust_to_fb_slb"` require a deeper dive 
+#'   to understand what is happening. 
+#' 
+#' ## 3) Determine best `sciname_corrected` value
+#' 
+#' 1) Follow instructions for each correction category (listed below) to identify `sciname_corrected` value
+#' 2) Add a new row to the `prod_sciname_corrections` tribble below under the corresponding correction category section
+#' 3) Fill in appropriate fields, including the `notes` column for your future self or colleague. 
+#' 4) Be sure to keep the " spp" portion of genus corrections so the downstream can properly 
+#'   identify and classify it. 
+#' 5) Test your additions by calling `devtools::load_all()` and `build_corr_tbl_prod_sciname()` to see if any checks or errors are thrown
+#' 6) Make notes of any unmatched taxa that are acceptable to leave unmatched. 
+#' 
+#' ## `"hybrid"` correction instructions
+#' 
+#' **RULE: Replace hybrid name with lowest shared taxa classification rank name.** Usually indicated with 
+#' "species x species" name pattern (e.g "morone chrysops x m. saxatilis"). 
+#' 
+#' 1) Investigate each species on [WoRMS](https://www.marinespecies.org/) to find the lowest
+#' shared taxa rank name. Likely genus or family. 
+#' 2) The lowest taxa rank name must be present in either the Fishbase or Sealifebase taxa table 
+#'   ("fb_taxa_info.csv", "slb_taxa_info.csv") to be a valid correction.
+#' 
+#' ## `"multi_taxa"` correction instructions
+#' 
+#' **RULE: Replace multiple taxa names with lowest shared taxa classification rank name.** Usually indicated
+#' with a "taxa, taxa" name pattern (e.g. "loliginidae, ommastrephidae"). 
+#' 
+#' 1) Investigate each taxa on [WoRMS](https://www.marinespecies.org/) to find the lowest
+#' shared taxa rank name. Likely genus or family. 
+#' 2) The lowest taxa rank name must be present in either the Fishbase or Sealifebase taxa table 
+#'   ("fb_taxa_info.csv", "slb_taxa_info.csv") to be a valid correction.
+#' 
+#' ## `"name_formatting"` correction instructions
+#' 
+#' **RULE: Replace non-standard formatted taxa name with an expected format that aligns with Fishbase/Sealifebase formatting**
+#' 
+#' 1) Investigate each taxa on [WoRMS](https://www.marinespecies.org/)
+#' 2) These taxa names are usually creative work-arounds to capture, note, or combine more taxonomic information 
+#'    into a single value than what the data schema supports. Some of these values could be corrected with simple 
+#'    text string cleaning code (e.g "alitta virens (formerly nereis virens)"), but we want to explicitly 
+#'   and transparently document each manual correction in this table. 
+#' 3) Determine the lowest taxa classification rank name that appropriately represents the taxa name. 
+#' 4) The lowest taxa rank name must be present in either the Fishbase or Sealifebase taxa table 
+#'   ("fb_taxa_info.csv", "slb_taxa_info.csv") to be a valid correction.
+#' 5) NOTE EXCEPTION: "perciformes" is an Order that is a large and important grouping in production with several important suborders not represented in the
+#'   inherited Fishbase/Sealifebase taxonomic schema (i.e. suborder is not a column in the FB/SLB taxa tables). The perciformes corrections are 
+#'   an exception due to their large production volumes. The corrected names use the syntax that FB/SLB taxa tables use to force this taxaonomic information
+#'   into the simplified hierarchical taxonomic rank schema FB/SLB uses. 
+#' 
+#' ## `"informal_name"` correction instructions
+#' 
+#' **RULE: There isn't a great rule for informal names, work with Jessica.**
+#' 
+#' 1) Investigate and SAU or FAO documentation 
+#' 2) Investigate downstream code that may group by large general taxa groups
+#' 
+#' ## "rank_mismatch"` correction instructions
+#' 
+#' **RULE: Replace the rank name that is not part of Fishbase/Sealifebase (ARTIS) with the taxa rank name one step up that is included in Fishbase/Sealifebase (ARTIS).**
+#' 
+#' 1) Investigate each taxa on [WoRMS](https://www.marinespecies.org/) to find the next step taxa rank name. 
+#' 2) The lowest taxa rank name must be present in either the Fishbase or Sealifebase taxa table 
+#'   ("fb_taxa_info.csv", "slb_taxa_info.csv") to be a valid correction.
+#' 3) Investigate downstream code (e.g. the taxa and hs match functions) to understand how the corrected name may be included or excluded from some groupings. 
+#' 
+#' ## `"adjust_to_fb_slb"` correction instructions
+#' 
+#' **RULE: Replace the taxa name with its Fishbase/Sealifebase accepted name.**
+#' 
+#' 1) Investigate each taxa on [WoRMS](https://www.marinespecies.org/) to understand if the unmatched taxa name is outdated or a synonym.
+#' 2) Replace with the name (even though it might be outdated) that is represented in the Fishbase or Sealifebase taxa tables
+#'   ("fb_taxa_info.csv", "slb_taxa_info.csv").
+#' 
+#' @param the_fb_slb_dir File path to the directory containing the current version of Fishbase and Sealifebase data.
+#' 
+#' @return
+#' A tibble with one row per raw scientific name. Columns:
 #'
+#' * `sciname_raw` — unresolved scientific name as it appears in FAO or SAU
+#'   production data.
+#' * `sciname_corrected` — corrected name for downstream use.
+#' * `correction_category` — reason for the correction; one of: 
+#'   * `"hybrid"`
+#'   * `"multi_taxa"`
+#'   * `"name_formatting"`
+#'   * `"rank_mismatch"`
+#'   * `"adjust_to_fb_slb"``
+#'   * `"spelling_error"``
+#'   * `"informal_name"`
+#' * `notes` — additional context or rationale for the correction.
+#' * `Species01`, `Genus01`, `Family01`, `Other01` — binary (0/1) one-hot
+#'   encoding of the taxonomic rank of `sciname_corrected`; exactly one
+#'   column equals `1` per row.
+#'
+#' @note
+#' `sciname_corrected` values are not final — they are subject to further
+#' synonym resolution in [match_prod_taxa_to_fbslb()], which may change the
+#' name again. This table is not suitable for external documentation, it is 
+#' an operational internal software table only.
+#'
+#' The function checks and emits `cli` warnings if violations are found:
+#'
+#' * **Duplicate `sciname_raw` check** — detects multiple rows for the same
+#'   `sciname_raw`, which would cause one-to-many join errors.
+#' * **Encoding uniqueness check** — detects rows where more than one of
+#'   `Species01`, `Genus01`, `Family01`, `Other01` equals `1`.
+#' * **FB/SLB valid `sciname_corrected` values** - detects that corrected
+#'   values match to FB/SLB taxa tables  
+#'
+#' @seealso
+#' * [match_prod_taxa_to_fbslb()] — further resolves corrected scinames via
+#'   synonym matching against FishBase and SeaLifeBase
+#'
+#' @import dplyr
+#' @import cli
 #' @importFrom tibble tribble
+#' @importFrom magrittr %>%
 #' @export
 
-build_corr_tbl_prod_sciname <- function(){
+build_corr_tbl_prod_sciname <- function(
+  the_fb_slb_dir
+){
 
+  # Manual Corrections Table
+  # RULE: Ensure any new `sciname_corrected` value exists in the fishbase / sealifebase taxa info file that the scinames will join to. 
+  # RULE: Keep " spp" in name of any genera assigned to `sciname_corrected` for taxa rank encoding downstream
+
+
+  # Create corrections dataframe -------------------------------------------
   prod_sciname_corrections <- tribble(
-    ~prod_data_type, ~sciname_raw, ~sciname_corrected, ~correction_category, ~notes,
+    ~sciname_raw, ~sciname_corrected, ~correction_category, ~notes,
 
-    # FAO - multi_taxa
-    "FAO", "astacidae, cambaridae",                              "cambaridae",         "multi_taxa", "Choose cambaridae as the larger family",
-    "FAO", "auxis thazard, a. rochei",                          "auxis spp",           "multi_taxa", "",
-    "FAO", "clarias gariepinus x c. macrocephalus",             "clarias spp",         "multi_taxa", "",
-    "FAO", "c. macropomum x p. brachypomus",                    "serrasalmidae",       "multi_taxa", "Colossoma macropomum x Piaractus brachypomus",
-    "FAO", "loliginidae, ommastrephidae",                        "teuthida",            "multi_taxa", "",
-    "FAO", "merluccius capensis, m.paradoxus",                  "merluccius",          "multi_taxa", "",
-    "FAO", "morone chrysops x m. saxatilis",                    "morone spp",          "multi_taxa", "",
-    "FAO", "oreochromis aureus x o. niloticus",                 "oreochromis",         "multi_taxa", "",
-    "FAO", "osmerus spp, hypomesus spp",                        "osmeridae",           "multi_taxa", "",
-    "FAO", "p. mesopotamicus x c. macropomum",                  "serrasalmidae",       "multi_taxa", "Piaractus mesopotamicus x Colossoma macropomum",
-    "FAO", "selachimorpha (pleurotremata)",                      "carcharhiniformes",   "multi_taxa", "Essentially an unidentified shark; code defines sharks as list of orders so assign to carcharhiniformes for now",
-    "FAO", "sepiidae, sepiolidae",                               "sepiidae",            "multi_taxa", "Sepiidae = cuttlefish; Sepiolidae = bobtail squid; assigning to cuttlefish",
-    "FAO", "squalidae, scyliorhinidae",                          "carcharhiniformes",   "multi_taxa", "Two different orders of sharks; code defines sharks as list of orders so assign to carcharhiniformes for now",
-    "FAO", "stolothrissa, limnothrissa",                         "clupeidae",           "multi_taxa", "",
-    "FAO", "stolothrissa, limnothrissa spp",                    "clupeidae",           "multi_taxa", "",
-    "FAO", "xiphopenaeus, trachypenaeus",                        "penaeidae",           "multi_taxa", "",
-    "FAO", "xiphopenaeus, trachypenaeus spp",                   "penaeidae",           "multi_taxa", "",
-    "FAO", "h. longifilis x c. gariepinus",                     "clariidae",           "multi_taxa", "Matched to the larger family because genus was different",
-    "FAO", "e. fuscoguttatus x e. lanceolatus",                 "epinephelus",         "multi_taxa", "Matched by same genus",
-    "FAO", "alosa alosa, a. fallax",                            "alosa spp",           "multi_taxa", "Common genus between both",
+    # hybrid
+    # RULE: Replace hybrid name with lowest shared taxa classification rank name
+    "clarias gariepinus x c. macrocephalus",             "clarias spp",         "hybrid", "",
+    "morone chrysops x m. saxatilis",                    "morone spp",          "hybrid", "",
+    "oreochromis aureus x o. niloticus",                 "oreochromis spp",     "hybrid", "",
+    "colossoma macropomum x piaractus brachypomus",      "serrasalmidae",       "hybrid", "Replace with common family for hybrid",
+    "epinephelus fuscoguttatus x e. lanceolatus",        "epinephelus spp",     "hybrid", "Replace with common genus for hybrid",
+    "heterobranchus longifilis x clarias gariepinus",    "clariidae",           "hybrid", "Replace with common family for hybrid",
+    "piaractus mesopotamicus x colossoma macropomum",    "serrasalmidae",       "hybrid", "Replace with common family for hybrid",
 
-    # FAO - outdated_name
-    "FAO", "branchiostegidae",   "malacanthidae",  "outdated_name", "",
-    "FAO", "caspialosa spp",     "alosa spp",      "outdated_name", "",
-    "FAO", "invertebrata",       "asteroidea",     "outdated_name", "Assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum ascidians would be omitted as chordata)",
-    "FAO", "mobulidae",          "myliobatidae",   "outdated_name", "",
-    "FAO", "natantia",           "crangonidae",    "outdated_name", "Natantia is obsolete term for shrimp; assign to order = crangonidae for now",
-    "FAO", "reptantia",          "cancridae",      "outdated_name", "Reptantia is obsolete term for crab; multiple families of crab so assign to family = cancridae for now",
-    "FAO", "siluroidei",         "siluriformes",   "outdated_name", "",
-    "FAO", "aliger gigas",       "lobatus gigas",  "outdated_name", "Queen Conch",
-    "FAO", "liza spp",           "planiliza spp",  "outdated_name", "Referring to mullets",
+    # multi_taxa
+    # RULE: Replace multiple taxa names with lowest shared taxa classification rank name
+    "astacidae, cambaridae",                              "cambaridae",          "multi_taxa", "Choose cambaridae as the larger family",
+    "auxis thazard, a. rochei",                          "auxis spp",            "multi_taxa", "",
+    "loliginidae, ommastrephidae",                        "teuthida",            "multi_taxa", "",
+    "merluccius capensis, m.paradoxus",                  "merluccius spp",       "multi_taxa", "",
+    "selachimorpha (pleurotremata)",                      "carcharhiniformes",   "multi_taxa", "Essentially an unidentified shark; code defines sharks as list of orders so assign to carcharhiniformes for now",
+    "sepiidae, sepiolidae",                               "sepiidae",            "multi_taxa", "Sepiidae = cuttlefish; Sepiolidae = bobtail squid; assigning to cuttlefish",
+    "squalidae, scyliorhinidae",                          "carcharhiniformes",   "multi_taxa", "Two different orders of sharks; code defines sharks as list of orders so assign to carcharhiniformes for now",
+    "stolothrissa, limnothrissa",                         "clupeidae",           "multi_taxa", "",
+    "xiphopenaeus, trachypenaeus",                        "penaeidae",           "multi_taxa", "",
+    "alosa alosa, a. fallax",                             "alosa spp",           "multi_taxa", "Common genus between both",
+    "osmerus, hypomesus",                                 "osmeridae",           "multi_taxa", "two genera, bump to common family name",
+    "pandalus, pandalopsis",                              "pandalidae",          "multi_taxa", "two genera, bump to common family name",
 
-    # FAO - incorrect_name
-    "FAO", "mytilus unguiculatus",  "mytilus coruscus",       "incorrect_name", "Korean Mussel",
-    "FAO", "tritia mutabilis",      "nassarius mutabilis",    "incorrect_name", "Mutable/Changeable Nassa",
-    "FAO", "tritia reticulata",     "nassarius reticulatus",  "incorrect_name", "Netted Dog whelk",
+    # name_formatting
+    # RULE: Replace non-standard formatted taxa name with an expected format that aligns with Fishbase/Sealifebase formatting
+    "holothuria (holothuria) tubulosa",          "holothuria tubulosa",        "name_formatting", "",
+    "uroteuthis (photololigo) duvaucelii",       "uroteuthis duvaucelii",      "name_formatting", "",                              
+    "percoidei (perciformes)",                   "perciformes/percoidei",      "name_formatting","",
+    "scorpaenoidei (perciformes)",               "perciformes/scorpaenoidei",  "name_formatting", "",
+    "scombroidei (scombriformes)",               "perciformes/scorpaenoidei",  "name_formatting", "",
+    "scombriformes (scombroidei)",               "scombriformes",              "name_formatting", "",
+    
+    "lutjanidae (ex caesionidae)",               "lutjanidae",                 "name_formatting", "",
+    "labridae (ex scaridae)",                    "labridae",                   "name_formatting", "",
+    "alitta virens (formerly nereis virens)",    "alitta virens",              "name_formatting", "Remove note of former name",
+    "batoidea or batoidimorpha (hypotremata)",   "batoidea",                   "name_formatting", "",
+    "cantherhines (=navodon)",                   "cantherhines spp",           "name_formatting", "remove parentheses and any content within (inherited handling form previous ARTIS versions where this cleaning was hard coded in depricated classify_prod_dat()",
+    "clupeiformes (=clupeoidei)",                "clupeiformes",               "name_formatting", "remove parentheses and any content within (inherited handling form previous ARTIS versions where this cleaning was hard coded in depricated classify_prod_dat()",
+    "haemulidae (=pomadasyidae)",                "haemulidae",                 "name_formatting", "remove parentheses and any content within (inherited handling form previous ARTIS versions where this cleaning was hard coded in depricated classify_prod_dat()",   
+    "salmoniformes (=salmonoidei)",              "salmoniformes",              "name_formatting", "remove parentheses and any content within (inherited handling form previous ARTIS versions where this cleaning was hard coded in depricated classify_prod_dat()",   
+    "selachii or selachimorpha (pleurotremata)", "selachii",                   "name_formatting", "three names for the same infraclass. Selachii is accepted on Worms and an approved departure from FB/SLB taxonomic schema in order to provide important resolution",
+    "siluriformes (=siluroidei)",                "siluriformes",               "name_formatting", "remove parentheses and any content within (inherited handling form previous ARTIS versions where this cleaning was hard coded in depricated classify_prod_dat()",
 
-    # FAO - spelling_error
-    "FAO", "herklotsichthys quadrimaculat.",   "herklotsichthys quadrimaculatus",    "spelling_error", "",
-    "FAO", "pleuronectes quadrituberculat.",   "pleuronectes quadrituberculatus",    "spelling_error", "",
-    "FAO", "pseudopleuronectes herzenst.",     "pseudopleuronectes herzensteini",    "spelling_error", "",
-    "FAO", "salmonoidei",                      "salmonidae",                         "spelling_error", "",
-    "FAO", "mobulinae",                        "mobulidae",                          "spelling_error", "",
-    "FAO", "moroteuthopsis ingens",            "onykia ingens",                      "spelling_error", "",
-    "FAO", "pandalus spp, pandalopsis spp",    "pandalus spp",                       "spelling_error", "Prawn",
+    # rank_mismatch
+    # RULE: Replace the rank name that is not part of Fishbase/Sealifebase (ARTIS) with the taxa rank name one step up that is included in Fishbase/Sealifebase (ARTIS).
+    "brachyura",                  "decapoda",                 "rank_mismatch", "Infraorder not part of fishbase database",
+    "anomura",                    "decapoda",                 "rank_mismatch", "Infraorder name to order name",
+    "caridea",                    "decapoda",                 "rank_mismatch", "Infraorder within decapoda so move up",
+    "thunnini",                   "thunnus spp",              "rank_mismatch", "",
+    "actinopterygii",             "osteichthyes",             "rank_mismatch", "FishBase updated class from actinopterygii to teleostei; decided to lump all actinopterygii as osteichthyes",
+    "crustacea",                  "branchiopoda",             "rank_mismatch", "Downstream code IDs crustacea to class level; assign to branchiopoda for now; downstream code defines crustaceans as list of classes c('branchiopoda', 'malacostraca', 'maxillopoda', 'merostomata'); assuming non-crab/lobster/shrimp crustacean",
+    "invertebrata",               "asteroidea",               "rank_mismatch", "Assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum ascidians would be omitted as chordata)",
+    "natantia",                   "crangonidae",              "rank_mismatch", "Natantia is obsolete term for shrimp; assign to order = crangonidae for now",
+    "reptantia",                  "cancridae",                "rank_mismatch", "Reptantia is obsolete term for crab; multiple families of crab so assign to family = cancridae for now",
+    
+    # adjust_to_fb_slb
+    # RULE: Replace the taxa name with its Fishbase/Sealifebase accepted name. 
+    "liza spp",                             "planiliza spp",              "adjust_to_fb_slb", "Referring to mullets",
+    "tritia reticulata",                    "nassarius reticulatus",      "adjust_to_fb_slb", "Netted Dog whelk",
+    "afruca tangeri",                       "uca tangeri",                "adjust_to_fb_slb", "Worms has afruca tangeri as accepted name with uca tangeri as synonym",
+    "ageneiosus dentatus",                  "ageneiosus ucayalensis",     "adjust_to_fb_slb", "ageneiosus dentatus listed in Fishbase as an ambiguous synonym",
+    "amphithrax armatus",                   "mithrax armatus",            "adjust_to_fb_slb", "Worms has amphithrax armatus as accepted name with mithrax armatus as original name",
+    "callaus deliciosa",                    "sciaena deliciosa",          "adjust_to_fb_slb", "Update to name identified as accepted in Fishbase and Worms",
+    "dallocardia muricata",                 "trachycardium muricatum",    "adjust_to_fb_slb", "dallocardia muricata is accepted in Worms but lists trachycardium muricatum as a superseded combination",
+    "grimothea gregaria",                   "munida gregaria",            "adjust_to_fb_slb", "grimothea gregaria is accepted in Worms but lists munida gregaria as a superseded combination",
+    "hansarsia megalops",                   "nematoscelis megalops",      "adjust_to_fb_slb", "hansarsia megalops is accepted in Worms but nematoscelis megalops is superseded combination",
+    "hyporthodus drummondhayi",             "epinephelus drummondhayi",   "adjust_to_fb_slb", "",
+    "iliochione subrugosa",                 "chione subrugosa",           "adjust_to_fb_slb", "",
+    "larkinia grandis",                     "anadara grandis",            "adjust_to_fb_slb", "",
+    "lutraria oblonga",                     "lutraria magna",             "adjust_to_fb_slb", "",
+    "michalisquilla parva",                 "squilla parva",              "adjust_to_fb_slb", "",
+    "pinirampus argentina",                 "megalonema argentinum",      "adjust_to_fb_slb", "",
+    "polybius depurator",                   "liocarcinus depurator",      "adjust_to_fb_slb", "",
+    "polybius navigator",                   "liocarcinus navigator",      "adjust_to_fb_slb", "",
+    "polybius vernalis",                    "liocarcinus vernalis",       "adjust_to_fb_slb", "",
+    "proteopitar patagonicus",              "pitar patagonicus",          "adjust_to_fb_slb", "",
+    "spisula sibyllae",                     "spisula sachalinensis",      "adjust_to_fb_slb", "",
+    "ylistrum japonicum",                   "amusium japonicum",          "adjust_to_fb_slb", "",
+    "cantherhines",                         "cantherhines spp",           "adjust_to_fb_slb", "Genus with missing spp",
+    "cherax cainii",                        "cherax spp",                 "adjust_to_fb_slb", "Maron - classified into two species both cherax cainii and cherax tenuimanus however only cherax tenuimanus accepted in sealifebase synonyms but does not occur in sealifebase taxa table",
+    "austrofusus glans",                    "buccinum spp",               "adjust_to_fb_slb", "Whelk",
+    #"lophiosilurus apurensis",              "osteichthyes",               "adjust_to_fb_slb", "FIXIT: Repull rfishbase data and remove once species is verified in the record - currently not listed at all (2025-09)",
+    "pimelodus yuma",                       "pimelodus spp",              "adjust_to_fb_slb", "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
+    "astacopsis franklinii",                "parastacidae spp",           "adjust_to_fb_slb", "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
+    "adinaefiola aurantiaca",               "sepiola aurantiaca",         "adjust_to_fb_slb", "sepiola aurantiaca is unaccepted (original combination) in Worms, with adinaefiola aurantiaca as the accepted name. Sealifebase uses old name",
+    "caspialosa",                           "alosa",                      "adjust_to_fb_slb", "unaccepted genus name, the genus is listed in FB synonym table but not a record with only the genus on its own",
+    "crenimugil crenilabis",                "moolgarda crenilabis",       "adjust_to_fb_slb", "unaccepted > superseded combination, update to accepted species in Fishbases",
+    "leiarius perruno",                     "perrunichthys perruno",      "adjust_to_fb_slb", "accepted name on WoRMS, but perrunichthys perruno uses origninal name",
+    "mytella strigata",                     "mytella bicolor",            "adjust_to_fb_slb", "FIXIT: temporary use of synonym until new Sealife base snapshot is available. mytella guyanensis is the provisionally accepted name not in current slb_taxa table. mytella bicolor is is the synonym used for this version",
+    "lophiosilurus apurensis",              "cephalosilurus apurensis",   "adjust_to_fb_slb", "species name accepted on WoRMS with basis of record from ECoF, corrected name listed as synonym. FB uses synonym.",
+    "plectorhinchus pica (formerly p. picus)", "plectorhinchus picus",    "adjust_to_fb_slb", "WoRMS has name as accepted and picus as synonym, FB has picus as accepted",
+    "polybius corrugatus",                  "liocarcinus corrugatus",     "adjust_to_fb_slb", "name in Worms and not sealifebase, in slb snapshot taxa table only polybius henslowii in the genus. Found synonym on Worms that is in SLB.",
+    "uroteuthis (photololigo) edulis",      "uroteuthis edulis",          "adjust_to_fb_slb", "name is an alternative representation on Worms. Adjust to accepted names used by worms and SLB.",
 
-    # FAO - unrecognized_name
-    "FAO", "crustacea",                  "branchiopoda",             "unrecognized_name", "Downstream code IDs crustacea to class level; assign to branchiopoda for now; downstream code defines crustaceans as list of classes c('branchiopoda', 'malacostraca', 'maxillopoda', 'merostomata'); assuming non-crab/lobster/shrimp crustacean",
-    "FAO", "cantherhines",               "cantherhines spp",         "unrecognized_name", "Genus with missing spp",
-    "FAO", "anodonta cygnea",            "anodonta spp",             "unrecognized_name", "Because of its morphological variability and wide range of distribution there are over 500 synonyms for this species; just use genus",
-    "FAO", "astacus astacus",            "astacus spp",              "unrecognized_name", "",
-    "FAO", "austropotamobius pallipes",  "astacidae",                "unrecognized_name", "SeaLifeBase doesn't recognize the genus or species; just use family",
-    "FAO", "cherax tenuimanus",          "cherax spp",               "unrecognized_name", "",
-    "FAO", "cipangopaludina chinensis",  "cipangopaludina spp",      "unrecognized_name", "",
-    "FAO", "clupea pallasii",            "clupea pallasii pallasii", "unrecognized_name", "Match to clupea pallasii pallasii to allow match with rfishbase then rename to clupea pallasii in the final step",
-    "FAO", "clupeoidei",                 "clupeiformes",             "unrecognized_name", "",
-    "FAO", "emmelichthys nitidus",       "emmelichthys spp",         "unrecognized_name", "",
-    "FAO", "euastacus armatus",          "parastacidae",             "unrecognized_name", "SeaLifeBase doesn't recognize the genus or species; just use family",
-    "FAO", "macrobrachium lar",          "macrobrachium spp",        "unrecognized_name", "",
-    "FAO", "macrobrachium malcolmsonii", "macrobrachium spp",        "unrecognized_name", "",
-    "FAO", "merluccius gayi",            "merluccius spp",           "unrecognized_name", "",
-    "FAO", "mullus barbatus",            "mullus spp",               "unrecognized_name", "",
-    "FAO", "oreochromis",                "oreochromis spp",          "unrecognized_name", "",
-    "FAO", "percoidei",                  "perciformes",              "unrecognized_name", "",
-    "FAO", "procambarus clarkii",        "procambarus spp",          "unrecognized_name", "",
-    "FAO", "scombroidei",                "perciformes",              "unrecognized_name", "FishBase doesn't list scombiformes as an order (See fishbase %>% filter(Family == 'scombridae'))",
-    "FAO", "sebastes marinus",           "sebastes spp",             "unrecognized_name", "",
-    "FAO", "brachyura",                  "decapoda",                 "unrecognized_name", "Infraorder not part of fishbase database",
-    "FAO", "cherax cainii",              "cherax spp",               "unrecognized_name", "Maron - classified into two species both cherax cainii and cherax tenuimanus however only cherax tenuimanus accepted in sealifebase synonyms but does not occur in sealifebase taxa table",
-    "FAO", "sinanodonta woodiana",       "anodonta spp",             "unrecognized_name", "Check to see if could be anodonta dejecta",
-    "FAO", "caridina denticulata",       "neocaridina denticulata",  "unrecognized_name", "Synonym to accepted name not caught by fb or slb",
-    "FAO", "anomura",                    "decapoda",                 "unrecognized_name", "Infraorder name to order name",
-    "FAO", "corbicula manilensis",       "corbicula spp",            "unrecognized_name", "",
-    "FAO", "maguimithrax spinosissimus", "mithrax spp",              "unrecognized_name", "This is a type species of mithrax (sea spiders)",
-    "FAO", "macroramphosidae",           "centriscidae",             "unrecognized_name", "Bellowfish; macroramphosidae used to be classified as a subfamily of centriscidae",
-    "FAO", "austrofusus glans",          "buccinum spp",             "unrecognized_name", "Whelk",
+    # FAO - spelling_errors
+    "polyamblyodon germanus",               "polyamblyodon germanum",     "spelling_error",   "name is not in WoRMS or FB or web search. Likely spelling mistake for germanum (not germanus)",
 
-    # FAO - tribe_to_genus
-    "FAO", "thunnini", "thunnus spp", "tribe_to_genus", "",
+  # SAU corrections --------------------------------------------------------
+  # As of 2026-07-15 These corrections are being retained until the next SAU version is released to have a record of our corrections. This section will also be culled of unused corrections. 
 
-    # FAO - fao_2025_addition
-    "FAO", "afruca tangeri",                                                 "uca tangeri",                "fao_2025_addition",   "Worms has afruca tangeri as accepted name with uca tangeri as synonym",
-    "FAO", "ageneiosus dentatus",                                            "ageneiosus ucayalensis",     "fao_2025_addition",   "ageneiosus dentatus listed in Fishbase as an ambiguous synonym",
-    "FAO", "alitta virens (formerly nereis virens)",                         "alitta virens",              "fao_2025_addition",   "Remove note of former name",
-    "FAO", "amphithrax armatus",                                             "mithrax armatus",            "fao_2025_addition",   "Worms has amphithrax armatus as accepted name with mithrax armatus as original name",
-    "FAO", "callaus deliciosa",                                              "sciaena deliciosa",          "fao_2025_addition",   "Update to name identified as accepted in Fishbase and Worms",
-    "FAO", "caridea",                                                        "decapoda",                   "fao_2025_addition",   "Infraorder within decapoda so move up",
-    "FAO", "colossoma macropomum x piaractus brachypomus",                  "serrasalmidae",              "fao_2025_addition",   "Replace with common family for hybrid",
-    "FAO", "dallocardia muricata",                                           "trachycardium muricatum",    "fao_2025_addition",   "dallocardia muricata is accepted in Worms but lists trachycardium muricatum as a superseded combination",
-    "FAO", "epinephelus fuscoguttatus x e. lanceolatus",                    "epinephelus",                "fao_2025_addition",   "Replace with common genus for hybrid",
-    "FAO", "grimothea gregaria",                                             "munida gregaria",            "fao_2025_addition",   "grimothea gregaria is accepted in Worms but lists munida gregaria as a superseded combination",
-    "FAO", "hansarsia megalops",                                             "nematoscelis megalops",      "fao_2025_addition",   "hansarsia megalops is accepted in Worms but nematoscelis megalops is superseded combination",
-    "FAO", "heterobranchus longifilis x clarias gariepinus",                "clariidae",                  "fao_2025_addition",   "Replace with common family for hybrid",
-    "FAO", "holothuria (holothuria) tubulosa",                               "holothuria tubulosa",        "fao_2025_addition",   "",
-    "FAO", "hyporthodus drummondhayi",                                       "epinephelus drummondhayi",   "fao_2025_addition",   "",
-    "FAO", "iliochione subrugosa",                                           "chione subrugosa",           "fao_2025_addition",   "",
-    "FAO", "larkinia grandis",                                               "anadara grandis",            "fao_2025_addition",   "",
-    "FAO", "lutjanidae (ex caesionidae)",                                    "lutjanidae",                 "fao_2025_addition",   "",
-    "FAO", "lutraria oblonga",                                               "lutraria magna",             "fao_2025_addition",   "",
-    "FAO", "michalisquilla parva",                                           "squilla parva",              "fao_2025_addition",   "",
-    "FAO", "mytella strigata",                                               "mytella charruana",          "fao_2025_addition",   "",
-    "FAO", "perciformes (others)",                                           "perciformes",                "fao_2025_addition",   "",
-    "FAO", "perciformes (percoidei)",                                        "perciformes/percoidei",      "fao_2025_addition",   "",
-    "FAO", "perciformes (scorpaenoidei)",                                    "perciformes/scorpaenoidei",  "fao_2025_addition",   "",
-    "FAO", "piaractus mesopotamicus x colossoma macropomum",                "serrasalmidae",              "fao_2025_addition",   "Replace with common family for hybrid",
-    "FAO", "pinirampus argentina",                                           "megalonema argentinum",      "fao_2025_addition",   "",
-    "FAO", "polybius depurator",                                             "liocarcinus depurator",      "fao_2025_addition",   "",
-    "FAO", "polybius navigator",                                             "liocarcinus navigator",      "fao_2025_addition",   "",
-    "FAO", "polybius vernalis",                                              "liocarcinus vernalis",       "fao_2025_addition",   "",
-    "FAO", "proteopitar patagonicus",                                        "pitar patagonicus",          "fao_2025_addition",   "",
-    "FAO", "scombriformes (scombroidei)",                                    "scombriformes",              "fao_2025_addition",   "",
-    "FAO", "spisula sibyllae",                                               "spisula sachalinensis",      "fao_2025_addition",   "",
-    "FAO", "uroteuthis (photololigo) duvaucelii",                           "uroteuthis duvaucelii",      "fao_2025_addition",   "",
-    "FAO", "ylistrum japonicum",                                             "amusium japonicum",          "fao_2025_addition",   "",
-    "FAO", "labridae (ex scaridae)",                                         "labridae",                   "fao_2025_addition",   "",
-    "FAO", "batoidea or batoidimorpha (hypotremata)",                        "batoidea",                   "fao_2025_addition",   "",
-    "FAO", "selachii or selachimorpha (pleurotremata)",                      "selachii",                   "fao_2025_addition",   "",
-    # actinopterygii_class - FAO
-    "FAO", "actinopterygii",                                                 "osteichthyes",               "actinopterygii_class", "FishBase updated class from actinopterygii to teleostei; decided to lump all actinopterygii as osteichthyes",
-    # fixit_temporary - FAO
-    "FAO", "lophiosilurus apurensis",                                        "osteichthyes",               "fixit_temporary",     "FIXIT: Repull rfishbase data and remove once species is verified in the record - currently not listed at all (2025-09)",
-    "FAO", "orthopristis chalcea",                                           "osteichthyes",               "fixit_temporary",     "FIXIT: Repull rfishbase data and remove once species is verified in the record - currently not listed at all (2025-09)",
-    "FAO", "meuschenia scabra",                                              "osteichthyes",               "fixit_temporary",     "FIXIT: Repull rfishbase data and remove once species is verified in the record - currently not listed at all (2025-09)",
-    "FAO", "ratabulus prionotus",                                            "osteichthyes",               "fixit_temporary",     "FIXIT: Repull rfishbase data and remove once species is verified in the record - currently not listed at all (2025-09)",
-    "FAO", "bodianus parrae",                                                "bodianus",                   "fixit_temporary",     "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
-    "FAO", "bodianus pulcher",                                               "bodianus",                   "fixit_temporary",     "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
-    "FAO", "haemulopsis nitida",                                             "haemulopsis",                "fixit_temporary",     "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
-    "FAO", "parupeneus heptacantha",                                         "parupeneus",                 "fixit_temporary",     "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
-    "FAO", "astacopsis franklinii",                                          "parastacidae",               "fixit_temporary",     "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
-    "FAO", "pimelodus yuma",                                                 "pimelodus",                  "fixit_temporary",     "FIXIT: Temporary change to genus - remove once species is added to rfishbase data version (FAO 2025 uses rfishbase latest version 24.07)",
-    # unrecognized_name - SAU
-    "SAU", "marine finfishes not identified",                                "osteichthyes",               "unrecognized_name",   "Non-scientific name",
-    "SAU", "marine fishes not identified",                                   "osteichthyes",               "unrecognized_name",   "Non-scientific name",
-    "SAU", "marine groundfishes not identified",                             "osteichthyes",               "unrecognized_name",   "Non-scientific name",
-    "SAU", "marine pelagic fishes not identified",                           "osteichthyes",               "unrecognized_name",   "Non-scientific name",
-    "SAU", "miscellaneous aquatic invertebrates",                            "asteroidea",                 "unrecognized_name",   "Non-scientific name; assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum ascidians would be omitted as chordata)",
-    "SAU", "miscellaneous diadromous fishes",                                "osteichthyes",               "unrecognized_name",   "Non-scientific name",
-    "SAU", "miscellaneous marine crustaceans",                               "malacostraca",               "unrecognized_name",   "Non-scientific name; assuming some sort of crab/lobster/shrimp/prawn/crayfish crustacean",
-    "SAU", "anomura",                                                        "decapoda",                   "unrecognized_name",   "fish/sealifebase doesn't go to infraorder-level of classification",
-    "SAU", "asterozoa",                                                      "asteroidea",                 "unrecognized_name",   "",
-    "SAU", "batoidea",                                                       "rajiformes",                 "unrecognized_name",   "Several potential orders; assume rajiformes for now",
-    "SAU", "brachyura",                                                      "decapoda",                   "unrecognized_name",   "",
-    "SAU", "dendrobranchiata",                                               "decapoda",                   "unrecognized_name",   "",
-    "SAU", "echinozoa",                                                      "echinodermata",              "unrecognized_name",   "",
-    "SAU", "inermiidae",                                                     "haemulidae",                 "unrecognized_name",   "",
-    "SAU", "pteriomorphia",                                                  "bivalvia",                   "unrecognized_name",   "",
-    "SAU", "scombroidea",                                                    "perciformes",                "unrecognized_name",   "",
-    "SAU", "liza",                                                           "planiliza",                  "unrecognized_name",   "Not matching to taxa table",
-    "SAU", "scombroidei",                                                    "perciformes",                "unrecognized_name",   "Not matching to taxa table",
-    "SAU", "pleuronectoidei",                                                "pleuronectiformes",          "unrecognized_name",   "Moving from suborder to order",
-    "SAU", "valamugil",                                                      "crenimugil",                 "unrecognized_name",   "Not matching to taxa table",
-    "SAU", "tridacnidae",                                                    "cardiidae",                  "unrecognized_name",   "Moving from subfamily to family name",
-    "SAU", "azurina cyanea",                                                 "azurina",                    "unrecognized_name",   "Moving up a taxonomic level",
-    "SAU", "macrostrombus costatus",                                         "strombidae",                 "unrecognized_name",   "Move from species to family name for identification",
-    "SAU", "phrontis vibex",                                                 "nassarius vibex",            "unrecognized_name",   "",
-    "SAU", "sinistrofulgur sinistrum",                                       "neogastropoda",              "unrecognized_name",   "Move from species to order",
-    # actinopterygii_class - SAU
-    "SAU", "actinopterygii",                                                 "osteichthyes",               "actinopterygii_class", "FishBase updated class from actinopterygii to teleostei; decided to lump all actinopterygii as osteichthyes"
+
+    # SAU - informal_name
+    # RULE: There isn't a great rule for informal names, work with Jessica. 
+    "marine finfishes not identified",       "osteichthyes",  "informal_name", "Non-scientific name",
+    "marine fishes not identified",          "osteichthyes",  "informal_name", "Non-scientific name",
+    "marine groundfishes not identified",    "osteichthyes",  "informal_name", "Non-scientific name",
+    "marine pelagic fishes not identified",  "osteichthyes",  "informal_name", "Non-scientific name",
+    "miscellaneous aquatic invertebrates",   "asteroidea",    "informal_name", "Non-scientific name; assign to asteroidea for now; downstream code defines aquatic invertebrates as list of classes (if we went by phylum ascidians would be omitted as chordata)",
+    "miscellaneous diadromous fishes",       "osteichthyes",  "informal_name", "Non-scientific name",
+    "miscellaneous marine crustaceans",      "malacostraca",  "informal_name", "Non-scientific name; assuming some sort of crab/lobster/shrimp/prawn/crayfish crustacean",
+
+    # SAU - rank_mismatch
+    "dendrobranchiata", "decapoda",          "rank_mismatch", "",
+    "pleuronectoidei",  "pleuronectiformes", "rank_mismatch", "Moving from suborder to order",
+
+    # SAU - adjust_to_fb_slb
+    "inermiidae",     "haemulidae",         "adjust_to_fb_slb", "",
+    "liza",           "planiliza spp",      "adjust_to_fb_slb", "Not matching to taxa table",
+    "valamugil",      "mugilidae",          "adjust_to_fb_slb", "unaccepted name, Worms accepted genus crenimugil not in FB taxa table, bump to family",
+    "tridacnidae",    "cardiidae",          "adjust_to_fb_slb", "Moving from subfamily to family name",
+
+    # SAU - adjust_to_fb_slb
+    "asterozoa",                  "asteroidea",    "adjust_to_fb_slb", "",
+    "batoidea",                   "rajiformes",    "adjust_to_fb_slb", "Several potential orders; assume rajiformes for now",
+    "echinozoa",                  "echinodermata", "adjust_to_fb_slb", "",
+    "pteriomorphia",              "bivalvia",      "adjust_to_fb_slb", "",
+    "azurina cyanea",             "azurina",       "adjust_to_fb_slb", "Moving up a taxonomic level",
+    "sinistrofulgur sinistrum",   "neogastropoda", "adjust_to_fb_slb", "Move from species to order",
+    "austropotamobius pallipes",  "astacidae",     "adjust_to_fb_slb", "SeaLifeBase doesn't recognize the genus or species; just use family",
+    "euastacus armatus",          "parastacidae",  "unressolved_taxon", "SeaLifeBase doesn't recognize the genus or species; just use family"
   )
+
+  # Add encoded columns and detect values ----------------------------------
+
+  # One-hot encoding Taxa sciname_corrected classificataion hierarchitcal rank
+  # same code as clean_prod_dat.R - required for subsetting data and joining onto Fishbase and Sealifebase taxa data
+
+  # Create empty columns 
+  prod_sciname_corrections$Species01 <- 0
+  prod_sciname_corrections$Genus01   <- 0
+  prod_sciname_corrections$Family01  <- 0
+  prod_sciname_corrections$Other01   <- 0
+
+  # Assign Genera by "spp" string
+  prod_sciname_corrections$Genus01[grepl(prod_sciname_corrections$sciname_corrected, pattern = "spp")] <- 1
+  # Assign Family - No space in name and family affix
+  prod_sciname_corrections$Family01[
+    grepl(prod_sciname_corrections$sciname_corrected, pattern = " ") == FALSE &
+      grepl(pattern = "([^\\s])*dae", prod_sciname_corrections$sciname_corrected)
+  ] <- 1
+  # Assign Species - space in sciname_corrected string
+  prod_sciname_corrections$Species01[
+    grepl(prod_sciname_corrections$sciname_corrected, pattern = " ") &
+      prod_sciname_corrections$Family01 == 0 &
+      prod_sciname_corrections$Genus01  == 0
+  ] <- 1
+  # Assign Other - leftovers
+  # Consistent string detection not available to classification ranks higher than family
+  prod_sciname_corrections$Other01[
+    prod_sciname_corrections$Species01 == 0 &
+      prod_sciname_corrections$Genus01  == 0 &
+      prod_sciname_corrections$Family01 == 0
+  ] <- 1
+
+  # Remove " spp" suffix now that genera are identified
+  prod_sciname_corrections <- prod_sciname_corrections %>%
+    mutate(sciname_corrected = gsub(sciname_corrected, pattern = " spp", replacement = ""))
+
+  # Checks ----------------------------------
+
+  # Check for duplicate records
+  n_duplicates <- prod_sciname_corrections %>% 
+    group_by(sciname_raw) %>% 
+    mutate(
+      n_raw = n()
+    ) 
+
+  # Check for duplicate raw scinames
+  n_raw <- n_duplicates %>% 
+    filter(n_raw > 1)
+
+  if(nrow(n_raw)) {
+    cli::cli_h2("Malformed prod taxa manual corrections table - Check 1")
+    cli::cli_alert_warning("{.fn build_corr_tbl_prod_sciname} table has duplicate {.field sciname_raw} values.")
+    cli::cli_alert_info("Multiple rows detected for: {n_raw$sciname_raw}")
+  }
+
+  # Check encoded columns only have one one value
+  add_to_one <- prod_sciname_corrections %>% 
+    group_by(sciname_raw) %>% 
+    mutate(n_ones = sum(Species01, Genus01, Family01, Other01)) %>% 
+    filter(n_ones > 1)
+
+  if(nrow(add_to_one)) {
+    cli::cli_h2("Malformed prod taxa manual corrections table - Check 2")
+    cli::cli_alert_warning("Some {.field sciname_raw} values have more than one {.field Species01, Genus01, Family01, Other01} assignments.")
+    cli::cli_alert_info("Check {.fn build_corr_tbl_prod_sciname} for duplicate {.field sciname_raw} values or other entry errors.")
+    cli::cli_alert_info("Multiple encoded values detected for: {.val add_to_one$sciname_raw}")
+  }
+
+  # Check corrected names show up in FB/SLB taxa tables
   
+  snapshot <- sub(".*_(\\d+\\.\\d+)$", "\\1", basename(the_fb_slb_dir))
+
+  fb_taxa <- fread(file.path(the_fb_slb_dir, "fb_taxa_info.csv"), data.table = FALSE)
+  slb_taxa <- fread(file.path(the_fb_slb_dir, "slb_taxa_info.csv"), data.table = FALSE)
+
+  # get all unique taxa names (regardless of classifcation rank)
+  all_taxa_vec <- unique(c(unlist(fb_taxa, use.names = FALSE), unlist(slb_taxa, use.names = FALSE)))
+
+  # Check that all `sciname_corrected` values are valid Fb / Slb taxa values
+  not_valid_taxa <- prod_sciname_corrections %>% 
+    select(sciname_corrected) %>% 
+    filter(!sciname_corrected %in% all_taxa_vec)
+
+  if(nrow(not_valid_taxa)) {
+    cli::cli_h2("Malformed prod taxa manual corrections table - Check 3")
+    cli::cli_alert_warning("{.val {nrow(not_valid_taxa)}} {.field sciname_corrected} value{?s} in {.fn build_corr_tbl_prod_sciname} {?is/are} not found within 
+    Fishbase and Sealifebase {.val {snapshot}} version taxa tables:  {.val {not_valid_taxa}}")
+    cli::cli_alert_info("Make corrections where possible, but there may be instances where we choose to insert taxa not represented 
+    in FB/SLB into the ARTIS. These instance are contained within the downstream {.fn fill_taxa_classification_gaps} function.")
+  }
+
   return(prod_sciname_corrections)
 }

@@ -1,0 +1,3 @@
+[submodule ".lab-genAI-toolbox"]
+	path = .lab-genAI-toolbox
+	url = https://github.com/Seafood-Globalization-Lab/lab-genAI-toolbox
