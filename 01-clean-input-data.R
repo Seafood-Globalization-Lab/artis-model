@@ -107,8 +107,23 @@ taxa_need_corrections_2 <- as_tibble(match_prod_taxa_results_2$taxa_need_correct
 # FIXIT: taxa_need_corrections_2 values that are OK - "batoidea", "perciformes", "selachii". Known deviations/exceptions to Fishbase/Sealifebase taxonomic schema  
 # FIXIT: Add final ref table of applied corrections (manual and synonyms) - think about cleaning scripts corrections (do they need to be included?)
 
+## FIXIT - move into function
+# Verify habitat information is complete
+missing_habitat_scinames <- match_prod_taxa_results_2$prod_taxa_classification %>% 
+  mutate(habitat_sum = Fresh01 + Brack01 + Saltwater01) %>%
+  filter(habitat_sum == 0 | is.na(habitat_sum))
+
+if (nrow(missing_habitat_scinames) > 0) {
+  cli::cli_h2("Missing Habitat information - production taxa data")
+  cli::cli_alert_warning("{nrow(missing_habitat_scinames)} {.field SciName}{?s} missing habitat information")
+  cli::cli_alert_info("{.field SciName} without habitat coding: {.val {missing_habitat_scinames$SciName}}")
+  cli::cli_alert_info("Check {.code match_prod_taxa_results_2$prod_taxa_classification} in {.field Fresh01}, {.field Brack01}, and {.field Saltwater01} columns")
+  cli::cli_alert_info("Add manual fixes to {.fn fill_prod_taxa_gaps}")
+  cli::cli_alert_info("Some missing habitat encodings might be ok, check")
+}
+
 ## Gap-fill taxa classification ---------------------------
-prod_taxa_classification <- fill_taxa_classification_gaps(
+prod_taxa_classification <- fill_prod_taxa_gaps(
   the_prod_taxa_classification = match_prod_taxa_results_2$prod_taxa_classification,
   the_prod_data = match_prod_taxa_results_2$prod_data,
   outdir = outdir
@@ -118,41 +133,12 @@ prod_taxa_classification <- fill_taxa_classification_gaps(
 prod_data_raw <- match_prod_taxa_results_2$prod_ts
 
 # remove large less-clean environmental objects no longer needed
-rm(match_prod_taxa_results_1, match_prod_taxa_results_2, prod_ts_fao, rebuilt_fao_prod)
-
-## FAO Taxa Manual Habitat Adds ---------------------------------
-# FIXIT Does this belong in the `fill_taxa_classification_gaps()`?
-prod_taxa_classification <- prod_taxa_classification %>%
-  # Manually assign missing habitat coding
-  mutate(
-    Fresh01 = case_when(
-      SciName %in% c("neocaridina denticulata", "caridina nilotica") ~
-        as.integer(1),
-      TRUE ~ as.integer(Fresh01)
-    )
-  ) %>%
-  mutate(
-    Saltwater01 = case_when(
-      SciName == "anadara grandis" ~ as.integer(1),
-      TRUE ~ as.integer(Saltwater01)
-    )
-  )
-
-## DATA CHECK ---------------------------------
-
-## FIXIT - move into function
-# Verify habitat information is complete
-missing_habitat_species <- prod_taxa_classification %>% 
-  mutate(habitat_sum = Fresh01 + Brack01 + Saltwater01) %>%
-  filter(habitat_sum == 0 | is.na(habitat_sum))
-
-if (nrow(missing_habitat_species) > 0) {
-  cli::cli_alert_warning(c(
-    "!" = "{nrow(missing_habitat_species)} species missing habitat information",
-    "i" = "Species without habitat coding: {.val {missing_habitat_species$SciName}}",
-    "i" = "Check prod_taxa_classification for Fresh01, Brack01, and Saltwater01 columns"
-  ))
-}
+rm(
+  match_prod_taxa_results_1, 
+  match_prod_taxa_results_2, 
+  prod_ts_fao, 
+  rebuilt_fao_prod
+)
 
 # SAVE PRODUCTION Taxa OUTPUT:
 write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)

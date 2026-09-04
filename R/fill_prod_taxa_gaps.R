@@ -1,4 +1,4 @@
-#' Fill gaps and finalize the taxa classification table
+#' Fill gaps and finalize the prod taxa classification table
 #'
 #' @description
 #' Takes the raw `prod_taxa_classification` table from
@@ -28,7 +28,7 @@
 #' @importFrom tibble tibble tribble
 #' @export
 
-fill_taxa_classification_gaps <- function(
+fill_prod_taxa_gaps <- function(
   the_prod_taxa_classification,
   the_prod_data,
   outdir
@@ -40,11 +40,10 @@ fill_taxa_classification_gaps <- function(
   
   # Fill missing Kingdom (universally animalia) ----------------------------
   prod_taxa_classification_clean <- the_prod_taxa_classification %>%
-    mutate(Kingdom = "animalia")
+    mutate(Kingdom = "animalia") %>% 
 
   # Fill missing Phyla -------------------------------------------------------
 
-  prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
     mutate(Phylum = case_when(
       Superclass %in% 
         c(
@@ -62,7 +61,6 @@ fill_taxa_classification_gaps <- function(
 
   # Add Infraclass column --------------------------------------------------
 
-  prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
     mutate(
       Infraclass = case_when(
         # create Infraclass Selachii - two children Superorder (taxa rank not included in FB/SLB/ARTIS)
@@ -91,7 +89,7 @@ fill_taxa_classification_gaps <- function(
         TRUE ~ NA
       )
     ) %>%
-    relocate(Infraclass, .after = Order)
+    relocate(Infraclass, .after = Order) %>% 
 
 
   # Add information for missing taxa in `taxa_need_corrections_2` ----------
@@ -100,18 +98,16 @@ fill_taxa_classification_gaps <- function(
   # Probably right? taxa_need_corrections_2 has "batoidea", "perciformes", and "selachii" as the remaining values from matching process upstream. That means they are in prod but not
   # in Fishbase/sealifebase? 
 
-  prod_taxa_classification_clean <- prod_taxa_classification_clean %>%
     bind_rows(
       tribble(
         ~SciName,          ~CommonName,            ~Genus, ~Subfamily, ~Family, ~Order,           ~Infraclass,    ~Class,          ~Superclass,   ~Phylum,    ~Kingdom,   ~Aquarium, ~Fresh01, ~Brack01, ~Saltwater01,
         "perciformes",     "tuna-like fishes nei", NA,     NA,         NA,      "perciformes",    NA,             "teleostei",     "osteichthyes", "chordata", "animalia", NA,        NA,       NA,       NA,
         "batoidea",        "rays",                 NA,     NA,         NA,      NA,               "batoidea",     "elasmobranchii", "chondrichthyes", "chordata", "animalia", NA,        NA,       NA,       NA,
         "selachii",        "sharks",               NA,     NA,         NA,      NA,               "selachii",     "elasmobranchii", "chondrichthyes", "chordata", "animalia", NA,        NA,       NA,       NA,
-      ))
+      )) %>% 
 
   # Special-case row additions and fixes -----------------------------------
   
-  prod_taxa_classification_clean <- prod_taxa_classification_clean %>% 
     # Fill in taxa rank values for sipunculus nudus - missing from Sealfiebase
     # Want to keep "not assigned" value in Class?
     mutate(
@@ -133,7 +129,30 @@ fill_taxa_classification_gaps <- function(
   
     # Only keep taxa represented in prod_data -----------------------------------
 
-    filter(SciName %in% the_prod_data$SciName)
+    filter(SciName %in% the_prod_data$SciName) %>% 
+  
+    
+  # Manual Habitat fixes ---------------------------------------------------
+
+    # assign Freshwater habitat coding
+    mutate(
+    Fresh01 = case_when(
+      SciName %in% c(
+        "neocaridina denticulata", 
+        "caridina nilotica"
+      ) ~ as.integer(1),
+      TRUE ~ as.integer(Fresh01)
+    )
+    ) %>%
+    # assign Saltwater habitat coding
+    mutate(
+      Saltwater01 = case_when(
+        SciName %in% c(
+          "anadara grandis"
+        ) ~ as.integer(1),
+        TRUE ~ as.integer(Saltwater01)
+      )
+    )
 
   # Missing SciName check + CLI warning + CSV write -----------------------
   missing_scinames <- unique(the_prod_data$SciName)[
@@ -162,5 +181,5 @@ fill_taxa_classification_gaps <- function(
     )
   }
 
-  prod_taxa_classification_clean
+  return(prod_taxa_classification_clean)
 }
