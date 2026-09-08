@@ -352,7 +352,6 @@ match_prod_taxa_to_fbslb <- function(
 
   # Synonym resolution -----------------------------------------------------
 
-  # FIXIT - AM 2026-06-29 - Update warning message with more specifics - table name - maybe diff format than warning message
   synonym_resolution <- resolve_synonyms(
     scinames     = nomatch_fb_and_slb,
     fb_synonyms  = fb_synonyms,
@@ -508,6 +507,7 @@ match_prod_taxa_to_fbslb <- function(
 
   fb_aquarium_info <- fread(file.path(fb_slb_dir, "fb_aquarium.csv"), data.table = FALSE)
   fb_aquarium_relevant <- fb_aquarium_info %>%
+    # FIXIT: AM 2028-08-04 Doesn't need to happen if being left_join'ed right? 
     filter(SciName %in% prod_taxa_class_fb$SciName)
 
   prod_taxa_class_fb <- prod_taxa_class_fb %>%
@@ -515,6 +515,7 @@ match_prod_taxa_to_fbslb <- function(
     rename(Fresh01 = Fresh, Brack01 = Brack, Saltwater01 = Saltwater)
 
   slb_aquarium_info <- fread(file.path(fb_slb_dir, "slb_aquarium.csv"), data.table = FALSE)
+  # FIXIT: AM 2028-08-04 Doesn't need to happen if being left_join'ed right? 
   slb_aquarium_relevant <- slb_aquarium_info %>%
     filter(SciName %in% unique(prod_taxa_class_slb$SciName))
 
@@ -534,7 +535,13 @@ match_prod_taxa_to_fbslb <- function(
       Order, Class, Superclass, Phylum, Kingdom,
       Aquarium, Fresh01, Brack01, Saltwater01
     ) %>%
-    arrange(SciName)
+    arrange(SciName) %>% 
+    mutate(habitat_fb = case_when(Fresh01 == 1 & Saltwater01 == 0 ~ "inland",
+                                Fresh01 == 0 & Saltwater01 == 1 ~ "marine",
+                                Fresh01 == 1 & Saltwater01 == 1 ~ "diadromous",
+                                # If a species just exists in brackish water we classify as marine
+                                Brack01 == 1 & Fresh01 == 0 & Saltwater01 == 0 ~ "marine",
+                                TRUE ~ as.character(NA))) # Taxa with fb_habitat = NA are higher order than species so habitat not necessarily universal 
 
   # Replace empty strings with NA
   prod_data[prod_data == ""] <- NA

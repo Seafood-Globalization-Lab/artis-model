@@ -107,7 +107,7 @@ taxa_need_corrections_2 <- as_tibble(match_prod_taxa_results_2$taxa_need_correct
 # FIXIT: taxa_need_corrections_2 values that are OK - "batoidea", "perciformes", "selachii". Known deviations/exceptions to Fishbase/Sealifebase taxonomic schema  
 # FIXIT: Add final ref table of applied corrections (manual and synonyms) - think about cleaning scripts corrections (do they need to be included?)
 
-## FIXIT - move into function
+## FIXIT - move into function - with common name and other checks? then manual fixes go in fill_prod_taxa_gaps()
 # Verify habitat information is complete
 missing_habitat_scinames <- match_prod_taxa_results_2$prod_taxa_classification %>% 
   mutate(habitat_sum = Fresh01 + Brack01 + Saltwater01) %>%
@@ -129,7 +129,7 @@ prod_taxa_classification <- fill_prod_taxa_gaps(
   outdir = outdir
 )
 
-# Final objects for downstream use
+# Final objects for downstream use - FIXIT: rename objectss
 prod_data_raw <- match_prod_taxa_results_2$prod_ts
 
 # remove large less-clean environmental objects no longer needed
@@ -169,15 +169,11 @@ prod_data <- prod_data_raw %>%
                                  prod_method == "CAPTURE" ~ "capture",
                                  TRUE ~ prod_method)) %>%
   # Create new column that combines SciName with souce info (i.e., habitat + production method)
+  # FIXIT: AM 2026-09-04 Can I remove this? Created again below after habitat update.
   mutate(taxa_source = paste(str_replace(SciName, " ", "."), fao_habitat, prod_method, sep = "_")) %>%
   # Join fishbase habitat data to prod data and make new Fishbase habitat column to compare to FAO's habitat column 
   left_join(prod_habitat, by = "SciName") %>%
-  mutate(fb_habitat = case_when(Fresh01 == 1 & Saltwater01 == 0 ~ "inland",
-                                Fresh01 == 0 & Saltwater01 == 1 ~ "marine",
-                                Fresh01 == 1 & Saltwater01 == 1 ~ "diadromous",
-                                # If a species just exists in brackish water we classify as marine
-                                Brack01 == 1 & Fresh01 == 0 & Saltwater01 == 0 ~ "marine",
-                                TRUE ~ as.character(NA))) %>% # Taxa with fb_habitat = NA are higher order than species so habitat not necessarily universal 
+  
   # if fishbase (marine/inland) conflicts with FAOs (marine/inland) then use Fishbase designation
   mutate(habitat = case_when(str_detect(SciName, pattern = " ") & fb_habitat != fao_habitat & fb_habitat %in% c("inland", "marine") ~ fb_habitat,
                                  TRUE ~ fao_habitat)) %>% # ELSE, use FAO's habitat designation, including for all non species-level data
