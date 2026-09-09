@@ -100,7 +100,7 @@
 #' @return
 #' A tibble with one row per raw scientific name. Columns:
 #'
-#' * `sciname_raw` — unresolved scientific name as it appears in FAO or SAU
+#' * `sciname_prod` — unresolved scientific name as it appears in FAO or SAU
 #'   production data.
 #' * `sciname_corrected` — corrected name for downstream use.
 #' * `correction_category` — reason for the correction; one of: 
@@ -124,8 +124,8 @@
 #'
 #' The function checks and emits `cli` warnings if violations are found:
 #'
-#' * **Duplicate `sciname_raw` check** — detects multiple rows for the same
-#'   `sciname_raw`, which would cause one-to-many join errors.
+#' * **Duplicate `sciname_prod` check** — detects multiple rows for the same
+#'   `sciname_prod`, which would cause one-to-many join errors.
 #' * **Encoding uniqueness check** — detects rows where more than one of
 #'   `Species01`, `Genus01`, `Family01`, `Other01` equals `1`.
 #' * **FB/SLB valid `sciname_corrected` values** - detects that corrected
@@ -152,7 +152,7 @@ build_corr_tbl_prod_sciname <- function(
 
   # Create corrections dataframe -------------------------------------------
   prod_sciname_corrections <- tribble(
-    ~sciname_raw, ~sciname_corrected, ~correction_category, ~notes,
+    ~sciname_prod, ~sciname_corrected, ~correction_category, ~notes,
 
     # hybrid
     # RULE: Replace hybrid name with lowest shared taxa classification rank name
@@ -328,7 +328,7 @@ build_corr_tbl_prod_sciname <- function(
 
   # Check for duplicate records
   n_duplicates <- prod_sciname_corrections %>% 
-    group_by(sciname_raw) %>% 
+    group_by(sciname_prod) %>% 
     mutate(
       n_raw = n()
     ) 
@@ -339,21 +339,21 @@ build_corr_tbl_prod_sciname <- function(
 
   if(nrow(n_raw)) {
     cli::cli_h2("Malformed prod taxa manual corrections table - Check 1")
-    cli::cli_alert_warning("{.fn build_corr_tbl_prod_sciname} table has duplicate {.field sciname_raw} values.")
-    cli::cli_alert_info("Multiple rows detected for: {n_raw$sciname_raw}")
+    cli::cli_alert_warning("{.fn build_corr_tbl_prod_sciname} table has duplicate {.field sciname_prod} values.")
+    cli::cli_alert_info("Multiple rows detected for: {n_raw$sciname_prod}")
   }
 
   # Check encoded columns only have one one value
   add_to_one <- prod_sciname_corrections %>% 
-    group_by(sciname_raw) %>% 
+    group_by(sciname_prod) %>% 
     mutate(n_ones = sum(Species01, Genus01, Family01, Other01)) %>% 
     filter(n_ones > 1)
 
   if(nrow(add_to_one)) {
     cli::cli_h2("Malformed prod taxa manual corrections table - Check 2")
-    cli::cli_alert_warning("Some {.field sciname_raw} values have more than one {.field Species01, Genus01, Family01, Other01} assignments.")
-    cli::cli_alert_info("Check {.fn build_corr_tbl_prod_sciname} for duplicate {.field sciname_raw} values or other entry errors.")
-    cli::cli_alert_info("Multiple encoded values detected for: {.val add_to_one$sciname_raw}")
+    cli::cli_alert_warning("Some {.field sciname_prod} values have more than one {.field Species01, Genus01, Family01, Other01} assignments.")
+    cli::cli_alert_info("Check {.fn build_corr_tbl_prod_sciname} for duplicate {.field sciname_prod} values or other entry errors.")
+    cli::cli_alert_info("Multiple encoded values detected for: {.val add_to_one$sciname_prod}")
   }
 
   # Check corrected names show up in FB/SLB taxa tables
