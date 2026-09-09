@@ -46,7 +46,7 @@
 #'
 #' * `sciname_original` — the input name, uncleaned.
 #' * `sciname_accepted` — the accepted name if resolved; `NA` otherwise.
-#' * `source` — `"fb"`, `"slb"`, or `NA` if unresolved or violation.
+#' * `correction_source` — `"fb"`, `"slb"`, or `NA` if unresolved or violation.
 #' * `resolved` — `TRUE` if an accepted name was found; `FALSE` otherwise.
 #' * `status` — one of `"resolved_fb"`, `"resolved_slb"`, `"unresolved"`,
 #'   `"assumption_violation_fb"`, `"assumption_violation_slb"`.
@@ -81,7 +81,7 @@ resolve_synonyms <- function(scinames, fb_synonyms, slb_synonyms) {
       return(data.frame(
         sciname_original = sciname_i,
         sciname_accepted = NA_character_,
-        source           = "fb",
+        correction_source = "synonym_table_fb",
         resolved         = FALSE,
         status           = "assumption_violation"
       ))
@@ -91,7 +91,7 @@ resolve_synonyms <- function(scinames, fb_synonyms, slb_synonyms) {
       return(data.frame(
         sciname_original = sciname_i,
         sciname_accepted = fb_result$accepted_name,
-        source           = "fb",
+        correction_source = "synonym_table_fb",
         resolved         = TRUE,
         status           = "resolved"
       ))
@@ -108,7 +108,7 @@ resolve_synonyms <- function(scinames, fb_synonyms, slb_synonyms) {
       return(data.frame(
         sciname_original = sciname_i,
         sciname_accepted = NA_character_,
-        source           = "slb",
+        correction_source = "synonym_table_slb",
         resolved         = FALSE,
         status           = "assumption_violation"
       ))
@@ -118,7 +118,7 @@ resolve_synonyms <- function(scinames, fb_synonyms, slb_synonyms) {
       return(data.frame(
         sciname_original = sciname_i,
         sciname_accepted = tolower(slb_result$accepted_name),
-        source           = "slb",
+        correction_source = "synonym_table_slb",
         resolved         = TRUE,
         status           = "resolved"
       ))
@@ -128,7 +128,7 @@ resolve_synonyms <- function(scinames, fb_synonyms, slb_synonyms) {
     data.frame(
       sciname_original = sciname_i,
       sciname_accepted = NA_character_,
-      source           = NA_character_,
+      correction_source           = NA_character_,
       resolved         = FALSE,
       status           = "unresolved"
     )
