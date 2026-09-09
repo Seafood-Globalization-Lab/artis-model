@@ -106,7 +106,7 @@ match_prod_taxa_to_fbslb_2 <- function(
       left_join(
         corr_tbl %>%
           select(
-            SciName = sciname_raw,
+            SciName = sciname_prod,
             sciname_corrected,
             Species01,
             Genus01,
@@ -383,6 +383,9 @@ match_prod_taxa_to_fbslb_2 <- function(
   synonym_resolutions <- synonym_results %>% 
     filter(resolved) %>% 
     select(
+      # Side Note - there is a possibility that these sciname_original values are not exactly SciName_prod values from prod_taxa
+      # if a manual correction was made above to correct to a fb/slb synonym name that would be picked up here. Not the design
+      # intention of the manual correction table, but it is possible.
       SciName_prod = sciname_original, 
       SciName = sciname_accepted, 
       correction_source)
@@ -418,14 +421,13 @@ match_prod_taxa_to_fbslb_2 <- function(
   fb_resolved <- synonym_resolutions %>%
     filter(correction_source == "synonym_table_fb")
 
-
   if (nrow(fb_resolved) > 0) {
     # Filter by original SciName_prod that were resolved to accepted names in the synonym table.
     # fb_resolved_replacements <- prod_taxa %>%
     #   filter(SciName_prod %in% fb_resolved$sciname_original) 
 
     # Get taxa classification info from FB/SLB taxa tables - divided up by classification rank for matching purposes
-    prod_taxa_class_fb_newdat <- bind_rows(
+    prod_taxa_class_fb_syns <- bind_rows(
 
       # resolved species with classification rank info joined on
       fb_resolved %>%
@@ -458,8 +460,8 @@ match_prod_taxa_to_fbslb_2 <- function(
     # Note - any synonym correction will not have a CommonName value at this point
     prod_taxa_class_fb <- prod_taxa_class_fb %>%
       full_join(
-        prod_taxa_class_fb_newdat,
-        by = intersect(names(prod_taxa_class_fb), names(prod_taxa_class_fb_newdat))
+        prod_taxa_class_fb_syns,
+        by = intersect(names(prod_taxa_class_fb), names(prod_taxa_class_fb_syns))
       )
   }
 
@@ -474,7 +476,7 @@ match_prod_taxa_to_fbslb_2 <- function(
     # slb_resolved_replacements <- prod_taxa %>%
     #   filter(SciName_prod %in% slb_resolved$sciname_original)
 
-    prod_taxa_class_slb_newdat <- bind_rows(
+    prod_taxa_class_slb_syns <- bind_rows(
       
       # resolved species
       slb_resolved %>%
@@ -505,14 +507,15 @@ match_prod_taxa_to_fbslb_2 <- function(
 
     prod_taxa_class_slb <- prod_taxa_class_slb %>%
       full_join(
-        prod_taxa_class_slb_newdat,
-        by = intersect(names(prod_taxa_class_slb), names(prod_taxa_class_slb_newdat))
+        prod_taxa_class_slb_syns,
+        by = intersect(names(prod_taxa_class_slb), names(prod_taxa_class_slb_syns))
       )
   }
 
   # No match scinames after synonym resolution ------------------------------
 
-  # Scinames not resolved by synonym matching — require manual corrections downstream
+  # Scinames not resolved by synonym matching - compare to successful synonyms in synonym_resolutions 
+  # - may require manual corrections downstream
   missing_scinames_post_syn <- nomatch_fb_and_slb[
     !nomatch_fb_and_slb %in% synonym_resolutions$SciName_prod
   ]
@@ -541,12 +544,10 @@ match_prod_taxa_to_fbslb_2 <- function(
       Brack01 = Brack, 
       Saltwater01 = Saltwater)
 
-  # Assemble prod_taxa_classification (pre-gap-fill) -----------------------
-  prod_taxa_classification <- prod_taxa_class_fb %>%
-    full_join(
-      prod_taxa_class_slb,
-      by = intersect(names(prod_taxa_class_fb), names(prod_taxa_class_slb))
-    ) %>%
+  # Assemble prod_taxa_classification () -----------------------
+  prod_taxa_classification <- bind_rows(
+    prod_taxa_class_fb,
+    prod_taxa_class_slb) %>%
     select(
       SciName,
       SciName_prod,
@@ -585,7 +586,7 @@ match_prod_taxa_to_fbslb_2 <- function(
   prod_taxa <- prod_taxa %>%
     left_join(
       prod_taxa_classification %>% select(-CommonName),
-      join_by(SciName, SciName_prod)
+      join_by(SciName)
     )
 
   # Replace empty strings with NA
