@@ -101,7 +101,7 @@ fill_prod_taxa_gaps <- function(
     bind_rows(
       tribble(
         ~SciName,          ~CommonName,            ~Genus, ~Subfamily, ~Family, ~Order,           ~Infraclass,    ~Class,          ~Superclass,   ~Phylum,    ~Kingdom,   ~Aquarium, ~Fresh01, ~Brack01, ~Saltwater01,
-        "perciformes",     "tuna-like fishes nei", NA,     NA,         NA,      "perciformes",    NA,             "teleostei",     "osteichthyes", "chordata", "animalia", NA,        NA,       NA,       NA,
+        "perciformes",     "perch-like fishes",    NA,     NA,         NA,      "perciformes",    NA,             "teleostei",     "osteichthyes", "chordata", "animalia", NA,        NA,       NA,       NA,
         "batoidea",        "rays",                 NA,     NA,         NA,      NA,               "batoidea",     "elasmobranchii", "chondrichthyes", "chordata", "animalia", NA,        NA,       NA,       NA,
         "selachii",        "sharks",               NA,     NA,         NA,      NA,               "selachii",     "elasmobranchii", "chondrichthyes", "chordata", "animalia", NA,        NA,       NA,       NA,
       )) %>% 
@@ -117,24 +117,9 @@ fill_prod_taxa_gaps <- function(
       )
     ) %>% 
   
-    # Fill missing CommonName for osteichthyes -----------------------------------
-  
-    # FIXIT: AM 2026-08-31 - multiple common names originating from production data. Do we want to overwrite this distinction? 
-    # mutate(
-    #   CommonName = case_when(
-    #     SciName == "osteichthyes" ~ "ray-finned fishes",
-    #     TRUE ~ CommonName
-    #   )
-    # ) %>%
-  
-    # Only keep taxa represented in prod_data -----------------------------------
-
-    filter(SciName %in% the_prod_data$SciName) %>% 
-  
-    
   # Manual Habitat fixes ---------------------------------------------------
 
-    # assign Freshwater habitat coding
+    # assign missing Freshwater habitat coding
     mutate(
     Fresh01 = case_when(
       SciName %in% c(
@@ -144,15 +129,6 @@ fill_prod_taxa_gaps <- function(
       TRUE ~ as.integer(Fresh01)
     )
     ) %>%
-    # assign Saltwater habitat coding
-    mutate(
-      Saltwater01 = case_when(
-        SciName %in% c(
-          "anadara grandis"
-        ) ~ as.integer(1),
-        TRUE ~ as.integer(Saltwater01)
-      )
-    )
 
   # Missing SciName check + CLI warning + CSV write -----------------------
   missing_scinames <- unique(the_prod_data$SciName)[
