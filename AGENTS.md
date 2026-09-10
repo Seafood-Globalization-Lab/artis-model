@@ -16,6 +16,7 @@ For developing the ARTIS model package
 
 ## Language Style
 - use American z's in words like "Standardizing" rather than "Standardizing" or "visualization" vs "visualisation" 
+- no emojis unless specifically requested by user
 
 ## Response Style
 - When asked for a response in markdown syntax OR to summarize for a GitHub issue - always bound the code with `~~~` in a single code chunk
