@@ -94,19 +94,24 @@ match_prod_taxa_to_fbslb_2 <- function(
   # it must not be modified anywhere in this function. It is the stable join key
   # the caller uses to match corrected names back to prod_data.
   prod_taxa <- prod_data %>%
-    select(SciName, CommonName, Species01, Genus01, Family01, Other01) %>%
-    arrange(SciName) %>%
-    distinct() %>%
-    mutate(SciName_prod = SciName)
+    select(
+      SciName_prod = SciName, 
+      CommonName, 
+      Species01, 
+      Genus01, 
+      Family01, 
+      Other01) %>%
+    arrange(SciName_prod) %>%
+    distinct() 
 
   # Optionally apply manual corrections to prod_taxa$SciName ---------------
   # All corrections accumulate on prod_taxa; prod_data is never mutated.
   if (!is.null(corr_tbl)) {
-    prod_taxa <- prod_taxa %>%
+    prod_taxa_corr <- prod_taxa %>%
       left_join(
         corr_tbl %>%
           select(
-            SciName = sciname_prod,
+            sciname_prod,
             sciname_corrected,
             Species01,
             Genus01,
@@ -114,7 +119,7 @@ match_prod_taxa_to_fbslb_2 <- function(
             Other01
           ) %>% 
           mutate(correction_source = "manual_correction_table"),
-        join_by(SciName)
+        join_by(SciName_prod == sciname_prod)
       ) %>%
       # collapse original production values and correction table value (prefer correction table .y)
       mutate(
@@ -124,19 +129,22 @@ match_prod_taxa_to_fbslb_2 <- function(
         Family01 = coalesce(Family01.y, Family01.x),
         Other01 = coalesce(Other01.y, Other01.x)
       ) %>%
-      select(-sciname_corrected, -ends_with(".x"), -ends_with(".y"))
+      select(-sciname_corrected, -CommonName, -ends_with(".x"), -ends_with(".y"))
+  } else if (is.null(corr_tbl)) {
+    # No corrections applied if no correction table supplied in argument
+    prod_taxa_corr <- prod_taxa
   }
 
   # Hierarchical FB inner_joins --------------------------------------------
 
-  # For each SciName in prod_taxa, attach taxonomic classification from either fishbase or sealifebase
+  # For each SciName in prod_taxa_corr, attach taxonomic classification from either fishbase or sealifebase
   # - Discard native FAO and SAU taxonomic classifications - Defer to fishbase/sealifebase  (more trustworthy)
   # - Perform joins hierarchically - match species to species, genus to genus, etc.
   # - Use `Other01` encoding for Order, Class, and Superclass joins 
   # "many-to-many" matches are NOT expected - these should be flagged in the raw data assessment - need to be fixed. 
 
   # Match Species rank values only
-  prod_fb_species <- prod_taxa %>%
+  prod_fb_species <- prod_taxa_corr %>%
     filter(Species01 == 1) %>%
     inner_join(fb_taxa_df, join_by(SciName == Species)) %>%
     warn_fbslb_taxa_join(
@@ -145,7 +153,7 @@ match_prod_taxa_to_fbslb_2 <- function(
     )
 
   # Match Genus rank values only
-  prod_fb_genus <- prod_taxa %>%
+  prod_fb_genus <- prod_taxa_corr %>%
     filter(Genus01 == 1) %>%
     inner_join(
       # remove lower rank columns - confounds matching
@@ -162,7 +170,7 @@ match_prod_taxa_to_fbslb_2 <- function(
     )
 
   # Match Family rank values only
-  prod_fb_family <- prod_taxa %>%
+  prod_fb_family <- prod_taxa_corr %>%
     filter(Family01 == 1) %>%
     inner_join(
       fb_taxa_df %>%
@@ -179,7 +187,7 @@ match_prod_taxa_to_fbslb_2 <- function(
     )
 
   # Match Other to Order rank values only
-  prod_fb_order <- prod_taxa %>%
+  prod_fb_order <- prod_taxa_corr %>%
     filter(Other01 == 1) %>%
     inner_join(
       fb_taxa_df %>%
@@ -198,7 +206,7 @@ match_prod_taxa_to_fbslb_2 <- function(
     )
 
   # Match Other to Class rank values only
-  prod_fb_class <- prod_taxa %>%
+  prod_fb_class <- prod_taxa_corr %>%
     filter(Other01 == 1) %>%
     inner_join(
       fb_taxa_df %>%
@@ -217,7 +225,7 @@ match_prod_taxa_to_fbslb_2 <- function(
     )
 
   # Match Other to Superclass rank values only
-  prod_fb_superclass <- prod_taxa %>%
+  prod_fb_superclass <- prod_taxa_corr %>%
     filter(Other01 == 1) %>%
     inner_join(
       fb_taxa_df %>%
@@ -239,7 +247,7 @@ match_prod_taxa_to_fbslb_2 <- function(
   # Same process as Hierarchical FB inner_joins
 
   # Match Species rank values only
-  prod_slb_species <- prod_taxa %>%
+  prod_slb_species <- prod_taxa_corr %>%
     filter(Species01 == 1) %>%
     inner_join(slb_taxa_df, join_by(SciName == Species)) %>%
     warn_fbslb_taxa_join(
@@ -248,7 +256,7 @@ match_prod_taxa_to_fbslb_2 <- function(
     )
 
   # Match Genus rank values only
-  prod_slb_genus <- prod_taxa %>%
+  prod_slb_genus <- prod_taxa_corr %>%
     filter(Genus01 == 1) %>%
     inner_join(
       slb_taxa_df %>%
@@ -265,7 +273,7 @@ match_prod_taxa_to_fbslb_2 <- function(
     )
 
   # Match Family rank values only
-  prod_slb_family <- prod_taxa %>%
+  prod_slb_family <- prod_taxa_corr %>%
     filter(Family01 == 1) %>%
     inner_join(
       slb_taxa_df %>%
@@ -281,7 +289,7 @@ match_prod_taxa_to_fbslb_2 <- function(
     )
 
   # Match Other to Order rank values only
-  prod_slb_order <- prod_taxa %>%
+  prod_slb_order <- prod_taxa_corr %>%
     filter(Other01 == 1) %>%
     inner_join(
       slb_taxa_df %>%
@@ -300,7 +308,7 @@ match_prod_taxa_to_fbslb_2 <- function(
     )
 
   # Match Other to Class rank values only
-  prod_slb_class <- prod_taxa %>%
+  prod_slb_class <- prod_taxa_corr %>%
     filter(Other01 == 1) %>%
     inner_join(
       slb_taxa_df %>%
@@ -319,7 +327,7 @@ match_prod_taxa_to_fbslb_2 <- function(
     )
 
   # Match Other to Phylum rank values only
-  prod_slb_phylum <- prod_taxa %>%
+  prod_slb_phylum <- prod_taxa_corr %>%
     filter(Other01 == 1) %>%
     inner_join(
       slb_taxa_df %>%
@@ -361,8 +369,8 @@ match_prod_taxa_to_fbslb_2 <- function(
   # Identify unmatched taxa ------------------------------------------------
 
   # Prod taxa scinames not in full joined fishbase dataframe
-  nomatch_fb <- prod_taxa$SciName[
-    prod_taxa$SciName %in% prod_taxa_class_fb$SciName == FALSE
+  nomatch_fb <- prod_taxa_corr$SciName[
+    prod_taxa_corr$SciName %in% prod_taxa_class_fb$SciName == FALSE
   ]
   # Exclude taxa scinames that matched to slb_taxa_df to get scinames not matched at all.
   # Note: prod_taxa is allowed to have duplicate scinames (each has a different commonname);
@@ -390,7 +398,7 @@ match_prod_taxa_to_fbslb_2 <- function(
       SciName = sciname_accepted, 
       correction_source)
 
-  # Apply resolved synonyms to prod_taxa$SciName ---------------------------
+  # Apply resolved synonyms to prod_taxa_corr$SciName ---------------------------
   # prod_data is read-only at this point; synonym resolution updates prod_taxa$SciName only.
   # resolved_names <- synonym_resolution %>%
   #   filter(resolved) %>%
@@ -551,7 +559,6 @@ match_prod_taxa_to_fbslb_2 <- function(
     select(
       SciName,
       SciName_prod,
-      CommonName,
       Genus,
       Subfamily,
       Family,
@@ -579,13 +586,11 @@ match_prod_taxa_to_fbslb_2 <- function(
     )
 
   # Fold classification columns into prod_taxa ---------------------------------
-  # prod_taxa supersedes the old prod_taxa + prod_taxa_classification split.
-  # CommonName is already in prod_taxa; all other classification columns are
   # joined on SciName (accepted name). Rows with no FB/SLB match will have NA
   # in classification columns.
   prod_taxa <- prod_taxa %>%
     left_join(
-      prod_taxa_classification %>% select(-CommonName),
+      prod_taxa_classification,
       join_by(SciName)
     )
 
