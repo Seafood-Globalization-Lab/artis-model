@@ -1,91 +1,107 @@
-#' Match production taxa to FishBase / SeaLifeBase hierarchical rank classifications and other attributes
+#' Match production taxa to FishBase and SeaLifeBase classifications
 #'
 #' @description
-#' Loads FishBase and SeaLifeBase data tables, performs hierarchical
-#' `inner_join` matching of production scientific names, runs a synonym
-#' resolution loop to reconcile unmatched species names, optionally applies
-#' manual name corrections (`corr_tbl`), joins aquarium-trade habitat info,
-#' and assembles the raw (pre-gap-fill) taxa classification table.
+#' Performs hierarchical `inner_join` matching of production scientific names
+#' against FishBase and SeaLifeBase taxonomy tables across six rank levels
+#' (Species, Genus, Family, Order, Class, and SuperClass for FishBase; Species,
+#' Genus, Family, Order, Class, and Phylum for SeaLifeBase), resolves unmatched
+#' binomial names via [resolve_synonyms()], optionally applies manual name
+#' corrections from `corr_tbl`, and joins aquarium-trade habitat information.
 #'
-#' Intended to be called **twice** in `01-clean-input-data.R`:
-#' - **Pass 1** (`corr_tbl = NULL`): surfaces unmatched names via
-#'   `$taxa_need_corrections` so the developer can update
-#'   [build_corr_tbl_prod_sciname()] as needed.
-#' - **Pass 2** (`corr_tbl = build_corr_tbl_prod_sciname()`): applies
-#'   corrections then produces the final matched outputs.
+#' @details
+#' Called inside `01-clean-input-data.R` **twice** in sequence:
 #'
-#' Unlike [match_prod_taxa_to_fbslb()], `prod_data` is treated as
-#' **read-only** throughout this function. All SciName corrections (from
-#' `corr_tbl` and synonym resolution) accumulate on `prod_taxa$SciName`. The
-#' original name from `prod_data` is preserved in `prod_taxa$SciName_prod` as
-#' a stable join key. The caller joins corrections back to `prod_data` via
-#' `SciName_prod` in `01-clean-input-data.R`.
+#' * **Pass 1** (`corr_tbl = NULL`): Runs matching and synonym resolution with
+#'   no corrections applied. Inspect `$taxa_need_corrections` to identify names
+#'   that require manual corrections in [build_corr_tbl_prod_sciname()].
+#' * **Pass 2** (`corr_tbl = build_corr_tbl_prod_sciname()`): Applies manual
+#'   corrections before matching, then produces the final matched output.
+#'   The `$prod_taxa_classification` result is passed to [fill_prod_taxa_gaps()]
+#'   for gap-filling and finalization.
 #'
-#' The `perciformes/` symbol fix is applied here so that
-#' [fill_taxa_classification_gaps()] remains a pure function.
+#' `prod_data` is treated as **read-only** throughout. The original `SciName`
+#' values from `prod_data` are preserved in `SciName_prod` as a stable join key.
+#' All corrections (from `corr_tbl` and synonym resolution) accumulate on a
+#' working copy and do not modify `prod_data`.
+#'
+#' ## Hierarchical rank matching
+#'
+#' For each rank level, only taxa encoded at that rank (via `Species01`,
+#' `Genus01`, `Family01`, `Other01`) are joined to the FB/SLB classification
+#' table. Lower-rank columns are removed before each join to prevent cross-rank
+#' mismatches. The rank-level tables are then combined with `full_join()` before
+#' synonym resolution rows are appended.
+#'
+#' ## Manual corrections
+#'
+#' When `corr_tbl` is non-`NULL`, corrections from [build_corr_tbl_prod_sciname()]
+#' are applied via `left_join()` on `SciName_prod`. The corrected name
+#' (`sciname_corrected`) and updated rank indicators take precedence over
+#' original `prod_data` values via `coalesce()`.
 #'
 #' @param prod_data Data frame. Output of [clean_prod_dat()]. Treated as
-#'   read-only; it is never mutated by this function. Both Pass 1 and Pass 2
+#'   read-only; never mutated by this function. Both Pass 1 and Pass 2
 #'   should receive the **same original** uncorrected `prod_data`.
 #' @param fb_slb_dir Character. Directory containing FishBase/SeaLifeBase
-#'   taxonomy and synonym CSVs (`fb_taxa_info.csv`, `slb_taxa_info.csv`,
-#'   `fb_synonyms_clean.csv`, `slb_synonyms_clean.csv`, `fb_aquarium.csv`,
-#'   `slb_aquarium.csv`).
+#'   taxonomy, synonym, and aquarium CSVs: `fb_taxa_info.csv`,
+#'   `slb_taxa_info.csv`, `fb_synonyms_clean.csv`, `slb_synonyms_clean.csv`,
+#'   `fb_aquarium.csv`, `slb_aquarium.csv`.
 #' @param corr_tbl Data frame or `NULL`. Manual name-correction table as
 #'   returned by [build_corr_tbl_prod_sciname()]. Pass `NULL` (default) for
 #'   Pass 1 (no corrections); pass the table for Pass 2.
 #'
-#' @return A named list with three elements:
-#' \describe{
-#'   \item{`prod_taxa`}{Unified taxa table derived from `prod_data`, combining
-#'     what was previously split across `prod_taxa` and `prod_taxa_classification`.
-#'     Columns: `SciName_prod` (original value from `prod_data`, never modified
-#'     — the stable join key back to `prod_data`); `SciName` (final accepted
-#'     name after `corr_tbl` corrections and synonym resolution);
-#'     full hierarchical classification (`Genus`, `Subfamily`, `Family`,
-#'     `Order`, `Class`, `Superclass`, `Phylum`, `Kingdom`); aquarium habitat
-#'     columns (`Aquarium`, `Fresh01`, `Brack01`, `Saltwater01`); and the
-#'     derived `habitat_fb` field. Rows for taxa that never matched FB/SLB will
-#'     have `NA` in all classification columns. Join this to `prod_data` via
-#'     `SciName_prod` to apply corrected names and bring in classification info
-#'     in one step.}
-#'   \item{`synonym_resolution`}{Data frame returned by [resolve_synonyms()].
-#'     One row per species-level unmatched name, documenting resolution outcome
-#'     via `status`: `"resolved_fb"`, `"resolved_slb"`, `"unresolved"`,
-#'     `"assumption_violation_fb"`, or `"assumption_violation_slb"`. Use this
-#'     on Pass 1 to identify names requiring manual correction.}
-#'   \item{`taxa_need_corrections`}{Character vector of `SciName`s present in
-#'     `prod_data` but absent from both FishBase and SeaLifeBase after synonym
-#'     resolution. Includes non-species-level names that never enter the
-#'     synonym loop. Ideally empty on Pass 2.}
-#' }
+#' @return
+#' A named list with three elements:
+#'
+#' * `prod_taxa_classification` — Distinct taxa table derived from `prod_data`. Columns:
+#'   `SciName_prod` (original value from `prod_data`, the stable join key back
+#'   to `prod_data`); `Species01`, `Genus01`, `Family01`, `Other01` (binary
+#'   rank indicators). Empty strings replaced with `NA`.
+#' * `synonym_results` — Full data frame returned by [resolve_synonyms()]. One
+#'   row per species-level unmatched name. Key columns: `sciname_original`,
+#'   `sciname_accepted`, `correction_source`, `resolved`, and `status`
+#'   (`"resolved_fb"`, `"resolved_slb"`, `"unresolved"`,
+#'   `"assumption_violation_fb"`, `"assumption_violation_slb"`). 
+#' * `taxa_need_corrections` — Character vector of `SciName`s present in
+#'   `prod_data` but absent from both FishBase and SeaLifeBase after synonym
+#'   resolution; candidates for manual corrections in build_corr_tbl_prod_sciname(). Ideally empty on Pass 2.
+#'
+#' @note
+#' The return list does not currently match what `01-clean-input-data.R` and
+#' downstream functions expect. The caller accesses `$prod_data`,
+#' `$prod_taxa_classification`, `$synonym_resolution`, and `$prod_ts` — none of
+#' which are present in the current return list. [fill_prod_taxa_gaps()] also
+#' documents receiving `$prod_taxa_classification` and `$prod_data` from this
+#' function. The return list requires reconciliation with the caller and
+#' downstream functions before the two-pass workflow will run as designed.
 #'
 #' @seealso
-#' * [clean_prod_dat()] — produces the `prod_data` input for this function
+#' * [clean_prod_dat()] — produces the `prod_data` input
 #' * [build_corr_tbl_prod_sciname()] — builds the `corr_tbl` applied on Pass 2
-#' * [resolve_synonyms()] — called internally for synonym resolution; returns
-#'   `$synonym_resolution`
-#' * [warn_fbslb_taxa_join()] — called after each hierarchical FB/SLB join
-#' * [fill_taxa_classification_gaps()] — receives `$prod_taxa_classification`
-#'   for gap-filling
+#' * [resolve_synonyms()] — called internally for synonym resolution; result
+#'   returned as `$synonym_results`
+#' * [warn_fbslb_taxa_join()] — called after each hierarchical FB/SLB join to
+#'   flag many-to-many matches
+#' * [fill_prod_taxa_gaps()] — intended downstream consumer of
+#'   `$prod_taxa_classification` and `$prod_data` (Pass 2)
 #'
 #' @import dplyr
+#' @import cli
 #' @importFrom magrittr %>%
-#' @import stringr
 #' @import data.table
 #' @export
 
-match_prod_taxa_to_fbslb_2 <- function(
+match_prod_taxa_to_fb_slb <- function(
   prod_data,
   fb_slb_dir,
   corr_tbl = NULL
 ) {
 
   # Load FishBase and SeaLifeBase reference tables -------------------------
-  fb_taxa_df   <- fread(file.path(fb_slb_dir, "fb_taxa_info.csv"),       data.table = FALSE)
-  slb_taxa_df  <- fread(file.path(fb_slb_dir, "slb_taxa_info.csv"),      data.table = FALSE)
+  fb_taxa_df   <- fread(file.path(fb_slb_dir, "fb_taxa_info.csv"), data.table = FALSE)
+  slb_taxa_df  <- fread(file.path(fb_slb_dir, "slb_taxa_info.csv"), data.table = FALSE)
 
-  fb_synonyms  <- fread(file.path(fb_slb_dir, "fb_synonyms_clean.csv"),  data.table = FALSE)
+  fb_synonyms  <- fread(file.path(fb_slb_dir, "fb_synonyms_clean.csv"), data.table = FALSE)
   slb_synonyms <- fread(file.path(fb_slb_dir, "slb_synonyms_clean.csv"), data.table = FALSE)
 
   # Assemble distinct taxa names from prod_data (prod_data is read-only) ----
@@ -594,7 +610,7 @@ match_prod_taxa_to_fbslb_2 <- function(
       "Open Fishbase taxa table with {.code fb_taxa <- fread(file.path(current_fb_slb_dir, 'fb_taxa_info.csv'), data.table = FALSE)}",
       "Open Sealifebase taxa table with {.code slb_taxa <- fread(file.path(current_fb_slb_dir, 'slb_taxa_info.csv'), data.table = FALSE)}",
       "Run {.code devtools::load_all} or {.code devtools::install} and {.code library(artis)} to integrate changes",
-      "Proceed running {.file 01-clean-input-data.R}; the second pass of {.fun match_prod_taxa_to_fbslb_2} will apply new corrections"
+      "Proceed running {.file 01-clean-input-data.R}; the second pass of {.fun match_prod_taxa_to_fb_slb} will apply new corrections"
     ))
   } else if (n_missing == 0) {
     cli::cli_alert_success("All production taxa matched to Fishbase / Sealifebase")
@@ -603,7 +619,7 @@ match_prod_taxa_to_fbslb_2 <- function(
 
   return(
     list(
-      prod_taxa = prod_taxa,
+      prod_taxa = prod_taxa_classification,
       synonym_results = synonym_results,
       taxa_need_corrections = missing_scinames_post_syn
     )
