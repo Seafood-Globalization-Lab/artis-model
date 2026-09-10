@@ -89,11 +89,6 @@ clean_prod_dat <- function(
         )
       ) %>%
       droplevels()
-      # FIXIT: 2026-07-15 This seem more appropriate for manual corrections table - check 
-      # Remove "(=...)" notation, e.g. "salmoniformes (=salmonoidei)"
-      # mutate(
-      #   SciName = gsub(SciName, pattern = " \\(\\=.*", replacement = "")
-      # )
 
       # One-hot encoding - taxa classification ranks ------------------------
     prod_ts$Species01 <- 0
