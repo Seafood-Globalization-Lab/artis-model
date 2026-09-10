@@ -62,6 +62,10 @@
 #' by the corrections join is removed from the output. Unresolvable country
 #' identifiers produce \code{NA} in output columns and are reported via
 #' \code{cli} warning rather than causing an error.
+#' 
+#' Data aggregation is likely needed after the standardization process is complete. 
+#' This is because country values are often reduced in the output data, and may
+#' produce duplicate rows. 
 #'
 #' @seealso
 #' \itemize{
@@ -116,13 +120,10 @@ standardize_countries <- function(
       ))
     }
 
-  # get dataframe with country corrections
-  corrections_df <- artis::build_std_countries_tbl()
-
-  # Set up join by naming to match input data column names to the standardization column names
-  # by_cols <- setNames(c("iso3c", "year"), c(country_col, year_col))
+    # get dataframe with country corrections
+    corrections_df <- artis::build_std_countries_tbl()
     
-  # Join input data to standardization data frame based on country_id_format
+    # Join input data to standardization data frame based on country_id_format
     if (country_id_format == "name_en") {
       
       # Need full corrections data frame to correct by country name
@@ -142,36 +143,11 @@ standardize_countries <- function(
         # Flag countries that ARTIS corrections table did not correct (NA values in artis_* columns)
         dplyr::mutate(
           flag = dplyr::case_when(base::is.na(artis_iso3c) ~ TRUE,
-                                              .default = FALSE)) %>% #,
-              # If missing country name value (i.e. not corrected by ARTIS corrections join) add std country name via country code from original/supplied country name
-          # artis_country_name = dplyr::case_when(
-            # base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col]],
-            #                                               origin = "country.name",
-            #                                               destination = "country.name",
-            #                                               warn = FALSE),
-                                              # .default = artis_country_name)) %>%
+                                              .default = FALSE)) %>%
         # Remove leftover corrections_df column
         dplyr::select(-iso3c)
-
-        # Join to ARTIS corrections table
-        # dplyr::left_join(
-        #   corrections_df, by = by_cols) %>%
-        # # Standardize countries that ARTIS corrections table did not correct (NA values in artis_* columns)
-        # # pull values from given country column
-        # dplyr::mutate(
-        #   flag = dplyr::case_when(base::is.na(artis_iso3c) ~ TRUE,
-        #                                       .default = FALSE)) %>% #,
-        #       # If missing country name value (i.e. not corrected by ARTIS corrections join) add std country name via country code from original/supplied country name
-        #   # artis_country_name = dplyr::case_when(
-        #     # base::is.na(artis_country_name) ~ countrycode::countrycode(.data[[country_col]],
-        #     #                                               origin = "country.name",
-        #     #                                               destination = "country.name",
-        #     #                                               warn = FALSE),
-        #                                       # .default = artis_country_name)) %>%
-        # # Remove leftover corrections_df column
-        # dplyr::select(-iso3c)
     
-      # Problem: Correcting some of the input territory names that don't have 
+      # Correcting some of the input territory names that don't have 
       # in house ARTIS matches get corrected via countrycode, and
       # countrycode corrects to the territory iso3c instead of the sovereign.
       # we have flagged these rows to rejoin corrected countrycode iso3c to
@@ -182,30 +158,6 @@ standardize_countries <- function(
       by_cols <- stats::setNames(
         c("iso3c", "year"), 
         c("artis_iso3c", year_col))
-      
-      # Rejoin flagged data and df_corrections by iso3c and year
-      # flagged_data <- std_df %>%
-      #   dplyr::filter(flag == TRUE) %>%
-      #   dplyr::mutate(
-      #     artis_iso3c = dplyr::case_when(
-      #       base::is.na(artis_iso3c) ~ countrycode::countrycode(
-      #         .data[[country_col]],
-      #         origin = "country.name",
-      #         destination = "iso3c",
-      #         warn = FALSE
-      #       ),
-      #       .default = artis_iso3c
-      #     )
-      #   ) %>% 
-      #   dplyr::left_join(corrections_df %>%
-      #                      select(-artis_country_name), by = by_cols) %>%
-      #   dplyr::select(-artis_country_name, -country_name) %>%
-      #   select(-artis_iso3c) %>%
-      #   rename(artis_iso3c = artis_iso3c.y) %>%
-      #   mutate(artis_country_name = countrycode(artis_iso3c,
-      #                                           origin = "iso3c",
-      #                                           destination = "country.name")) %>%
-      #   select(-flag)
       
       # Two scenarios of flags: territory that needs to be corrected to sovereign
       # 2. Sovereign that needs sovereign naming
@@ -239,8 +191,6 @@ standardize_countries <- function(
           artis_country_name = countrycode::countrycode(
             artis_iso3c, origin = "iso3c", destination = "country.name")
         )
-        # select(-artis_iso3c) %>%
-        # rename(artis_iso3c = artis_iso3c.y)
       
       nonflagged_data <- std_df %>%
         dplyr::filter(flag == FALSE) %>%
@@ -259,7 +209,8 @@ standardize_countries <- function(
       
     } else if (country_id_format == "iso3c") {
       
-      # filter out duplicate entires (i.e., multiple country names matched to the same input iso3c - we don't need these input country names since we will get an output country name)
+      # filter out duplicate entires (i.e., multiple country names matched to the same input iso3c - 
+      # we don't need these input country names since we will get an output country name)
       corrections_df_iso3c <- corrections_df %>%
         dplyr::select(-country_name) %>%
         dplyr::distinct() %>%
@@ -298,30 +249,26 @@ standardize_countries <- function(
         dplyr::pull(country_col)
     }
   
+    # Warnings ---------------------------------------------------------------
+
+    # NA/missing values warning
+    if (na_count > 0 | missing_count > 0) {
+      cli::cli_alert_warning("Column {.field {country_col}} contains {.val {missing_count}} missing string value{?s} and {.val {na_count}} {.val NA} value{?s}.")
+      cli::cli_alert_info("These values will be turned into {.val NA}s in the output correction columns {.field artis_country_name} and {.field artis_iso3c}.")
+    }
   
-  # NA/missing values warning
-  if (na_count > 0 | missing_count > 0) {
-    cli::cli_alert_warning(c("Column {.field {country_col}} contains {.val {missing_count}} missing string value{?s} and {.val {na_count}} {.val NA} value{?s}."))
-    cli::cli_alert_info("These values will be turned into {.val NA}s in the output correction columns {.field artis_country_name} and {.field artis_iso3c}.")
-    # cli::cli_alert_danger("Found {missing_count} missing string values and {na_count} NA values in column {.field {country_col}}.")
-    # cli::cli_alert_info("These values will not be standardized.")
-  }
-  
-  # Print a blank line to separate warnings
-  cli::cli_text("")
-  
-  # list of country names that did not successfully get assigned iso3c codes
-  if (length(not_std_vec) > 0) {
-    visible_list <- sapply(na.omit(not_std_vec), function(x) if (x == "") dQuote("") else dQuote(x))
+    # Print a blank line to separate warnings
+    cli::cli_text("")
     
-    cli::cli_alert_warning("Some values in user column {.field {country_col}} were not standardized.")
-    cli::cli_alert_info("These values were not in the ARTIS corrections table or found by {.pkg countrycode}:\n{.val {paste(visible_list, collapse = ', ')}}")
+    # list of country names that did not successfully get assigned iso3c codes
+    if (length(not_std_vec) > 0) {
+      visible_list <- sapply(na.omit(not_std_vec), function(x) if (x == "") dQuote("") else dQuote(x))
+      
+      cli::cli_alert_warning("Some values in user column {.field {country_col}} were not standardized.")
+      cli::cli_alert_info("These values were not in the ARTIS corrections table or found by {.pkg countrycode}:\n{.val {paste(visible_list, collapse = ', ')}}")
     
-    # Print the unstandardized list on its own line with attention emoji
-    # cli::cli_alert_info("Unstandardized values: ")
-  }
-  
-  # Return invisibly so assignment doesn’t double-print
-  return(std_df)
+    }
+    
+    return(std_df)
 
 }

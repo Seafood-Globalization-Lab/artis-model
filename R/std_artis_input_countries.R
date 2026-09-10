@@ -76,7 +76,9 @@ std_artis_input_countries <- function(
       country_id_format = "iso3c",
       country_col = "country_iso3_alpha",
       year_col = "year"
-    )
+    ) %>% 
+      # turn off messages from standardize_countries - not representative for entire workflow
+      suppressMessages()
     
     # 2) filter out NA values produced
     fao_no_na <- fao_iso3c %>%
@@ -92,7 +94,9 @@ std_artis_input_countries <- function(
       artis::standardize_countries(
         country_id_format = "name_en",
         country_col = "country_name_en",
-        year_col = "year")
+        year_col = "year") %>% 
+      # turn off messages from standardize_countries - not representative for entire workflow
+      suppressMessages()
     
     # 4) bind iso3c corrections and country name corrections
     the_std_data <- bind_rows(fao_no_na, fao_country_name) %>% 
@@ -131,7 +135,9 @@ std_artis_input_countries <- function(
         exporter_country,
         importer_iso3c = artis_iso3c,
         importer_country,
-        year)
+        year) %>% 
+      # turn off messages from standardize_countries - not representative for entire workflow
+      suppressMessages()
     
     # Problem: NA's are produced, which will be solved in steps 2 and 3. We remove NA's in this dataset.
     # Obtain data that contains non NA's that standardize on the first go
@@ -180,7 +186,9 @@ std_artis_input_countries <- function(
         exporter_iso3c,
         importer_iso3c = artis_iso3c,
         year
-        )
+        ) %>% 
+      # turn off messages from standardize_countries - not representative for entire workflow
+      suppressMessages()
     
     # Bind datasets from step A and step C (i.e., corrections by iso3c & recorrections by countryname)
     the_std_data <- bind_rows(
@@ -188,9 +196,13 @@ std_artis_input_countries <- function(
       baci_std_name # Rows that needed standardization by countryname
     ) %>%
       # Remove circular tradeflows (e.g., India exports to India importing country)
-      filter(exporter_iso3c != importer_iso3c) 
-    # Also need to add a group_by() and summarize
-    
+      filter(exporter_iso3c != importer_iso3c) %>% 
+      # aggregate data across all columns except for qantity columns
+      group_by(across(!c(total_q, total_v))) %>% 
+      summarize(
+        total_q = sum(total_q, na.rm = TRUE),
+        total_v = sum(total_v, na.rm = TRUE)
+      )
     
     ## End of workflow
   } else if (data_source == "SAU") {
@@ -201,7 +213,12 @@ std_artis_input_countries <- function(
       country_id_format = "name_en",
       country_col = "country_name_en",
       year_col = "year"
-    )
+    ) %>% 
+    # aggregate data across all columns except for quantity
+      group_by(across(!quantity)) %>% 
+      summarize(quantity = sum(quantity, na.rm = TRUE)) %>% 
+      # turn off messages from standardize_countries - not representative for entire workflow
+      suppressMessages()
     
   }
   
