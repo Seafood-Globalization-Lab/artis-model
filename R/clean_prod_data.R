@@ -10,7 +10,7 @@
 #' of `classify_prod_dat()` have been intentionally removed — manual
 #' corrections are now applied in [match_prod_taxa_to_fbslb()].
 #'
-#' @param prod_df Data frame. Raw production data (FAO or SAU).
+#' @param prod_data Data frame. Rebuilt production data (FAO or SAU).
 #' @param prod_data_source Character. One of `"FAO"` or `"SAU"`.
 #' @param datadir Character or `NULL`. Directory containing the SAU
 #'   sci-to-common name CSV. Required when `prod_data_source == "SAU"`,
@@ -30,8 +30,8 @@
 #' @import data.table
 #' @export
 
-clean_prod_dat <- function(
-  prod_df,
+clean_prod_data <- function(
+  prod_data,
   prod_data_source = "FAO",
   datadir = NULL,
   SAU_sci_2_common = NA
@@ -40,7 +40,7 @@ clean_prod_dat <- function(
   # FAO Production Data Cleaning -------------------------------------------
   if (prod_data_source == "FAO") {
 
-    prod_ts <- prod_df %>%
+    prod_ts <- prod_data %>%
       dplyr::rename(
         CommonName = species_name_en,
         SciName = species_scientific_name,
@@ -130,7 +130,7 @@ clean_prod_dat <- function(
   # SAU Production Data Cleaning -------------------------------------------
   if (prod_data_source == "SAU") {
 
-    prod_ts <- prod_df %>%
+    prod_ts <- prod_data %>%
       mutate(
         scientific_name = tolower(scientific_name),
         common_name = tolower(common_name)
@@ -232,5 +232,5 @@ clean_prod_dat <- function(
       )
   }
 
-  prod_ts
+  return(prod_ts)
 }

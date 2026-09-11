@@ -56,24 +56,20 @@ rebuilt_fao_prod <- artis::rebuild_fao_2023_dat(
 # FAO Clean Taxa and Classification ---------------------------
 
 ## Step 1: Clean raw FAO production data ---------------------------
-prod_ts_fao <- artis::clean_prod_dat(
-  prod_df = rebuilt_fao_prod,
+prod_fao <- artis::clean_prod_data(
+  prod_data = rebuilt_fao_prod,
   prod_data_source = "FAO"
 )
 
 ## Pass 1 — match without corrections to surface unmatched names ---------------------------
-match_prod_taxa_results_1 <- artis::match_prod_taxa_to_fbslb(
-  prod_data = prod_ts_fao,
+match_prod_taxa_results_1 <- artis::match_prod_taxa_to_fb_slb(
+  prod_data = prod_fao,
   fb_slb_dir = current_fb_slb_dir,
   corr_tbl = NULL
 )
 
 ## Inspect the returned objects from match_prod_taxa_results_1 ---------------------------
 
-# FAO production time series data
-# FIXIT - think about renaming prod_ts
-# FIXIT - could we skip returning this in the first pass?
-prod_ts <- match_prod_taxa_results_1$prod_data
 # FAO production taxa classification table 
 prod_taxa_classification <- match_prod_taxa_results_1$prod_taxa_classification
 # results of the FB/SLB synonym table matching / cleaning
@@ -96,19 +92,26 @@ taxa_need_corrections_1 <- as_tibble(match_prod_taxa_results_1$taxa_need_correct
 # 9) Continue running this script
 
 ## Pass 2 — match with corrections applied ---------------------------
-match_prod_taxa_results_2 <- match_prod_taxa_to_fbslb(
-  prod_data = prod_ts_fao,
+match_prod_taxa_results_2 <- match_prod_taxa_to_fb_slb(
+  prod_data = prod_fao,
   fb_slb_dir = current_fb_slb_dir,
   corr_tbl = build_corr_tbl_prod_sciname(the_fb_slb_dir = current_fb_slb_dir)
 )
 
 taxa_need_corrections_2 <- as_tibble(match_prod_taxa_results_2$taxa_need_corrections)
 
+## Correct Common Names ---------------------------------------------------
+
+prod_taxa_classification <- correct_prod_common_names(
+  prod_data = prod_fao,
+  prod_taxa = match_prod_taxa_results_2$prod_taxa_classification,
+  corr_tbl = artis::build_corr_tbl_prod_com_name()
+)
+
 # FIXIT: taxa_need_corrections_2 values that are OK - "batoidea", "perciformes", "selachii". Known deviations/exceptions to Fishbase/Sealifebase taxonomic schema  
 # FIXIT: Add final ref table of applied corrections (manual and synonyms) - think about cleaning scripts corrections (do they need to be included?)
 
-## FIXIT - move into function - with common name and other checks? then manual fixes go in fill_prod_taxa_gaps()
-# Verify habitat information is complete
+## FIXIT - move into function -- correct_prod_habitat()
 missing_habitat_scinames <- match_prod_taxa_results_2$prod_taxa_classification %>% 
   mutate(habitat_sum = Fresh01 + Brack01 + Saltwater01) %>%
   filter(habitat_sum == 0 | is.na(habitat_sum))
@@ -129,10 +132,7 @@ prod_taxa_classification <- fill_prod_taxa_gaps(
   outdir = outdir
 )
 
-
-
-# Final objects for downstream use - FIXIT: rename objectss
-prod_data_raw <- match_prod_taxa_results_2$prod_ts
+## Join final prod_taxa to prod_data here
 
 # remove large less-clean environmental objects no longer needed
 rm(
@@ -154,7 +154,7 @@ prod_habitat <- prod_taxa_classification %>%
   distinct()
 
 # Filter down and restructure FAO production data for ARTIS
-prod_data <- prod_data_raw %>%
+prod_data <- prod_fao %>%
   # Moved to clean_prod_dat.R (2026-07-15)
   # # Remove columns not needed for running ARTIS
   # select(!c(any_of(c("alternate", "multiplier", "symbol", "symbol_identifier", 
