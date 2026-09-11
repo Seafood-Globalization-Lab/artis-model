@@ -66,15 +66,6 @@
 #'   `prod_data` but absent from both FishBase and SeaLifeBase after synonym
 #'   resolution; candidates for manual corrections in build_corr_tbl_prod_sciname(). Ideally empty on Pass 2.
 #'
-#' @note
-#' The return list does not currently match what `01-clean-input-data.R` and
-#' downstream functions expect. The caller accesses `$prod_data`,
-#' `$prod_taxa_classification`, `$synonym_resolution`, and `$prod_ts` — none of
-#' which are present in the current return list. [fill_prod_taxa_gaps()] also
-#' documents receiving `$prod_taxa_classification` and `$prod_data` from this
-#' function. The return list requires reconciliation with the caller and
-#' downstream functions before the two-pass workflow will run as designed.
-#'
 #' @seealso
 #' * [clean_prod_dat()] — produces the `prod_data` input
 #' * [build_corr_tbl_prod_sciname()] — builds the `corr_tbl` applied on Pass 2
@@ -148,7 +139,8 @@ match_prod_taxa_to_fb_slb <- function(
       select(-sciname_corrected, -ends_with(".x"), -ends_with(".y"))
   } else if (is.null(corr_tbl)) {
     # No corrections applied if no correction table supplied in argument
-    prod_taxa_corr <- prod_taxa
+    prod_taxa_corr <- prod_taxa %>% 
+      rename(SciName = SciName_prod)
   }
 
   # Hierarchical FB inner_joins --------------------------------------------
@@ -544,7 +536,7 @@ match_prod_taxa_to_fb_slb <- function(
       Saltwater01 = Saltwater)
 
   # Assemble all classification info -----------------------
-  prod_taxa_classification <- bind_rows(
+  prod_taxa_class_fb_slb <- bind_rows(
     prod_taxa_class_fb,
     prod_taxa_class_slb) %>%
     select(
@@ -582,16 +574,16 @@ match_prod_taxa_to_fb_slb <- function(
   prod_taxa_classification <- prod_taxa %>%
     select(-c(Species01, Genus01, Family01, Other01)) %>% 
     left_join(
-      prod_taxa_classification,
+      prod_taxa_class_fb_slb,
       join_by(SciName_prod)
     )
 
   # Replace empty strings with NA
-  prod_taxa[prod_taxa == ""] <- NA
+  #prod_taxa[prod_taxa == ""] <- NA
 
   # Output messages ---------------------------------------------------------------
   n_missing  <- length(missing_scinames_post_syn)
-  n_resolved <- nrow(synonym_resolutions %>% filter(resolved))
+  n_resolved <- nrow(synonym_resolutions)
 
   cli::cli_h2("Results: Fishbase / Sealifebase matching and synonym resolution")
 
@@ -619,7 +611,7 @@ match_prod_taxa_to_fb_slb <- function(
 
   return(
     list(
-      prod_taxa = prod_taxa_classification,
+      prod_taxa_classification = prod_taxa_classification,
       synonym_results = synonym_results,
       taxa_need_corrections = missing_scinames_post_syn
     )
