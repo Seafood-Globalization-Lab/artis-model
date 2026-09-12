@@ -5,8 +5,6 @@
 ^\.Rproj\.user$
 ^dev$
 ^LICENSE\.md$
-^07-post-processing-validation.Rmd
-^08-validatation-single-HS-year.Rmd
 \.html$
 ^demo$
 ^model_inputs
@@ -19,8 +17,15 @@
 ^\.github$
 .env
 .env.swp
+.github
+.lab-genAI-toolbox/
+.posit/
+.Renviron
+
+# ignore numbered root-level pipeline scripts
+^0[0-8]
+
 
 
 ^data-raw$
 
-.posit/
