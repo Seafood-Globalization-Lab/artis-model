@@ -8,7 +8,7 @@
 #'
 #' Commented-out correction-join blocks that previously lived in this section
 #' of `classify_prod_dat()` have been intentionally removed — manual
-#' corrections are now applied in [match_prod_taxa_to_fbslb()].
+#' corrections are now applied in [match_prod_taxa_to_fb_slb()].
 #'
 #' @param prod_data Data frame. Rebuilt production data (FAO or SAU).
 #' @param prod_data_source Character. One of `"FAO"` or `"SAU"`.
