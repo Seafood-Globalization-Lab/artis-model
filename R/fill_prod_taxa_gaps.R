@@ -2,15 +2,15 @@
 #'
 #' @description
 #' Takes the raw `prod_taxa_classification` table from
-#' [match_prod_taxa_to_fbslb()], applies all deduplication, gap-filling,
+#' [match_prod_taxa_to_fb_slb()], applies all deduplication, gap-filling,
 #' special-case row additions, and final filtering to names present in
 #' `prod_data`. Returns the final clean taxa classification table.
 #'
 #'
 #' @param the_prod_taxa_classification Data frame. The `$prod_taxa_classification`
-#'   element returned by [match_prod_taxa_to_fbslb()] (Pass 2).
+#'   element returned by [match_prod_taxa_to_fb_slb()] (Pass 2).
 #' @param the_prod_data Data frame. The `$prod_data` element returned by
-#'   [match_prod_taxa_to_fbslb()] (Pass 2).
+#'   [match_prod_taxa_to_fb_slb()] (Pass 2).
 #' @param outdir Character. Directory to write
 #'   `missing_scinames_YYYY-MM-DD_HHMM.csv` if any `SciName`s in `prod_data`
 #'   cannot be matched to classification. Required; no default.

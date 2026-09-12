@@ -4,7 +4,7 @@
 #' for FAO and SAU production data that were unmatched by the 
 #' FishBase and SeaLifeBase taxa and synonym tables. The function then one-hot encodes 
 #' the taxonomic rank of each corrected name to re-run through the FB/SLB matching process
-#' which is subset by taxanomic rank. Called by [match_prod_taxa_to_fbslb()] to resolve production 
+#' which is subset by taxanomic rank. Called by [match_prod_taxa_to_fb_slb()] to resolve production 
 #' scinames that fail to match the FishBase/SeaLifeBase taxa table.
 #'
 #' @details
@@ -12,7 +12,7 @@
 #' 
 #' ## 1) Identify which taxa need corrections
 #'
-#' * The `taxa_need_corrections` dataframe is output from `match_prod_taxa_to_fbslb()`, view 
+#' * The `taxa_need_corrections` dataframe is output from `match_prod_taxa_to_fb_slb()`, view 
 #'   this dataframe to see which taxa require manual corrections. 
 #' 
 #' ## 2) Review common correction categories
@@ -118,7 +118,7 @@
 #'
 #' @note
 #' `sciname_corrected` values are not final — they are subject to further
-#' synonym resolution in [match_prod_taxa_to_fbslb()], which may change the
+#' synonym resolution in [match_prod_taxa_to_fb_slb()], which may change the
 #' name again. This table is not suitable for external documentation, it is 
 #' an operational internal software table only.
 #'
@@ -132,7 +132,7 @@
 #'   values match to FB/SLB taxa tables  
 #'
 #' @seealso
-#' * [match_prod_taxa_to_fbslb()] — further resolves corrected scinames via
+#' * [match_prod_taxa_to_fb_slb()] — further resolves corrected scinames via
 #'   synonym matching against FishBase and SeaLifeBase
 #'
 #' @import dplyr

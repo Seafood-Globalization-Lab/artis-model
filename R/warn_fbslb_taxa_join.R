@@ -1,7 +1,7 @@
 #' Warn on taxonomic rank conflicts after FB/SLB hierarchical joins
 #'
 #' @description
-#' After each hierarchical `inner_join` in [match_prod_taxa_to_fbslb()], checks
+#' After each hierarchical `inner_join` in [match_prod_taxa_to_fb_slb()], checks
 #' whether any matched taxon maps to multiple values of the next higher rank in
 #' the reference data. Emits a `cli` warning listing the conflicting names.
 #'

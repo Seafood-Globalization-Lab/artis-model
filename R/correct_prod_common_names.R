@@ -13,15 +13,27 @@ correct_prod_common_names <- function(
 
   n_multiples <- length(unique(common_name_multiples$SciName))
 
+  # Correct by joining correction table to prod_taxa 
+
+  prod_taxa_corr <- prod_taxa %>% 
+    left_join(
+      corr_tbl,
+      join_by()
+    )
+
+
   # Message output scinames 
 
   cli::cli_h2("Production data multiple CommonNames")
-  cli::cli_alert_warning("{.val {no(n_multiples)}} SciNames have multiple CommonName values")
+  cli::cli_alert_warning("{.val {no(n_multiples)}} original SciNames have multiple CommonName values")
   if (n_multiples > 0) {
-    
+    cli::cli_alert_warning("They are: 
+      {.val {unique(common_name_multiples$SciName)}}")
   }
 
-  # Correct by joining correction table
+
+
+  # Join prod_data corrected subset to prod_taxa
 
   # final message of correction results
 

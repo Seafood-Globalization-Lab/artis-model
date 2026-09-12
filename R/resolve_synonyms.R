@@ -7,7 +7,7 @@
 #' given name.
 #'
 #' @details
-#' Called inside [match_prod_taxa_to_fbslb()]; The returned lookup table is used to apply
+#' Called inside [match_prod_taxa_to_fb_slb()]; The returned lookup table is used to apply
 #' name swaps to `prod_ts` and to extend `prod_fb_full` / `prod_slb_full`
 #' with newly resolved classification rows.
 #'
@@ -32,7 +32,7 @@
 #'
 #' @param scinames Character vector. Taxa scientific names to resolve
 #'   against the synonym tables. Typically the subset of unmatched names from
-#'   the hierarchical FB/SLB joins in [match_prod_taxa_to_fbslb()] that
+#'   the hierarchical FB/SLB joins in [match_prod_taxa_to_fb_slb()] that
 #'   contain a space (i.e. binomial names only).
 #' @param fb_synonyms Data frame. FishBase synonym corrections table as read
 #'   from `fb_synonyms_clean.csv`. Produced by [clean_fb_slb_synonyms()] and
@@ -52,7 +52,7 @@
 #'   `"assumption_violation_fb"`, `"assumption_violation_slb"`.
 #'
 #' @seealso
-#' * [match_prod_taxa_to_fbslb()] — calls this function; returns the lookup
+#' * [match_prod_taxa_to_fb_slb()] — calls this function; returns the lookup
 #'   table as `$synonym_resolution`
 #' * [clean_fb_slb_synonyms()] — produces the synonym tables consumed here;
 #'   also checks for and documents synonym string ambiguity

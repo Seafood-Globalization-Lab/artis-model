@@ -39,7 +39,7 @@
 #' (`sciname_corrected`) and updated rank indicators take precedence over
 #' original `prod_data` values via `coalesce()`.
 #'
-#' @param prod_data Data frame. Output of [clean_prod_dat()]. Treated as
+#' @param prod_data Data frame. Output of [clean_prod_data()]. Treated as
 #'   read-only; never mutated by this function. Both Pass 1 and Pass 2
 #'   should receive the **same original** uncorrected `prod_data`.
 #' @param fb_slb_dir Character. Directory containing FishBase/SeaLifeBase
@@ -67,7 +67,7 @@
 #'   resolution; candidates for manual corrections in build_corr_tbl_prod_sciname(). Ideally empty on Pass 2.
 #'
 #' @seealso
-#' * [clean_prod_dat()] — produces the `prod_data` input
+#' * [clean_prod_data()] — produces the `prod_data` input
 #' * [build_corr_tbl_prod_sciname()] — builds the `corr_tbl` applied on Pass 2
 #' * [resolve_synonyms()] — called internally for synonym resolution; result
 #'   returned as `$synonym_results`

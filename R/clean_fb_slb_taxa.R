@@ -44,7 +44,7 @@
 #'
 #' @seealso
 #' * [clean_fb_slb_data()] — calls this function for both FB and SLB
-#' * [match_prod_taxa_to_fbslb()] — reads the cleaned output CSVs
+#' * [match_prod_taxa_to_fb_slb()] — reads the cleaned output CSVs
 #' * [warn_fbslb_taxa_join()] — downstream safety-net check; fires if a
 #'   violation in the source data reaches the hierarchical join step
 #'
