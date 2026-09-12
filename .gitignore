@@ -27,3 +27,5 @@ requirements_old_local.txt
 /.quarto/
 README_files/*
 *_files
+.Renviron
+*.parquet
