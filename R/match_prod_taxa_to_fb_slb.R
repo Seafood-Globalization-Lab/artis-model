@@ -613,7 +613,7 @@ match_prod_taxa_to_fb_slb <- function(
     list(
       prod_taxa_classification = prod_taxa_classification,
       synonym_results = synonym_results,
-      taxa_need_corrections = missing_scinames_post_syn
+      taxa_need_corrections = as_tibble(missing_scinames_post_syn)
     )
   )
 }
