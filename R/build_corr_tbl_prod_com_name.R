@@ -65,7 +65,6 @@ build_corr_tbl_prod_com_name <- function(
 
   prod_common_name_corrections <- tribble(
     ~SciName,                    ~CommonName_corrected,              ~notes,
-    # original corrections
     "actinopterygii",            "ray-finned fishes",                NA,
     "bivalvia",                  "bivalves",                         NA,
     "clupeiformes",              "clupeoids",                        NA,
@@ -75,7 +74,6 @@ build_corr_tbl_prod_com_name <- function(
     "mollusca",                  "molluscs",                         NA,
     "palaemonidae",              "palaemonid shrimps and prawns",    NA,
     "perciformes",               "perch-like fishes",                NA,
-    # new corrections
     "alosa",                     "shads",                            NA,
     "astacidae",                 "astacid crayfishes",               NA,
     "asteroidea",                "sea stars",                        NA,

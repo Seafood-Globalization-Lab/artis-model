@@ -71,9 +71,9 @@ match_prod_taxa_results_1 <- artis::match_prod_taxa_to_fb_slb(
 ## Inspect the returned objects from match_prod_taxa_results_1 ---------------------------
 
 # FAO production taxa classification table 
-prod_taxa_classification <- match_prod_taxa_results_1$prod_taxa_classification
+prod_taxa_classification_1 <- match_prod_taxa_results_1$prod_taxa_classification
 # results of the FB/SLB synonym table matching / cleaning
-synonym_resolution <- match_prod_taxa_results_1$synonym_resolution
+synonym_resolution_1 <- match_prod_taxa_results_1$synonym_resolution
 # leftover production taxa scinames that require manual corrections after pragmatic matching
 taxa_need_corrections_1 <- as_tibble(match_prod_taxa_results_1$taxa_need_corrections)
 
@@ -99,6 +99,10 @@ match_prod_taxa_results_2 <- match_prod_taxa_to_fb_slb(
 )
 
 taxa_need_corrections_2 <- as_tibble(match_prod_taxa_results_2$taxa_need_corrections)
+
+# FIXIT: Add SciName NA check - found some correction mistakes leaking down to CommonName corrections.
+# both instances were manual corrections that had misused "spp" or where missing "spp" in the correction value - thus getting joined to the wrong fb/slb taxa rank column
+# Reevaluate post correction checks in match_prod_taxa_to_fb_slb()
 
 ## Correct Common Names ---------------------------------------------------
 
