@@ -75,7 +75,7 @@ prod_taxa_classification_1 <- match_prod_taxa_results_1$prod_taxa_classification
 # results of the FB/SLB synonym table matching / cleaning
 synonym_resolution_1 <- match_prod_taxa_results_1$synonym_resolution
 # leftover production taxa scinames that require manual corrections after pragmatic matching
-taxa_need_corrections_1 <- as_tibble(match_prod_taxa_results_1$taxa_need_corrections)
+taxa_need_corrections_1 <- match_prod_taxa_results_1$taxa_need_corrections
 
 # Instructions to apply require manual corrections
 # (If a "Found xx unmatched production" message was thrown above - length(taxa_need_corrections) > 0)
@@ -98,7 +98,9 @@ match_prod_taxa_results_2 <- match_prod_taxa_to_fb_slb(
   corr_tbl = build_corr_tbl_prod_sciname(the_fb_slb_dir = current_fb_slb_dir)
 )
 
-taxa_need_corrections_2 <- as_tibble(match_prod_taxa_results_2$taxa_need_corrections)
+# match_prod_taxa_results list includes: prod_taxa_classification, synonym_results, and taxa_need_corrections 
+
+taxa_need_corrections_2 <- match_prod_taxa_results_2$taxa_need_corrections
 
 # FIXIT: Add SciName NA check - found some correction mistakes leaking down to CommonName corrections.
 # both instances were manual corrections that had misused "spp" or where missing "spp" in the correction value - thus getting joined to the wrong fb/slb taxa rank column
