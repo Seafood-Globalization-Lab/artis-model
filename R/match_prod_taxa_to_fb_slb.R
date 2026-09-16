@@ -16,8 +16,9 @@
 #'   that require manual corrections in [build_corr_tbl_prod_sciname()].
 #' * **Pass 2** (`corr_tbl = build_corr_tbl_prod_sciname()`): Applies manual
 #'   corrections before matching, then produces the final matched output.
-#'   The `$prod_taxa_classification` result is passed to [fill_prod_taxa_gaps()]
-#'   for gap-filling and finalization.
+#'   The `$prod_taxa_classification` result is passed to
+#'   [correct_prod_common_names()], then [correct_taxa_habitat()], then
+#'   [fill_prod_taxa_ranks()] for gap-filling and finalization.
 #'
 #' `prod_data` is treated as **read-only** throughout. The original `SciName`
 #' values from `prod_data` are preserved in `SciName_prod` as a stable join key.
@@ -61,7 +62,7 @@
 #'   row per species-level unmatched name. Key columns: `sciname_original`,
 #'   `sciname_accepted`, `correction_source`, `resolved`, and `status`
 #'   (`"resolved_fb"`, `"resolved_slb"`, `"unresolved"`,
-#'   `"assumption_violation_fb"`, `"assumption_violation_slb"`). 
+#'   `"assumption_violation_fb"`, `"assumption_violation_slb"`).
 #' * `taxa_need_corrections` — Character vector of `SciName`s present in
 #'   `prod_data` but absent from both FishBase and SeaLifeBase after synonym
 #'   resolution; candidates for manual corrections in build_corr_tbl_prod_sciname(). Ideally empty on Pass 2.
@@ -73,8 +74,9 @@
 #'   returned as `$synonym_results`
 #' * [warn_fbslb_taxa_join()] — called after each hierarchical FB/SLB join to
 #'   flag many-to-many matches
-#' * [fill_prod_taxa_gaps()] — intended downstream consumer of
-#'   `$prod_taxa_classification` and `$prod_data` (Pass 2)
+#' * [correct_taxa_habitat()] — applies habitat corrections to `$prod_taxa_classification`
+#' * [fill_prod_taxa_ranks()] — gap-fills universal taxonomic ranks in `$prod_taxa_classification`
+#' * [impute_prod_habitat()] — reconciles FAO and FB/SLB habitat in `prod_data`
 #'
 #' @import dplyr
 #' @import cli
@@ -87,13 +89,24 @@ match_prod_taxa_to_fb_slb <- function(
   fb_slb_dir,
   corr_tbl = NULL
 ) {
-
   # Load FishBase and SeaLifeBase reference tables -------------------------
-  fb_taxa_df   <- fread(file.path(fb_slb_dir, "fb_taxa_info.csv"), data.table = FALSE)
-  slb_taxa_df  <- fread(file.path(fb_slb_dir, "slb_taxa_info.csv"), data.table = FALSE)
+  fb_taxa_df <- fread(
+    file.path(fb_slb_dir, "fb_taxa_info.csv"),
+    data.table = FALSE
+  )
+  slb_taxa_df <- fread(
+    file.path(fb_slb_dir, "slb_taxa_info.csv"),
+    data.table = FALSE
+  )
 
-  fb_synonyms  <- fread(file.path(fb_slb_dir, "fb_synonyms_clean.csv"), data.table = FALSE)
-  slb_synonyms <- fread(file.path(fb_slb_dir, "slb_synonyms_clean.csv"), data.table = FALSE)
+  fb_synonyms <- fread(
+    file.path(fb_slb_dir, "fb_synonyms_clean.csv"),
+    data.table = FALSE
+  )
+  slb_synonyms <- fread(
+    file.path(fb_slb_dir, "slb_synonyms_clean.csv"),
+    data.table = FALSE
+  )
 
   # Assemble distinct taxa names from prod_data (prod_data is read-only) ----
   # SciName_prod captures the original value from prod_data before any corrections;
@@ -101,14 +114,14 @@ match_prod_taxa_to_fb_slb <- function(
   # the caller uses to match corrected names back to prod_data.
   prod_taxa <- prod_data %>%
     select(
-      SciName_prod = SciName, 
-      Species01, 
-      Genus01, 
-      Family01, 
+      SciName_prod = SciName,
+      Species01,
+      Genus01,
+      Family01,
       Other01
     ) %>%
     arrange(SciName_prod) %>%
-    distinct() 
+    distinct()
 
   # Optionally apply manual corrections ---------------
   # All corrections accumulate on prod_taxa_corr
@@ -123,11 +136,11 @@ match_prod_taxa_to_fb_slb <- function(
             Genus01,
             Family01,
             Other01
-          ) %>% 
+          ) %>%
           mutate(correction_source = "manual_correction_table"),
         join_by(SciName_prod)
       ) %>%
-      # collapse original production values and correction table value 
+      # collapse original production values and correction table value
       # prefer correction table (.y) as taxa rank may have changed with manual correction
       mutate(
         SciName = coalesce(sciname_corrected, SciName_prod),
@@ -139,7 +152,7 @@ match_prod_taxa_to_fb_slb <- function(
       select(-sciname_corrected, -ends_with(".x"), -ends_with(".y"))
   } else if (is.null(corr_tbl)) {
     # No corrections applied if no correction table supplied in argument
-    prod_taxa_corr <- prod_taxa %>% 
+    prod_taxa_corr <- prod_taxa %>%
       rename(SciName = SciName_prod)
   }
 
@@ -148,18 +161,19 @@ match_prod_taxa_to_fb_slb <- function(
   # For each SciName (corrected) in prod_taxa_corr, attach taxonomic classification from either fishbase or sealifebase
   # - Discard native FAO and SAU taxonomic classifications - Defer to fishbase/sealifebase  (more trustworthy)
   # - Perform joins hierarchically - match species to species, genus to genus, etc.
-  # - Use `Other01` encoding for Order, Class, and Superclass joins 
-  # "many-to-many" matches are NOT expected - these should be flagged in the raw data assessment - need to be fixed. 
+  # - Use `Other01` encoding for Order, Class, and Superclass joins
+  # "many-to-many" matches are NOT expected - these should be flagged in the raw data assessment - need to be fixed.
 
   # Match Species rank values only
   prod_fb_species <- prod_taxa_corr %>%
     filter(Species01 == 1) %>%
     inner_join(
-      fb_taxa_df, 
-      join_by(SciName == Species)) %>%
+      fb_taxa_df,
+      join_by(SciName == Species)
+    ) %>%
     warn_fbslb_taxa_join(
       matched_rank = "Species",
-      fb_or_slb    = "fishbase"
+      fb_or_slb = "fishbase"
     )
 
   # Match Genus rank values only
@@ -176,7 +190,7 @@ match_prod_taxa_to_fb_slb <- function(
     distinct() %>%
     warn_fbslb_taxa_join(
       matched_rank = "Genus",
-      fb_or_slb    = "fishbase"
+      fb_or_slb = "fishbase"
     )
 
   # Match Family rank values only
@@ -193,7 +207,7 @@ match_prod_taxa_to_fb_slb <- function(
     distinct() %>%
     warn_fbslb_taxa_join(
       matched_rank = "Family",
-      fb_or_slb    = "fishbase"
+      fb_or_slb = "fishbase"
     )
 
   # Match Other to Order rank values only
@@ -212,7 +226,7 @@ match_prod_taxa_to_fb_slb <- function(
     #select(-Other01) %>%
     warn_fbslb_taxa_join(
       matched_rank = "Order",
-      fb_or_slb    = "fishbase"
+      fb_or_slb = "fishbase"
     )
 
   # Match Other to Class rank values only
@@ -231,7 +245,7 @@ match_prod_taxa_to_fb_slb <- function(
     #select(-Other01) %>%
     warn_fbslb_taxa_join(
       matched_rank = "Class",
-      fb_or_slb    = "fishbase"
+      fb_or_slb = "fishbase"
     )
 
   # Match Other to Superclass rank values only
@@ -250,7 +264,7 @@ match_prod_taxa_to_fb_slb <- function(
     #select(-Other01) %>%
     warn_fbslb_taxa_join(
       matched_rank = "SuperClass",
-      fb_or_slb    = "fishbase"
+      fb_or_slb = "fishbase"
     )
 
   # Hierarchical SLB inner_joins -------------------------------------------
@@ -262,7 +276,7 @@ match_prod_taxa_to_fb_slb <- function(
     inner_join(slb_taxa_df, join_by(SciName == Species)) %>%
     warn_fbslb_taxa_join(
       matched_rank = "Species",
-      fb_or_slb    = "sealifebase"
+      fb_or_slb = "sealifebase"
     )
 
   # Match Genus rank values only
@@ -279,7 +293,7 @@ match_prod_taxa_to_fb_slb <- function(
     distinct() %>%
     warn_fbslb_taxa_join(
       matched_rank = "Genus",
-      fb_or_slb    = "sealifebase"
+      fb_or_slb = "sealifebase"
     )
 
   # Match Family rank values only
@@ -295,7 +309,7 @@ match_prod_taxa_to_fb_slb <- function(
     mutate(Family = SciName) %>%
     warn_fbslb_taxa_join(
       matched_rank = "Family",
-      fb_or_slb    = "sealifebase"
+      fb_or_slb = "sealifebase"
     )
 
   # Match Other to Order rank values only
@@ -314,7 +328,7 @@ match_prod_taxa_to_fb_slb <- function(
     #select(-Other01) %>%
     warn_fbslb_taxa_join(
       matched_rank = "Order",
-      fb_or_slb    = "sealifebase"
+      fb_or_slb = "sealifebase"
     )
 
   # Match Other to Class rank values only
@@ -333,7 +347,7 @@ match_prod_taxa_to_fb_slb <- function(
     #select(-Other01) %>%
     warn_fbslb_taxa_join(
       matched_rank = "Class",
-      fb_or_slb    = "sealifebase"
+      fb_or_slb = "sealifebase"
     )
 
   # Match Other to Phylum rank values only
@@ -352,26 +366,50 @@ match_prod_taxa_to_fb_slb <- function(
     #select(-Other01) %>%
     warn_fbslb_taxa_join(
       matched_rank = "Phylum",
-      fb_or_slb    = "sealifebase"
+      fb_or_slb = "sealifebase"
     )
 
   # Assemble Prod taxa FB and SLB tables ----------------------------------------
   prod_taxa_class_fb <- prod_fb_species %>%
-    full_join(prod_fb_genus,      by = intersect(names(prod_fb_species), names(prod_fb_genus))) %>%
-    full_join(prod_fb_family,     by = intersect(names(.), names(prod_fb_family))) %>%
-    full_join(prod_fb_order,      by = intersect(names(.), names(prod_fb_order))) %>%
-    full_join(prod_fb_class,      by = intersect(names(.), names(prod_fb_class))) %>%
-    full_join(prod_fb_superclass, by = intersect(names(.), names(prod_fb_superclass))) %>%
+    full_join(
+      prod_fb_genus,
+      by = intersect(names(prod_fb_species), names(prod_fb_genus))
+    ) %>%
+    full_join(
+      prod_fb_family,
+      by = intersect(names(.), names(prod_fb_family))
+    ) %>%
+    full_join(prod_fb_order, by = intersect(names(.), names(prod_fb_order))) %>%
+    full_join(prod_fb_class, by = intersect(names(.), names(prod_fb_class))) %>%
+    full_join(
+      prod_fb_superclass,
+      by = intersect(names(.), names(prod_fb_superclass))
+    ) %>%
     # remove binary encoded columns used for initial taxa matching to fb/slb classification info
     select(-c(Species01, Genus01, Family01, Other01)) %>%
     arrange(SciName)
 
   prod_taxa_class_slb <- prod_slb_species %>%
-    full_join(prod_slb_genus,  by = intersect(names(prod_slb_species), names(prod_slb_genus))) %>%
-    full_join(prod_slb_family, by = intersect(names(.), names(prod_slb_family))) %>%
-    full_join(prod_slb_order,  by = intersect(names(.), names(prod_slb_order))) %>%
-    full_join(prod_slb_class,  by = intersect(names(.), names(prod_slb_class))) %>%
-    full_join(prod_slb_phylum, by = intersect(names(.), names(prod_slb_phylum))) %>%
+    full_join(
+      prod_slb_genus,
+      by = intersect(names(prod_slb_species), names(prod_slb_genus))
+    ) %>%
+    full_join(
+      prod_slb_family,
+      by = intersect(names(.), names(prod_slb_family))
+    ) %>%
+    full_join(
+      prod_slb_order,
+      by = intersect(names(.), names(prod_slb_order))
+    ) %>%
+    full_join(
+      prod_slb_class,
+      by = intersect(names(.), names(prod_slb_class))
+    ) %>%
+    full_join(
+      prod_slb_phylum,
+      by = intersect(names(.), names(prod_slb_phylum))
+    ) %>%
     # remove binary encoded columns used for initial taxa matching to fb/slb classification info
     select(-c(Species01, Genus01, Family01, Other01)) %>%
     arrange(SciName)
@@ -390,21 +428,22 @@ match_prod_taxa_to_fb_slb <- function(
   # Synonym resolution -----------------------------------------------------
 
   synonym_results <- resolve_synonyms(
-    scinames     = nomatch_fb_and_slb,
-    fb_synonyms  = fb_synonyms,
+    scinames = nomatch_fb_and_slb,
+    fb_synonyms = fb_synonyms,
     slb_synonyms = slb_synonyms
-  ) 
+  )
 
   # align column names to prod_taxa and only retain solutions
-  synonym_resolutions <- synonym_results %>% 
-    filter(resolved) %>% 
+  synonym_resolutions <- synonym_results %>%
+    filter(resolved) %>%
     select(
       # Side Note - there is a possibility that these sciname_original values are not exactly SciName_prod values from prod_taxa
       # if a manual correction was made above to correct to a fb/slb synonym name that would be picked up here. Not the design
       # intention of the manual correction table, but it is possible.
-      SciName_prod = sciname_original, 
-      SciName = sciname_accepted, 
-      correction_source)
+      SciName_prod = sciname_original,
+      SciName = sciname_accepted,
+      correction_source
+    )
 
   # Add resolved synonyms to FB / SLB tables with classification info ----------------
 
@@ -416,16 +455,16 @@ match_prod_taxa_to_fb_slb <- function(
   if (nrow(fb_resolved) > 0) {
     # Filter by original SciName_prod that were resolved to accepted names in the synonym table.
     # fb_resolved_replacements <- prod_taxa %>%
-    #   filter(SciName_prod %in% fb_resolved$sciname_original) 
+    #   filter(SciName_prod %in% fb_resolved$sciname_original)
 
     # Get taxa classification info from FB/SLB taxa tables - divided up by classification rank for matching purposes
     prod_taxa_class_fb_syns <- bind_rows(
-
       # resolved species with classification rank info joined on
       fb_resolved %>%
         inner_join(
-          fb_taxa_df, 
-          join_by(SciName == Species)),
+          fb_taxa_df,
+          join_by(SciName == Species)
+        ),
 
       # resolved genera
       fb_resolved %>%
@@ -452,14 +491,17 @@ match_prod_taxa_to_fb_slb <- function(
     prod_taxa_class_fb <- prod_taxa_class_fb %>%
       full_join(
         prod_taxa_class_fb_syns,
-        by = intersect(names(prod_taxa_class_fb), names(prod_taxa_class_fb_syns))
+        by = intersect(
+          names(prod_taxa_class_fb),
+          names(prod_taxa_class_fb_syns)
+        )
       )
   }
 
   ## prod_taxa_class_slb -------------------------------------------
 
   slb_resolved <- synonym_resolutions %>%
-    filter(correction_source == "synonym_table_slb") 
+    filter(correction_source == "synonym_table_slb")
 
   if (nrow(slb_resolved) > 0) {
     # Filter by SciName_prod (original pre-synonym names that were unmatched).
@@ -468,13 +510,13 @@ match_prod_taxa_to_fb_slb <- function(
     #   filter(SciName_prod %in% slb_resolved$sciname_original)
 
     prod_taxa_class_slb_syns <- bind_rows(
-      
       # resolved species
       slb_resolved %>%
         inner_join(
-          slb_taxa_df, 
-          join_by(SciName == Species)),
-      
+          slb_taxa_df,
+          join_by(SciName == Species)
+        ),
+
       # resolved genera
       slb_resolved %>%
         inner_join(
@@ -484,7 +526,7 @@ match_prod_taxa_to_fb_slb <- function(
           join_by(SciName == Genus)
         ) %>%
         mutate(Genus = SciName),
-      
+
       # resolved families
       slb_resolved %>%
         inner_join(
@@ -499,46 +541,62 @@ match_prod_taxa_to_fb_slb <- function(
     prod_taxa_class_slb <- prod_taxa_class_slb %>%
       full_join(
         prod_taxa_class_slb_syns,
-        by = intersect(names(prod_taxa_class_slb), names(prod_taxa_class_slb_syns))
+        by = intersect(
+          names(prod_taxa_class_slb),
+          names(prod_taxa_class_slb_syns)
+        )
       )
   }
 
   # No match scinames after synonym resolution ------------------------------
 
-  # Scinames not resolved by synonym matching - compare to successful synonyms in synonym_resolutions 
+  # Scinames not resolved by synonym matching - compare to successful synonyms in synonym_resolutions
   # - may require manual corrections downstream
   missing_scinames_post_syn <- nomatch_fb_and_slb[
     !nomatch_fb_and_slb %in% synonym_resolutions$SciName_prod
   ]
 
-  # Add aquarium trade / habitat info to FB / SLB -------------------------------------
+  # Add aquarium trade table -------------------------------------
 
-  fb_aquarium_info <- fread(file.path(fb_slb_dir, "fb_aquarium.csv"), data.table = FALSE)
+  # This is where FB/SLB habitat (Fresh01, Brack01, and Saltwater01) information enters
+
+  fb_aquarium_info <- fread(
+    file.path(fb_slb_dir, "fb_aquarium.csv"),
+    data.table = FALSE
+  )
 
   prod_taxa_class_fb <- prod_taxa_class_fb %>%
     left_join(
-      fb_aquarium_info, 
-      by = "SciName") %>%
+      fb_aquarium_info,
+      by = "SciName"
+    ) %>%
     rename(
-      Fresh01 = Fresh, 
-      Brack01 = Brack, 
-      Saltwater01 = Saltwater)
+      Fresh01 = Fresh,
+      Brack01 = Brack,
+      Saltwater01 = Saltwater
+    )
 
-  slb_aquarium_info <- fread(file.path(fb_slb_dir, "slb_aquarium.csv"), data.table = FALSE)
+  slb_aquarium_info <- fread(
+    file.path(fb_slb_dir, "slb_aquarium.csv"),
+    data.table = FALSE
+  )
 
   prod_taxa_class_slb <- prod_taxa_class_slb %>%
     left_join(
-      slb_aquarium_info, 
-      by = "SciName") %>%
+      slb_aquarium_info,
+      by = "SciName"
+    ) %>%
     rename(
-      Fresh01 = Fresh, 
-      Brack01 = Brack, 
-      Saltwater01 = Saltwater)
+      Fresh01 = Fresh,
+      Brack01 = Brack,
+      Saltwater01 = Saltwater
+    )
 
   # Assemble all classification info -----------------------
   prod_taxa_class_fb_slb <- bind_rows(
     prod_taxa_class_fb,
-    prod_taxa_class_slb) %>%
+    prod_taxa_class_slb
+  ) %>%
     select(
       SciName,
       SciName_prod,
@@ -557,6 +615,8 @@ match_prod_taxa_to_fb_slb <- function(
       correction_source
     ) %>%
     arrange(SciName) %>%
+    # impute habitat column based on fb/slb aquarium table
+    # used downstream with prod_fao habitat to impute habitat value for ARTIS
     mutate(
       habitat_fb = case_when(
         Fresh01 == 1 & Saltwater01 == 0 ~ "inland",
@@ -569,32 +629,46 @@ match_prod_taxa_to_fb_slb <- function(
     )
 
   # Update prod_taxa with corrections and classification info ---------------------------------
-  # joined by original production SciNames before corrections as key. 
+  # joined by original production SciNames before corrections as key.
   # Rows with no FB/SLB match will have NA in classification columns.
-  prod_taxa_classification <- prod_taxa %>%
-    select(-c(Species01, Genus01, Family01, Other01)) %>% 
+  prod_taxa_classification <- prod_taxa_corr %>%
+    select(-c(Species01, Genus01, Family01, Other01)) %>%
     left_join(
       prod_taxa_class_fb_slb,
       join_by(SciName_prod)
-    )
+    ) %>%
+    mutate(
+      # favor fb/slb SciNames - only a few uncorrected and unmatched will pull from prod_taxa_corr
+      SciName = coalesce(SciName.y, SciName.x),
+      correction_source = coalesce(correction_source.y, correction_source.x)
+    ) %>% 
+    select(-c(SciName.y, SciName.x,correction_source.y, correction_source.x)) %>% 
+    relocate(SciName, .after = SciName_prod) %>% 
+    distinct() 
 
   # Replace empty strings with NA
-  #prod_taxa[prod_taxa == ""] <- NA
+  prod_taxa[prod_taxa == ""] <- NA
 
   # Output messages ---------------------------------------------------------------
-  n_missing  <- length(missing_scinames_post_syn)
+  n_missing <- length(missing_scinames_post_syn)
   n_resolved <- nrow(synonym_resolutions)
 
   cli::cli_h2("Results: Fishbase / Sealifebase matching and synonym resolution")
 
   if (n_resolved > 0) {
-    cli::cli_alert_success("{.val {n_resolved}} taxa were synonyms resolved to accepted names")
+    cli::cli_alert_success(
+      "{.val {n_resolved}} taxa were synonyms resolved to accepted names"
+    )
   } else {
-    cli::cli_alert_warning("{.val {no(n_resolved)}} taxa were identified as synonyms; no names were resolved")
+    cli::cli_alert_warning(
+      "{.val {no(n_resolved)}} taxa were identified as synonyms; no names were resolved"
+    )
   }
 
   if (n_missing > 0) {
-    cli::cli_alert_warning("Found {.val {no(n_missing)}} unmatched production taxa")
+    cli::cli_alert_warning(
+      "Found {.val {no(n_missing)}} unmatched production taxa"
+    )
     cli::cli_alert_info("{.strong Developer Notes}:")
     cli::cli_ul(c(
       "Manual corrections required for taxa names returned in {.var taxa_need_corrections} dataframe",
@@ -605,8 +679,12 @@ match_prod_taxa_to_fb_slb <- function(
       "Proceed running {.file 01-clean-input-data.R}; the second pass of {.fun match_prod_taxa_to_fb_slb} will apply new corrections"
     ))
   } else if (n_missing == 0) {
-    cli::cli_alert_success("All production taxa matched to Fishbase / Sealifebase")
-    cli::cli_alert_info("No further manual corrections required - proceed with clean input data script")
+    cli::cli_alert_success(
+      "All production taxa matched to Fishbase / Sealifebase"
+    )
+    cli::cli_alert_info(
+      "No further manual corrections required - proceed with clean input data script"
+    )
   }
 
   return(

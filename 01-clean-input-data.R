@@ -3,9 +3,6 @@
 
 # Setup -----------------------------------------------------------
 
-# Clear environment 
-rm(list=ls())
-
 # load packages
 # FIXIT: Use pak here
 {
@@ -37,7 +34,10 @@ if(need_new_fb_slb) {
 # do not necessitate corrections because they do not affect production data. 
 current_fb_slb_dir <- artis::clean_fb_slb_data(parent_outdir = path_fb_slb_raw)
 
-# FAO Production Restructure -------------------------------
+
+# FAO Production Data ----------------------------------------------------
+
+## FAO Production Restructure -------------------------------
 
 # Read in raw FAO production data files and restructure into standard format with
 # `rebuild_fao_[yyyy]_dat` function
@@ -53,22 +53,22 @@ rebuilt_fao_prod <- artis::rebuild_fao_2023_dat(
   # only keep data from 1996 onward and where quantity > 0
   filter(year >= 1996, quantity > 0)
 
-# FAO Clean Taxa and Classification ---------------------------
+## FAO Clean Taxa and Classification ---------------------------
 
-## Step 1: Clean raw FAO production data ---------------------------
+### Step 1: Clean raw FAO production data ---------------------------
 prod_fao <- artis::clean_prod_data(
   prod_data = rebuilt_fao_prod,
   prod_data_source = "FAO"
 )
 
-## Pass 1 — match without corrections to surface unmatched names ---------------------------
+### Pass 1 — match without corrections to surface unmatched names ---------------------------
 match_prod_taxa_results_1 <- artis::match_prod_taxa_to_fb_slb(
   prod_data = prod_fao,
   fb_slb_dir = current_fb_slb_dir,
   corr_tbl = NULL
 )
 
-## Inspect the returned objects from match_prod_taxa_results_1 ---------------------------
+### Inspect the returned objects from match_prod_taxa_results_1 ---------------------------
 
 # FAO production taxa classification table 
 prod_taxa_classification_1 <- match_prod_taxa_results_1$prod_taxa_classification
@@ -91,16 +91,19 @@ taxa_need_corrections_1 <- match_prod_taxa_results_1$taxa_need_corrections
 # 8) `devtools::load_all()` and generate the table to ensure the new additions pass structure checks
 # 9) Continue running this script
 
-## Pass 2 — match with corrections applied ---------------------------
-match_prod_taxa_results_2 <- match_prod_taxa_to_fb_slb(
+### Pass 2 — match with corrections applied ---------------------------
+match_prod_taxa_results_2 <- artis::match_prod_taxa_to_fb_slb(
   prod_data = prod_fao,
   fb_slb_dir = current_fb_slb_dir,
-  corr_tbl = build_corr_tbl_prod_sciname(the_fb_slb_dir = current_fb_slb_dir)
+  corr_tbl = artis::build_corr_tbl_prod_sciname(the_fb_slb_dir = current_fb_slb_dir)
 )
 
 # match_prod_taxa_results list includes: prod_taxa_classification, synonym_results, and taxa_need_corrections 
 
 taxa_need_corrections_2 <- match_prod_taxa_results_2$taxa_need_corrections
+
+##  Remove dev objects ---------------------------------------------------
+rm(prod_taxa_classification_1, taxa_need_corrections_1, taxa_need_corrections_2, rebuilt_fao_prod)
 
 # FIXIT: Add SciName NA check - found some correction mistakes leaking down to CommonName corrections.
 # both instances were manual corrections that had misused "spp" or where missing "spp" in the correction value - thus getting joined to the wrong fb/slb taxa rank column
@@ -108,101 +111,109 @@ taxa_need_corrections_2 <- match_prod_taxa_results_2$taxa_need_corrections
 
 ## Correct Common Names ---------------------------------------------------
 
-prod_taxa_classification <- correct_prod_common_names(
+prod_taxa_classification <- artis::correct_prod_common_names(
   prod_data = prod_fao,
   prod_taxa = match_prod_taxa_results_2$prod_taxa_classification,
   corr_tbl = artis::build_corr_tbl_prod_com_name()
 )
 
-# FIXIT: taxa_need_corrections_2 values that are OK - "batoidea", "perciformes", "selachii". Known deviations/exceptions to Fishbase/Sealifebase taxonomic schema  
+# taxa_need_corrections_2 values that are OK - "batoidea", "perciformes", "selachii". Known deviations/exceptions to Fishbase/Sealifebase taxonomic schema
 # FIXIT: Add final ref table of applied corrections (manual and synonyms) - think about cleaning scripts corrections (do they need to be included?)
 
-## FIXIT - move into function -- correct_prod_habitat()
-missing_habitat_scinames <- match_prod_taxa_results_2$prod_taxa_classification %>% 
-  mutate(habitat_sum = Fresh01 + Brack01 + Saltwater01) %>%
-  filter(habitat_sum == 0 | is.na(habitat_sum))
+## Manual taxonomy corrections for non-FB/SLB taxa -----------------------
+# batoidea, perciformes, and selachii already exist in prod_taxa_classification
+# as unmatched rows from match_prod_taxa_to_fb_slb() — SciName_prod is set but
+# SciName and taxonomy columns are NA. Fill them here via SciName_prod.
+# Kingdom, Phylum, and Infraclass are derived downstream by fill_prod_taxa_ranks().
+prod_taxa_classification <- prod_taxa_classification %>%
+  mutate(
+    SciName = case_when(
+      str_detect(SciName_prod, "^batoidea") ~ "batoidea",
+      SciName_prod == "perciformes" ~ "perciformes",
+      str_detect(SciName_prod, "^selachii") ~ "selachii",
+      TRUE ~ SciName
+    ),
+    Order = case_when(
+      SciName_prod == "perciformes" ~ "perciformes",
+      TRUE ~ Order
+    ),
+    Class = case_when(
+      str_detect(SciName_prod, "^batoidea|^selachii") ~ "elasmobranchii",
+      SciName_prod == "perciformes" ~ "teleostei",
+      TRUE ~ Class
+    ),
+    Superclass = case_when(
+      str_detect(SciName_prod, "^batoidea|^selachii") ~ "chondrichthyes",
+      SciName_prod == "perciformes" ~ "osteichthyes",
+      TRUE ~ Superclass
+    )
+  )
 
-if (nrow(missing_habitat_scinames) > 0) {
-  cli::cli_h2("Missing Habitat information - production taxa data")
-  cli::cli_alert_warning("{nrow(missing_habitat_scinames)} {.field SciName}{?s} missing habitat information")
-  cli::cli_alert_info("{.field SciName} without habitat coding: {.val {missing_habitat_scinames$SciName}}")
-  cli::cli_alert_info("Check {.code match_prod_taxa_results_2$prod_taxa_classification} in {.field Fresh01}, {.field Brack01}, and {.field Saltwater01} columns")
-  cli::cli_alert_info("Add manual fixes to {.fn fill_prod_taxa_gaps}")
-  cli::cli_alert_info("Some missing habitat encodings might be ok, check")
-}
+## Special-case taxonomy fixes --------------------------------------------
+# sipunculus nudus is missing from SeaLifeBase; Phylum added manually.
+# Moved from fill_prod_taxa_gaps().
+prod_taxa_classification <- prod_taxa_classification %>%
+  mutate(Phylum = case_when(
+    SciName == "sipunculus nudus" ~ "annelida",
+    TRUE ~ Phylum
+  ))
 
-## Gap-fill taxa classification ---------------------------
-prod_taxa_classification <- fill_prod_taxa_gaps(
-  the_prod_taxa_classification = match_prod_taxa_results_2$prod_taxa_classification,
-  the_prod_data = match_prod_taxa_results_2$prod_data,
-  outdir = outdir
+## Correct habitat in taxa table ------------------------------------------
+prod_taxa_classification <- correct_taxa_habitat(
+  prod_taxa = prod_taxa_classification
 )
 
-## Join final prod_taxa to prod_data here
+## Gap-fill universal taxa ranks ------------------------------------------
+prod_taxa_classification <- fill_prod_taxa_ranks(
+  the_prod_taxa_classification = prod_taxa_classification
+)
 
 # remove large less-clean environmental objects no longer needed
 rm(
-  match_prod_taxa_results_1, 
-  match_prod_taxa_results_2, 
-  prod_ts_fao, 
+  match_prod_taxa_results_1,
+  match_prod_taxa_results_2,
+  prod_ts_fao,
   rebuilt_fao_prod
 )
 
 # SAVE PRODUCTION Taxa OUTPUT:
 write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)
 
-# Structure FAO prod for ARTIS -----------------------------------------------------
+## Structure FAO prod for ARTIS -----------------------------------------------------
 
-# FIXIT - Move this restructuring into a new function? 
-# Get fishbase habitat data from prod_taxa_classification to standardize habitat info in prod_data
-prod_habitat <- prod_taxa_classification %>%
-  select(SciName, Fresh01, Brack01, Saltwater01) %>%
-  distinct()
-
-# Filter down and restructure FAO production data for ARTIS
+## Join corrected SciName from prod_taxa into prod_data ------------------
+# prod_fao$SciName still holds the original reported names (= SciName_prod).
+# Join via SciName_prod to update to the resolved / corrected SciName values.
 prod_data <- prod_fao %>%
-  # Moved to clean_prod_dat.R (2026-07-15)
-  # # Remove columns not needed for running ARTIS
-  # select(!c(any_of(c("alternate", "multiplier", "symbol", "symbol_identifier", 
-  #                   "country_iso3_numeric", "country_identifier", "production_identifier", 
-  #                   "sort", "unit_identifier")), # "species_identifier" still available here
-  #           contains(c("_ar", "_cn", "_es", "_fr", "_ru")),
-  #           CommonName)) %>%
-  # FIXIT: CommonName may need to be repoved again at this point. 
-  # clean up habitat and production method values
-  mutate(fao_habitat = case_when(habitat == "Inland waters" ~ "inland",
-                             habitat == "Marine areas" ~ "marine",
-                             TRUE ~ habitat),
-         prod_method = case_when(prod_method %in% c("FRESHWATER", "MARINE", "BRACKISHWATER") ~ "aquaculture",
-                                 prod_method == "CAPTURE" ~ "capture",
-                                 TRUE ~ prod_method)) %>%
-  # Create new column that combines SciName with souce info (i.e., habitat + production method)
-  # FIXIT: AM 2026-09-04 Can I remove this? Created again below after habitat update.
-  mutate(taxa_source = paste(str_replace(SciName, " ", "."), fao_habitat, prod_method, sep = "_")) %>%
-  # Join fishbase habitat data to prod data and make new Fishbase habitat column to compare to FAO's habitat column 
-  left_join(prod_habitat, by = "SciName") %>%
-  
-  # if fishbase (marine/inland) conflicts with FAOs (marine/inland) then use Fishbase designation
-  mutate(habitat = case_when(str_detect(SciName, pattern = " ") & fb_habitat != fao_habitat & fb_habitat %in% c("inland", "marine") ~ fb_habitat,
-                                 TRUE ~ fao_habitat)) %>% # ELSE, use FAO's habitat designation, including for all non species-level data
-  # UPDATE taxa source to match structure in get country solutions
-  mutate(taxa_source = paste(str_replace(SciName, " ", "."), habitat, prod_method, sep = "_")) 
+  left_join(
+    prod_taxa_classification %>%
+      distinct(SciName_prod, SciName),
+    by = c("SciName" = "SciName_prod")
+  ) %>%
+  mutate(SciName = coalesce(SciName.y, SciName.x)) %>%
+  select(-SciName.x, -SciName.y)
+
+## Impute final prod_data habitat -----------------------------------------
+prod_data <- impute_prod_habitat(
+  prod_taxa = prod_taxa_classification,
+  prod_data = prod_data
+)
 
 write.csv(prod_data, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
 
-## Attribute Table ISSCAAP ---------------------------------------------------------
+# Attribute Table ISSCAAP ---------------------------------------------------------
 # used to create code_max_resolved which is used in ARTIS calculate_consumption
 # requires prod_data with isscaap_group column
 
 build_attr_isscaap(prod_fao = prod_data, output_dir = outdir_attribute)
 
-## Aggregate data down to ARTIS columns ----------------
+# Aggregate data down to ARTIS columns ----------------
 prod_data <- prod_data %>% 
   group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en, area.code) %>%
   summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
   ungroup()
 
-## If Running Test ---------------------------------
+# If Running Test ---------------------------------
 # `test <- TRUE` in 00-local-machine-setup.R config file
 if (test) {
   
@@ -304,7 +315,7 @@ rm(pass1_sau, pass2_sau, prod_ts_sau, prod_sau_raw)
 fwrite(prod_classification_sau, file.path(datadir, "clean_sau_taxa.csv"), 
            row.names = FALSE)
 
-# SAU Standardize Countries --------------------------------------------------
+## SAU Standardize Countries --------------------------------------------------
 # This code will be represented in the new `standardize_countries()` and `standardize_country_data()` functions
 # Not completed yet. https://github.com/Seafood-Globalization-Lab/artis-model/issues/57
 
@@ -394,12 +405,14 @@ sciname_habitat <- prod_taxa_classification %>%
   select(SciName, Fresh01, Brack01, Saltwater01) %>%
   # Removing duplicates caused by having multiple common names for a single sciname
   distinct() %>%
-  mutate(habitat = case_when(Fresh01 == 1 & Saltwater01 == 0 ~ "inland",
-                             Fresh01 == 0 & Saltwater01 == 1 ~ "marine",
-                             Fresh01 == 1 & Saltwater01 == 1 ~ "diadromous",
-                             # If a species just exists in brackish water we classify as marine
-                             Brack01 == 1 & Fresh01 == 0 & Saltwater01 == 0 ~ "marine",
-                             TRUE ~ as.character(NA)))
+  
+  # FIXIT: Moved to match_prod_taxa_to_fb_slb - no longer needed - delete AM 2026-09-16
+  # mutate(habitat = case_when(Fresh01 == 1 & Saltwater01 == 0 ~ "inland",
+  #                            Fresh01 == 0 & Saltwater01 == 1 ~ "marine",
+  #                            Fresh01 == 1 & Saltwater01 == 1 ~ "diadromous",
+  #                            # If a species just exists in brackish water we classify as marine
+  #                            Brack01 == 1 & Fresh01 == 0 & Saltwater01 == 0 ~ "marine",
+  #                            TRUE ~ as.character(NA)))
 
 ## Clean HS codes and descriptions --------------------------------
 # Load and clean the conversion factor data and run the matching functions. 
