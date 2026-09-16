@@ -352,7 +352,7 @@ load_all()
 
 clean_fao_prod <- data.table::fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs_2.0_FAO/clean_fao_prod.csv")
 clean_sau_prod <- data.table::fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs_1.2.0_SAU/clean_sau_prod.csv")
-clean_baci <- data.table::fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw_1.2.0_FAO/filtered_BACI_HS02_Y2002_V202201.csv")
+#clean_baci <- data.table::fread("~/Documents/UW-SAFS/ARTIS/data/model_inputs_raw_1.2.0_FAO/filtered_BACI_HS02_Y2002_V202201.csv")
 
 std_fao_prod <- artis::std_artis_input_countries(
   data = clean_fao_prod,
