@@ -7,26 +7,24 @@
 demo/outputs
 venv/
 model_inputs_raw*
-baci_raw/*
-model_inputs_baci/*
-model_inputs/*
-outputs/*
+baci_raw/
+model_inputs_baci/
+model_inputs/
+outputs/
 *.zip
-model_inputs_sau/*
-AM_local/*
+model_inputs_sau/
+AM_local/
 grateful-report.html
 .env
 .env.swp
-man/*
-dev/*
-renv/*
-data/*
+renv/
+data/
 requirements_old_local.txt
 
 *.html
 *.pdf
 /.quarto/
-README_files/*
-QA/*
+README_files/
+QA/
 
 .Renviron

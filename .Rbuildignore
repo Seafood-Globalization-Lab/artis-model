@@ -4,7 +4,6 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^dev$
-^LICENSE\.md$
 ^07-post-processing-validation.Rmd
 ^08-validatation-single-HS-year.Rmd
 \.html$
