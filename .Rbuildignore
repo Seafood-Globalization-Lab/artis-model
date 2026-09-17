@@ -4,7 +4,6 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^dev$
-^LICENSE\.md$
 ^07-post-processing-validation.Rmd
 ^demo$
 ^model_inputs/
