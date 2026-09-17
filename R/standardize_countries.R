@@ -159,30 +159,30 @@ standardize_countries <- function(
         c("iso3c", "year"), 
         c("artis_iso3c", year_col))
       
-      # Two scenarios of flags: territory that needs to be corrected to sovereign
-      # 2. Sovereign that needs sovereign naming
+      # Run countrycode on all flagged rows to attempt iso3c resolution
       flagged_data <- std_df %>%
         dplyr::filter(flag == TRUE) %>%
         dplyr::mutate(
           artis_iso3c = dplyr::case_when(
             base::is.na(artis_iso3c) ~ countrycode::countrycode(
               .data[[country_col]],
-              origin = "country.name",
+              origin      = "country.name",
               destination = "iso3c",
-              warn = FALSE
+              warn        = FALSE
             ),
             .default = artis_iso3c
           )
-        ) %>% 
-        # Convert territory to sovereign (will fix sovereign to sovereign later)
+        )
+
+      # Only re-join rows that countrycode resolved. Rows still NA after
+      # countrycode are truly unresolvable — joining them on NA would
+      # incorrectly match corrections entries where iso3c is also NA,
+      # producing wrong sovereigns and expanding rows.
+      flagged_resolved <- flagged_data %>%
+        dplyr::filter(!base::is.na(artis_iso3c)) %>%
         dplyr::left_join(corrections_df_name %>%
                            select(-artis_country_name), by = by_cols) %>%
         dplyr::select(-artis_country_name, -country_name) %>%
-        # Update artis_iso3c values in two ways:
-        # When both artis_iso3c and artis_iso3c.y, prioritize & keep artis_iso3c.y value,
-        # otherwise fill artis_iso3c.y NAs with artis_iso3c value
-        # (i.e. correct artis_iso3c column through our artis corrections dataframe to
-        # correct territories to sovereign)
         dplyr::mutate(
           artis_iso3c = dplyr::coalesce(artis_iso3c.y, artis_iso3c)
         ) %>%
@@ -191,21 +191,24 @@ standardize_countries <- function(
           artis_country_name = countrycode::countrycode(
             artis_iso3c, origin = "iso3c", destination = "country.name")
         )
-      
+
+      flagged_unresolvable <- flagged_data %>%
+        dplyr::filter(base::is.na(artis_iso3c)) %>%
+        dplyr::mutate(artis_country_name = NA_character_)
+
       nonflagged_data <- std_df %>%
         dplyr::filter(flag == FALSE) %>%
         select(-flag)
-      
-      std_df <- dplyr::bind_rows(flagged_data, nonflagged_data) %>%
+
+      std_df <- dplyr::bind_rows(flagged_resolved, flagged_unresolvable, nonflagged_data) %>%
         dplyr::select(-flag)
       
       # Get vector of country names that weren't standardized (i.e. have NA values)
       not_std_vec <- std_df %>%
         dplyr::filter(base::is.na(artis_country_name)) %>%
-        tidyr::drop_na(country_col) %>%
-        dplyr::select(country_col) %>%
-        dplyr::distinct() %>%
-        dplyr::pull(country_col)
+        dplyr::pull(country_col) %>%
+        na.omit() %>%
+        unique()
       
     } else if (country_id_format == "iso3c") {
       
@@ -243,10 +246,9 @@ standardize_countries <- function(
       # Get vector of country names that weren't standardized (i.e. have NA values)
       not_std_vec <- std_df %>%
         dplyr::filter(base::is.na(artis_iso3c)) %>%
-        tidyr::drop_na(country_col) %>%
-        dplyr::select(country_col) %>%
-        dplyr::distinct() %>%
-        dplyr::pull(country_col)
+        dplyr::pull(country_col) %>%
+        na.omit() %>%
+        unique()
     }
   
     # Warnings ---------------------------------------------------------------
@@ -262,10 +264,10 @@ standardize_countries <- function(
     
     # list of country names that did not successfully get assigned iso3c codes
     if (length(not_std_vec) > 0) {
-      visible_list <- sapply(na.omit(not_std_vec), function(x) if (x == "") dQuote("") else dQuote(x))
+      visible_list <- na.omit(not_std_vec)
       
-      cli::cli_alert_warning("Some values in user column {.field {country_col}} were not standardized.")
-      cli::cli_alert_info("These values were not in the ARTIS corrections table or found by {.pkg countrycode}:\n{.val {paste(visible_list, collapse = ', ')}}")
+      cli::cli_alert_warning("{.value {length(visible_list)}} values in the user supplied column {.field {country_col}} were not standardized by ARTIS corrections or {.pkg countrycode}.")
+      cli::cli_alert_info("They are: {.val {visible_list}}")
     
     }
     

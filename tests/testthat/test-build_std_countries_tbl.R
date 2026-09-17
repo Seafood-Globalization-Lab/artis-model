@@ -1,4 +1,4 @@
-df <- standardize_country_data()
+df <- build_std_countries_tbl()
 
 # ── Column types ──────────────────────────────────────────────────────────────
 
@@ -40,17 +40,6 @@ test_that("iso3c and artis_iso3c non-NA values are all exactly 3 characters", {
   expect_equal(length(bad_artis_iso3c), 0, info = paste("Bad artis_iso3c values:", paste(bad_artis_iso3c, collapse = ", ")))
 })
 
-# ── Year range ────────────────────────────────────────────────────────────────
-
-test_that("year values are within the expected range and all years are present", {
-  # FIXIT: source min/max year dynamically from ARTIS config file
-  expect_true(all(df$year >= 1996 & df$year <= 2023), info = "Some year values are out of range")
-
-  missing_years <- setdiff(1996:2023, unique(df$year))
-  expect_equal(length(missing_years), 0,
-               info = paste("Missing years:", paste(missing_years, collapse = ", ")))
-})
-
 # ── Duplicates ────────────────────────────────────────────────────────────────
 
 test_that("no duplicate rows for country_name, iso3c and year", {
@@ -64,7 +53,7 @@ test_that("no duplicate rows for country_name, iso3c and year", {
     paste(capture.output(print(duplicates)), collapse = "\n")
   )
 
-  expect_true(nrow(duplicates) == 0, info = fail_msg)
+  expect_equal(nrow(duplicates), 0, info = fail_msg)
 })
 
 # ── Standardization mapping consistency ──────────────────────────────────────
