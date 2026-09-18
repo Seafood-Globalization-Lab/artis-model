@@ -24,6 +24,17 @@ For developing the ARTIS model package
 - Do not repeat yourself in a response
 - Warnings and errors: quote them verbatim, don't paraphrase
 
+## Markdown Style
+- When asked to generate markdown syntax Do NOT use the following:
+  - line breaks `---`
+  - emojis
+  - excessive bold `**example bold text**`
+  - em dashes 
+- When asked to generate markdown syntax Please use the following:
+  - Use markdown hierarchical headers to organize content or introduce subsections
+  - Can use github alert blocks if user specifies the markdown is destine for GitHub (NOTE, TIP, IMPORTANT, WARNING, CAUTION)
+
+
 ## Broader Context
 - The `artis` package is an open-science open-source piece of research software
 - Development and distribution follow the FAIR convention https://www.go-fair.org/fair-principles/
