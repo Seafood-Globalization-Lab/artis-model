@@ -103,7 +103,7 @@ match_prod_taxa_results_2 <- artis::match_prod_taxa_to_fb_slb(
 taxa_need_corrections_2 <- match_prod_taxa_results_2$taxa_need_corrections
 
 ##  Remove dev objects ---------------------------------------------------
-rm(prod_taxa_classification_1, taxa_need_corrections_1, taxa_need_corrections_2, rebuilt_fao_prod)
+rm(prod_taxa_classification_1, taxa_need_corrections_1, rebuilt_fao_prod)
 
 # FIXIT: Add SciName NA check - found some correction mistakes leaking down to CommonName corrections.
 # both instances were manual corrections that had misused "spp" or where missing "spp" in the correction value - thus getting joined to the wrong fb/slb taxa rank column
@@ -118,67 +118,59 @@ prod_taxa_classification <- artis::correct_prod_common_names(
   corr_tbl = artis::build_corr_tbl_prod_com_name()
 )
 
-# taxa_need_corrections_2 values that are OK - "batoidea", "perciformes", "selachii". Known deviations/exceptions to Fishbase/Sealifebase taxonomic schema
-# FIXIT: Add final ref table of applied corrections (manual and synonyms) - think about cleaning scripts corrections (do they need to be included?)
+# FIXIT: 2026-09-22 Could remove build_corr_tbl_prod_com_name() workflow and replace with rows_update()
+# like the taxa additions below. Would simplify nested functions. But maybe having a separate function
+# to document and build a correction table at the end is useful for post-cleaning documentation. 
 
-## Manual taxonomy corrections for non-FB/SLB taxa -----------------------
-# batoidea, perciformes, and selachii already exist in prod_taxa_classification
-# as unmatched rows from match_prod_taxa_to_fb_slb() — SciName_prod is set but
-# SciName and taxonomy columns are NA. Fill them here via SciName_prod.
-# Kingdom, Phylum, and Infraclass are derived downstream by fill_prod_taxa_ranks().
-prod_taxa_classification <- prod_taxa_classification %>%
-  mutate(
-    SciName = case_when(
-      str_detect(SciName_prod, "^batoidea") ~ "batoidea",
-      SciName_prod == "perciformes" ~ "perciformes",
-      str_detect(SciName_prod, "^selachii") ~ "selachii",
-      TRUE ~ SciName
-    ),
-    Order = case_when(
-      SciName_prod == "perciformes" ~ "perciformes",
-      TRUE ~ Order
-    ),
-    Class = case_when(
-      str_detect(SciName_prod, "^batoidea|^selachii") ~ "elasmobranchii",
-      SciName_prod == "perciformes" ~ "teleostei",
-      TRUE ~ Class
-    ),
-    Superclass = case_when(
-      str_detect(SciName_prod, "^batoidea|^selachii") ~ "chondrichthyes",
-      SciName_prod == "perciformes" ~ "osteichthyes",
-      TRUE ~ Superclass
-    )
-  )
+## Manual taxonomy corrections for leftover taxa -----------------------
 
-## Special-case taxonomy fixes --------------------------------------------
-# sipunculus nudus is missing from SeaLifeBase; Phylum added manually.
-# Moved from fill_prod_taxa_gaps().
-prod_taxa_classification <- prod_taxa_classification %>%
-  mutate(Phylum = case_when(
-    SciName == "sipunculus nudus" ~ "annelida",
-    TRUE ~ Phylum
-  ))
+# taxa_need_corrections_2 contains 3 FAO prod taxa names that are known deviations from the FB/SLB taxonomic: 
+# "batoidea", "perciformes", "selachii". 
+
+# These are handled below via `corrections_taxa_class``. Any remaining values in taxa_need_corrections_2 after this
+# block would indicate new unresolved taxa requiring review.
+
+# batoidea, perciformes, and selachii exist in prod_taxa_classification with
+# SciName_prod and SciName already set; provenance columns are preserved.
+# Only applied for taxa still present in taxa_need_corrections_2 (i.e. not
+# resolved by FB/SLB upstream). Kingdom, Phylum, and Infraclass are
+# gap-filled downstream by fill_prod_taxa_ranks().
+corrections_taxa_class <- tribble(
+  ~SciName,      ~CommonName,         ~Order,        ~Class,           ~Superclass,
+  "perciformes", "perch-like fishes", "perciformes", "teleostei",      "osteichthyes",
+  "batoidea",    "rays",              NA_character_, "elasmobranchii", "chondrichthyes",
+  "selachii",    "sharks",            NA_character_, "elasmobranchii", "chondrichthyes"
+) %>%
+  filter(SciName %in% taxa_need_corrections_2$value)
+
+if (nrow(corrections_taxa_class) > 0) {
+  prod_taxa_classification <- prod_taxa_classification %>%
+    rows_update(corrections_taxa_class, by = "SciName", unmatched = "ignore")
+}
 
 ## Correct habitat in taxa table ------------------------------------------
+
 prod_taxa_classification <- correct_taxa_habitat(
   prod_taxa = prod_taxa_classification
 )
 
-## Gap-fill universal taxa ranks ------------------------------------------
+## Gap-fill and expand taxa ranks ------------------------------------------
+
+# FIXIT: 2026-09-22 This is the place to add new Suborder column to accomidate `perciformes/serranoidei` Order values
 prod_taxa_classification <- fill_prod_taxa_ranks(
-  the_prod_taxa_classification = prod_taxa_classification
+  prod_taxa = prod_taxa_classification
 )
 
 # remove large less-clean environmental objects no longer needed
 rm(
   match_prod_taxa_results_1,
-  match_prod_taxa_results_2,
-  prod_ts_fao,
-  rebuilt_fao_prod
+  match_prod_taxa_results_2
 )
 
-# SAVE PRODUCTION Taxa OUTPUT:
-write.csv(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)
+
+# Write out clean_fao_taxa.csv -------------------------------------------
+
+data.table::fwrite(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)
 
 ## Structure FAO prod for ARTIS -----------------------------------------------------
 

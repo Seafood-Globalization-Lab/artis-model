@@ -19,13 +19,13 @@
 #'   assigned directly by `SciName` for the synthetic `"batoidea"` and
 #'   `"selachii"` rows added upstream in `01-clean-input-data.R`.
 #'
-#' @param the_prod_taxa_classification Data frame. The production taxa
+#' @param prod_taxa Data frame. The production taxa
 #'   classification table after [correct_taxa_habitat()] and the inline manual
 #'   taxonomy corrections in `01-clean-input-data.R`. Typically
 #'   `prod_taxa_classification`.
 #'
 #' @return
-#' A data frame with the same rows as `the_prod_taxa_classification` with
+#' A data frame with the same rows as `prod_taxa` with
 #' `Kingdom`, `Phylum`, and `Infraclass` columns filled and `Infraclass`
 #' relocated to follow `Order`. Assigned to `prod_taxa_classification` in
 #' `01-clean-input-data.R`.
@@ -39,11 +39,12 @@
 #' @importFrom magrittr %>%
 #' @export
 
-fill_prod_taxa_ranks <- function(the_prod_taxa_classification) {
+fill_prod_taxa_ranks <- function(
+  prod_taxa) {
 
   # Fill Kingdom (universally animalia) ------------------------------------
 
-  prod_taxa_classification_clean <- the_prod_taxa_classification %>%
+  prod_taxa_expanded <- prod_taxa %>%
     mutate(Kingdom = "animalia") %>%
 
   # Fill missing Phylum ----------------------------------------------------
@@ -64,37 +65,53 @@ fill_prod_taxa_ranks <- function(the_prod_taxa_classification) {
     )) %>%
 
   # Add Infraclass column --------------------------------------------------
+  # Infraclass does not exist in prod_taxa; initialize as NA then assign values
+  # via rows_update(). Two passes are needed: SciName-keyed for the synthetic
+  # non-FB/SLB rows added upstream, and Order-keyed for shark/ray clades.
 
-    mutate(
-      Infraclass = case_when(
-        # Direct assignment for synthetic non-FB/SLB rows added in 01-clean-input-data.R
-        SciName == "batoidea" ~ "batoidea",
-        SciName == "selachii" ~ "selachii",
-        # Infraclass Selachii — Galeomorphi and Squalomorphi Superorder children (WoRMS)
-        Order %in%
-          c(
-            "carcharhiniformes",
-            "heterodontiformes",
-            "lamniformes",
-            "orectolobiformes",
-            "echinorhiniformes",
-            "hexanchiformes",
-            "pristiophoriformes",
-            "squaliformes",
-            "squatiniformes"
-          ) ~ "selachii",
-        # Infraclass Batoidea
-        Order %in%
-          c(
-            "myliobatiformes",
-            "rajiformes",
-            "rhinopristiformes",
-            "torpediniformes"
-          ) ~ "batoidea",
-        TRUE ~ NA
-      )
-    ) %>%
+    mutate(Infraclass = NA_character_) %>%
     relocate(Infraclass, .after = Order)
 
-  return(prod_taxa_classification_clean)
+  # Phylum exceptions — taxa missing from SeaLifeBase / FishBase --------------
+  # Known permanent exceptions not covered by the rule-based Phylum gap-fill above.
+  phylum_exceptions <- tribble(
+    ~SciName,           ~Phylum,
+    "sipunculus nudus", "annelida"
+  )
+
+  prod_taxa_expanded <- prod_taxa_expanded %>%
+    rows_update(phylum_exceptions, by = "SciName", unmatched = "ignore")
+
+  # SciName-based Infraclass assignments (synthetic rows from 01-clean-input-data.R)
+  infraclass_sciname <- tribble(
+    ~SciName,   ~Infraclass,
+    "batoidea", "batoidea",
+    "selachii", "selachii"
+  )
+
+  # Order-based Infraclass assignments (WoRMS classification)
+  infraclass_orders <- tribble(
+    ~Order,                ~Infraclass,
+    # Infraclass Selachii — Galeomorphi and Squalomorphi Superorder children
+    "carcharhiniformes",   "selachii",
+    "heterodontiformes",   "selachii",
+    "lamniformes",         "selachii",
+    "orectolobiformes",    "selachii",
+    "echinorhiniformes",   "selachii",
+    "hexanchiformes",      "selachii",
+    "pristiophoriformes",  "selachii",
+    "squaliformes",        "selachii",
+    "squatiniformes",      "selachii",
+    # Infraclass Batoidea
+    "myliobatiformes",     "batoidea",
+    "rajiformes",          "batoidea",
+    "rhinopristiformes",   "batoidea",
+    "torpediniformes",     "batoidea"
+  )
+
+  prod_taxa_expanded <- prod_taxa_expanded %>%
+    rows_update(infraclass_sciname, by = "SciName", unmatched = "ignore") %>%
+    rows_update(infraclass_orders,  by = "Order",   unmatched = "ignore")
+
+  return(prod_taxa_expanded)
 }
