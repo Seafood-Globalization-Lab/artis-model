@@ -2,11 +2,10 @@
 #'
 #' Runs a diagnostic check for taxa missing habitat coding and applies manual
 #' `Fresh01` corrections for known taxa before habitat-based calculations
-#' operate on `prod_data`.
+#' operate on `prod_data` downstream.
 #'
 #' @details
-#' Called in `01-clean-input-data.R` after [correct_prod_common_names()] and
-#' the inline manual taxonomy corrections, before [fill_prod_taxa_ranks()].
+#' Called in `01-clean-input-data.R`.
 #' Output is assigned back to `prod_taxa_classification`.
 #'
 #' ## Diagnostic check
@@ -28,9 +27,7 @@
 #'
 #' @param prod_taxa Data frame. The production taxa classification table
 #'   containing at minimum `SciName`, `Fresh01`, `Brack01`, and `Saltwater01`
-#'   columns. Typically `prod_taxa_classification` after
-#'   [correct_prod_common_names()] and the inline taxonomy corrections in
-#'   `01-clean-input-data.R`.
+#'   columns. Typically `prod_taxa_classification`.
 #'
 #' @return A data frame with the same structure as `prod_taxa` with manual
 #'   `Fresh01` corrections applied. Assigned to `prod_taxa_classification` in
@@ -45,6 +42,7 @@
 #'
 #' @import dplyr
 #' @import cli
+#' @importFrom tibble tribble
 #' @importFrom magrittr %>%
 #' @export
 
@@ -78,16 +76,14 @@ correct_taxa_habitat <- function(prod_taxa) {
 
   # Manual habitat corrections ----------------------------------------------
 
+  corrections_habitat <- tribble(
+    ~SciName,                   ~Fresh01,
+    "neocaridina denticulata",  1L,
+    "caridina nilotica",        1L
+  )
+
   prod_taxa <- prod_taxa %>%
-    mutate(
-      Fresh01 = case_when(
-        SciName %in% c(
-          "neocaridina denticulata",
-          "caridina nilotica"
-        ) ~ as.integer(1),
-        TRUE ~ as.integer(Fresh01)
-      )
-    )
+    rows_update(corrections_habitat, by = "SciName", unmatched = "ignore")
 
   return(prod_taxa)
 }
