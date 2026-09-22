@@ -80,7 +80,7 @@ correct_prod_common_names <- function(
 
   n_multiples <- length(unique(common_name_multiples$SciName))
 
-  cli::cli_h2("Production taxa - multiple{.field CommonName}")
+  cli::cli_h2("Production taxa - multiple {.field CommonName}s")
   cli::cli_alert_warning("{.val {no(n_multiples)}} working {.filed SciNames} have multiple {.field CommonName} values")
   if (n_multiples > 0) {
     cli::cli_alert_warning("They are: {.val {unique(common_name_multiples$SciName)}}")
@@ -105,7 +105,7 @@ correct_prod_common_names <- function(
     taxa_com_name_corr <- taxa_com_names
   }
 
-  # Check 2: verify corrections resolved all multipless
+  # Check 2: verify corrections resolved all multiples
   common_name_multiples_2 <- taxa_com_name_corr %>%
     distinct(SciName, CommonName) %>%
     mutate(n = n_distinct(CommonName), .by = SciName) %>%

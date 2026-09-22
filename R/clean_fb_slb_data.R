@@ -92,13 +92,15 @@ clean_fb_slb_data <- function(parent_outdir) {
     rename(SciName = Species) %>%
     mutate(SciName = tolower(SciName)) %>%
     select(c(SciName, Aquarium, Fresh, Brack, Saltwater)) %>%
-    distinct()
+    distinct() %>%
+    mutate(across(where(is.character), ~na_if(., "")))
   
   slb_aquarium_clean <- slb_species_raw %>%
     rename(SciName = Species) %>%
     mutate(SciName = tolower(SciName)) %>%
     select(c(SciName, Aquarium, Fresh, Brack, Saltwater)) %>%
-    distinct()
+    distinct() %>%
+    mutate(across(where(is.character), ~na_if(., "")))
   
   fwrite(fb_aquarium_clean, file.path(fb_slb_dir, "fb_aquarium.csv"), row.names = FALSE)
   fwrite(slb_aquarium_clean, file.path(fb_slb_dir, "slb_aquarium.csv"), row.names = FALSE)
