@@ -13,6 +13,7 @@ For developing the ARTIS model package
 - `cli` package for all user-facing messages — never `message()`, `cat()`, or `print()`
 - `dplyr::join_by()` for joins, `.by` over `group_by()`, `across()` for column-wise ops
 - Roxygen2 documentation
+- Default to Tidyverse style syntax when there are multiple options to achieve the same thing. 
 
 ## Language Style
 - use American z's in words like "Standardizing" rather than "Standardizing" or "visualization" vs "visualisation" 
