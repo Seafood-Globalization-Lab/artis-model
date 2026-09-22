@@ -232,5 +232,9 @@ clean_prod_data <- function(
       )
   }
 
+  # Replace empty strings with NA across all character columns
+  prod_ts <- prod_ts %>%
+    mutate(across(where(is.character), ~na_if(., "")))
+
   return(prod_ts)
 }

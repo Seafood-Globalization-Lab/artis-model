@@ -111,6 +111,7 @@ rm(prod_taxa_classification_1, taxa_need_corrections_1, taxa_need_corrections_2,
 
 ## Correct Common Names ---------------------------------------------------
 
+# CommonNames exist in prod_fao. Joins values to prod_taxa. Detects SciNames with multiple CommonNames. Apply Corrections. 
 prod_taxa_classification <- artis::correct_prod_common_names(
   prod_data = prod_fao,
   prod_taxa = match_prod_taxa_results_2$prod_taxa_classification,
