@@ -240,10 +240,10 @@ clean_fb_slb_taxa <- function(
   if (length(slash_detected) > 0) {
     cli::cli_h2("Unusual taxa value formatting - {the_server}")
     cli::cli_alert_warning(
-      "Fishbase / Sealifebase may us a forward slash symbol to provide further taxonomic information
+      "{the_server} is using a forward slash symbol to provide further taxonomic information
       in a character string that does not fit with in the taxonomic schema."
     )
-    cli::cli_alert_info("Taxonomic values using a forward slash: {.value {slash_detect}}")
+    cli::cli_alert_info("The taxonomic values are: {.val {slash_detected}}")
   }
 
   # Replace taxonomic placeholder values (rank_exclude) with NA before
@@ -257,8 +257,7 @@ clean_fb_slb_taxa <- function(
     # Lowercase all values as the final step — after corrections and checks so
     # that filter comparisons above match raw source capitalization and violation
     # messages report taxa names as they appear in the original data.
-    mutate(across(everything(), str_rep))
-    mutate_all(tolower)
+    mutate(across(everything(), tolower))
 
 
   return(the_df)

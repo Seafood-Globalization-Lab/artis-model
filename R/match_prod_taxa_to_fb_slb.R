@@ -153,7 +153,8 @@ match_prod_taxa_to_fb_slb <- function(
   } else if (is.null(corr_tbl)) {
     # No corrections applied if no correction table supplied in argument
     prod_taxa_corr <- prod_taxa %>%
-      rename(SciName = SciName_prod)
+      mutate(SciName = SciName_prod)
+      #rename(SciName = SciName_prod)
   }
 
   # Hierarchical FB inner_joins --------------------------------------------
@@ -639,10 +640,12 @@ match_prod_taxa_to_fb_slb <- function(
     ) %>%
     mutate(
       # favor fb/slb SciNames - only a few uncorrected and unmatched will pull from prod_taxa_corr
-      SciName = coalesce(SciName.y, SciName.x),
-      correction_source = coalesce(correction_source.y, correction_source.x)
-    ) %>% 
-    select(-c(SciName.y, SciName.x,correction_source.y, correction_source.x)) %>% 
+      SciName = coalesce(SciName.y, SciName.x)
+    ) %>%
+    { if (!is.null(corr_tbl))
+        mutate(., correction_source = coalesce(correction_source.y, correction_source.x))
+      else . } %>%
+    select(-c(SciName.y, SciName.x), -any_of(c("correction_source.y", "correction_source.x"))) %>% 
     relocate(SciName, .after = SciName_prod) %>% 
     distinct() 
 
