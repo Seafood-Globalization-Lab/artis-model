@@ -157,51 +157,52 @@ prod_taxa_classification <- correct_taxa_habitat(
 ## Gap-fill and expand taxa ranks ------------------------------------------
 
 # FIXIT: 2026-09-22 This is the place to add new Suborder column to accomidate `perciformes/serranoidei` Order values
+# DO this.
 prod_taxa_classification <- fill_prod_taxa_ranks(
   prod_taxa = prod_taxa_classification
 )
 
 # remove large less-clean environmental objects no longer needed
-rm(
-  match_prod_taxa_results_1,
-  match_prod_taxa_results_2
-)
-
+rm(match_prod_taxa_results_1, match_prod_taxa_results_2)
 
 # Write out clean_fao_taxa.csv -------------------------------------------
 
-data.table::fwrite(prod_taxa_classification, file = file.path(datadir, "clean_fao_taxa.csv"), row.names = FALSE)
+data.table::fwrite(
+  prod_taxa_classification, 
+  file = file.path(datadir, "clean_fao_taxa.csv"), 
+  row.names = FALSE)
 
 ## Structure FAO prod for ARTIS -----------------------------------------------------
 
 ## Join corrected SciName from prod_taxa into prod_data ------------------
 # prod_fao$SciName still holds the original reported names (= SciName_prod).
-# Join via SciName_prod to update to the resolved / corrected SciName values.
-prod_data <- prod_fao %>%
+# Join via SciName_prod to update to the resolved / corrected working SciName values.
+prod_fao_corr <- prod_fao %>%
   left_join(
     prod_taxa_classification %>%
       distinct(SciName_prod, SciName),
     by = c("SciName" = "SciName_prod")
   ) %>%
-  mutate(SciName = coalesce(SciName.y, SciName.x)) %>%
-  select(-SciName.x, -SciName.y)
+  # replace all prod_fao SciName values with prod_taxa_classification value
+  mutate(SciName = SciName.y) %>%
+  select(-SciName.y)
 
 ## Impute final prod_data habitat -----------------------------------------
-prod_data <- impute_prod_habitat(
+prod_fao_corr <- impute_prod_habitat(
   prod_taxa = prod_taxa_classification,
-  prod_data = prod_data
+  prod_data = prod_fao_corr
 )
 
-write.csv(prod_data, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
+write.csv(prod_fao_corr, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
 
 # Attribute Table ISSCAAP ---------------------------------------------------------
 # used to create code_max_resolved which is used in ARTIS calculate_consumption
 # requires prod_data with isscaap_group column
 
-build_attr_isscaap(prod_fao = prod_data, output_dir = outdir_attribute)
+build_attr_isscaap(prod_fao = prod_fao_corr, output_dir = outdir_attribute)
 
 # Aggregate data down to ARTIS columns ----------------
-prod_data <- prod_data %>% 
+prod_fao_corr <- prod_fao_corr %>% 
   group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en, area.code) %>%
   summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
   ungroup()
@@ -210,7 +211,7 @@ prod_data <- prod_data %>%
 # `test <- TRUE` in 00-local-machine-setup.R config file
 if (test) {
   
-  prod_data <- prod_data %>%
+  prod_fao_corr <- prod_fao_corr %>%
     filter(year == test_year) %>%
     filter(SciName %in% test_scinames)
   
@@ -219,21 +220,21 @@ if (test) {
 }
 
 # FAO Standardize Countries ------------------------------
-prod_data <- standardize_countries(df = prod_data, 
+prod_fao_corr <- standardize_countries(df = prod_fao_corr, 
                                    data_source = "FAO")
 
 # Write Prod (more columns)
 # retain FAO area.code column
-write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod_more_cols.csv"), row.names = FALSE)
+write.csv(prod_fao_corr, file = file.path(datadir, "standardized_fao_prod_more_cols.csv"), row.names = FALSE)
 
 # Write Prod (ARTIS)
 # remove area.code column to format to prod version used in model
-prod_data <- prod_data %>% 
+prod_fao_corr <- prod_fao_corr %>% 
   group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en) %>%
   summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
   ungroup()
 
-write.csv(prod_data, file = file.path(datadir, "standardized_fao_prod.csv"), row.names = FALSE)
+write.csv(prod_fao_corr, file = file.path(datadir, "standardized_fao_prod.csv"), row.names = FALSE)
 
 # SAU Production Data -------------------------
 ## SAU Clean Taxa and Classification ------------------------------
@@ -392,20 +393,10 @@ if (running_sau) {
 
 ## Create Habitat Info --------------------------------
 # FIXIT: Add test Make sure that prod taxa classification is classified to at least one of Species, Genus, Family, Other
-# FIXIT: Can this be added to sciname table? This habitat info isn't saved out anywhere else currently.
 # Creating sciname habitat dataframe for habitat classification in hs taxa classification
 sciname_habitat <- prod_taxa_classification %>%
   select(SciName, Fresh01, Brack01, Saltwater01) %>%
-  # Removing duplicates caused by having multiple common names for a single sciname
-  distinct() %>%
-  
-  # FIXIT: Moved to match_prod_taxa_to_fb_slb - no longer needed - delete AM 2026-09-16
-  # mutate(habitat = case_when(Fresh01 == 1 & Saltwater01 == 0 ~ "inland",
-  #                            Fresh01 == 0 & Saltwater01 == 1 ~ "marine",
-  #                            Fresh01 == 1 & Saltwater01 == 1 ~ "diadromous",
-  #                            # If a species just exists in brackish water we classify as marine
-  #                            Brack01 == 1 & Fresh01 == 0 & Saltwater01 == 0 ~ "marine",
-  #                            TRUE ~ as.character(NA)))
+  distinct()
 
 ## Clean HS codes and descriptions --------------------------------
 # Load and clean the conversion factor data and run the matching functions. 
@@ -468,7 +459,7 @@ for(i in 1:length(HS_year)) {
   
   hs_taxa_match <- add_habitat_classifications(
     hs_taxa_match = hs_taxa_match,
-    sciname_habitat = sciname_habitat,
+    sciname_habitat = sciname_habitat, # can switch to prod_taxa_classification filter
     prod_data = prod_data,
     hs_version = hs_version
   )
