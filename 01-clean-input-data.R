@@ -345,6 +345,9 @@ sciname_habitat <- prod_taxa_classification %>%
 # Load and clean the conversion factor data and run the matching functions. 
 # This data will be used to create V1 and V2. 
 
+# File proviance: https://unstats.un.org/unsd/classifications/Econ --> Under the "HS" section, All HS codes and descriptions 
+# (all editions, one file): https://unstats.un.org/unsd/classifications/Econ/download/In%20Text/HSCodeandDescription.xlsx
+
 hs_xlsx_path <- file.path(path_hs_codes_raw, "HSCodeandDescription.xlsx")
 hs_data_raw <- readxl::excel_sheets(hs_xlsx_path) %>% 
   purrr::set_names() |>
