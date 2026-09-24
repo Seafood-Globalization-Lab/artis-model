@@ -101,6 +101,55 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
 
+## \[Unreleased\]
+
+### develop-country-standardization
+
+#### Added
+
+-   **`build_std_countries_tbl()`**: new function that generates the
+    ARTIS sovereign country correction table. Accepts a `max_year`
+    argument and expands three correction types across the
+    1996–`max_year` range: territory-to-sovereign mappings,
+    time-dependent political corrections, and special cases. Returns a
+    tibble keyed by `country_name`, `iso3c`, and `year`.
+    (2025-04-23 to 2026-09-16)
+
+-   **`std_artis_input_countries()`**: new higher-level wrapper that
+    orchestrates source-specific standardization for FAO, BACI, and SAU
+    pipeline inputs. Each source applies a tailored correction strategy
+    and aggregates rows after standardization to resolve many-to-one
+    country merges. (Resolves #98) (2025-09-24 to 2026-09-16)
+
+-   **Unit test suite** for `standardize_countries()` in
+    `tests/testthat/`. (2026-02-04 to 2026-09-02)
+
+-   **`cli` package** added as a formal import to support informative
+    user-facing warnings and errors.
+
+#### Changed
+
+-   **`standardize_countries()` refactor**: replaced hard-coded
+    `case_when()` chains with a join-based approach against the new
+    `build_std_countries_tbl()` corrections table. (Resolves #57)
+    (2025-04-23 to 2026-09-16)
+    -   Added explicit `country_id_format`, `country_col`, and
+        `year_col` arguments in place of assumed column names.
+    -   Implements two-pass standardization: ARTIS corrections table
+        join first; `countrycode` package fallback for unmatched rows.
+    -   Input validation added.
+    -   Strips trailing parenthetical phrases from country name strings
+        before joining.
+    -   NA and empty-string country inputs now standardize to `NA` in
+        output columns with a `cli` warning listing unresolved values.
+
+#### Removed
+
+-   **`standardize_baci()`**: removed; functionality consolidated into
+    `standardize_countries()` and `std_artis_input_countries()`.
+-   **`standardize_prod()`**: removed; functionality consolidated into
+    `standardize_countries()` and `std_artis_input_countries()`.
+
 ## \[1.1.0\] – 2025-08-13
 
 ### Added

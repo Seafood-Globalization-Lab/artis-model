@@ -7,17 +7,10 @@ library(cli)
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()
-artis_version <- "2.1.1"
-# Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
-prod_data_type <- "SAU" # FIXIT change/combine fully with "running_sau"?
-local_data_path <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data"
+artis_version <- "v1.2.0"
 
-# CLI message to declare main model parameters
-cli::cli_h1("Configured 🐟 ARTIS {.strong version {artis_version}} 🐙 🦀 🦐 {.strong {prod_data_type}} production data 🦪")
-cli::cli_h3("Local data path: {.file {local_data_path}}")
-
-# Main data directory paths --------------------------------------------------
-datadir_raw <- file.path(local_data_path, glue::glue("model_inputs_raw_{artis_version}"))
+# Input data directory paths --------------------------------------------------
+datadir_raw <- "./data/model_inputs_raw_1.2.0_SAU"
 # Directory for inputs to create the ARTIS database
 datadir <- file.path(local_data_path, glue::glue("model_inputs_{artis_version}_{prod_data_type}"))
 outdir <- file.path(local_data_path, glue::glue("outputs_{artis_version}_{prod_data_type}"))
@@ -46,7 +39,7 @@ outdir_attribute <- file.path(outdir, "attribute_tables")
 outdir_sql <- file.path(outdir, "sql_database")
 
 # 01-clean-model-inputs parameters --------------------------------
-# Model Mode for 01-clean-model-inputs - TRUE for SAU; FALSE for FAO
+# Model Mode for 01-clean-model-inputs - TRUE fo#r SAU; FALSE for FAO
 running_sau <- TRUE
 ## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
 need_new_fb_slb <- FALSE
@@ -60,6 +53,9 @@ test_year <- c()
 test_years <- c(1996) 
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
+# Set production data type variable ["SAU"] or ["FAO"] - 02-artis-pipeline
+prod_data_type <- "SAU"
+dev_mode <- FALSE
 
 # hs_version_run is set in 02-artis-pipeline because of current `artis-hpc` setup
 
