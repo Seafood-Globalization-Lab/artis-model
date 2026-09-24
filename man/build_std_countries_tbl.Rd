@@ -61,7 +61,7 @@ The lower bound of the year range is fixed at \code{1996} and is not
 \itemize{
   \item \code{\link{standardize_countries}} — uses the ARTIS corrections
     table produced by this function to harmonize country identifiers
-  \item \code{\link{std_countries_artis}} — higher-level wrapper that
+  \item \code{\link{std_artis_input_countries}} — higher-level wrapper that
     applies standardization to FAO, BACI, and SAU data
 }
 }

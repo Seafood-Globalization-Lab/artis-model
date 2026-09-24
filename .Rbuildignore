@@ -16,3 +16,10 @@
 ^qa/
 ^data/
 ^QA/
+.env
+.Renviron/
+.lab-genAI-toolbox/
+.posit/
+.quarto/
+.Rproj.user
+venv/

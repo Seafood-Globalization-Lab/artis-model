@@ -35,34 +35,26 @@ BugReports:
 Depends: 
     R (>= 4.1.0)
 Imports:
-    aws.s3,
+    arrow,
     cli,
     countrycode,
     data.table,
     DBI,
-    doParallel,
     dplyr,
-    foreach,
-    future,
-    future.apply,
+    duckdb,
     glue,
     magrittr,
-    parallel,
     qs2,
     readxl,
     reticulate,
+    stats,
     stringr,
     tibble,
-    tidyr,
-    qs2,
-    duckdb,
-    stats,
-    DBI,
-    cli
+    tidyr
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
 Encoding: UTF-8
 LazyData: true
 LicenseFile: LICENSE
 RoxygenNote: 7.3.3
-Suggests: 
-    testthat (>= 3.0.0)
-Config/testthat/edition: 3
