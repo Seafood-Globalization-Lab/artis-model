@@ -3,20 +3,15 @@ Title: Aquatic Resource Trade in Species (ARTIS) Model
 Version: 2.0.0
 Date: 2024-09-08
 Authors@R: c(
-    person(given = "Jessica", family = "Gephart", 
-           email = "gephart@uw.edu", 
-           role = c("aut", "cre", "cph", "fnd"),
+    person("Jessica", "Gephart", , "gephart@uw.edu", role = c("aut", "cre", "cph", "fnd"),
            comment = c(ORCID = "0000-0001-6836-9291")),
-    person(given = "Althea", family = "Marks", 
-           email = "amarks1@uw.edu", 
-           role = "aut", 
+    person("Althea", "Marks", , "amarks1@uw.edu", role = "aut",
            comment = c(ORCID = "0000-0002-9370-9128")),
-    person(given = "Rahul", family = "Agrawal Bejarano", 
-           role = "aut", 
+    person("Rahul", "Agrawal Bejarano", role = "aut",
            comment = c(ORCID = "0000-0002-3944-4149")),
-    person(given = "Kelvin", family = "Gorospe", 
-           role = "aut", 
-           comment = c(ORCID = "0000-0001-5498-8171")))
+    person("Kelvin", "Gorospe", role = "aut",
+           comment = c(ORCID = "0000-0001-5498-8171"))
+  )
 Description: ARTIS (Aquatic Resource Trade in Species) is a global model
     and database that estimates bilateral seafood trade flows at the
     species level from 1994 to 2023. It integrates production data,
@@ -36,21 +31,29 @@ Depends:
     R (>= 4.1.0)
 Imports:
     arrow,
+    aws.s3,
     cli,
     countrycode,
     data.table,
     DBI,
+    doParallel,
     dplyr,
     duckdb,
+    foreach,
+    future,
+    future.apply,
     glue,
     magrittr,
+    parallel,
     qs2,
     readxl,
     reticulate,
+    rfishbase,
     stats,
     stringr,
     tibble,
-    tidyr
+    tidyr,
+    utils
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
