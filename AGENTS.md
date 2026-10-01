@@ -7,20 +7,23 @@ For developing the ARTIS model package
 - **Description:** README.md | DESCRIPTION | NAMESPACE
 - **GitHub:** https://github.com/Seafood-Globalization-Lab/artis-model
 
-## Coding Style
+## Coding and Syntax Style
 - Tidyverse style, `%>%` pipe opperator used in the `artis` package
 - `data.table::fread()` / `fwrite()` for file I/O with the `data.table = FALSE` arguement always for fread
 - `cli` package for all user-facing messages — never `message()`, `cat()`, or `print()`
 - `dplyr::join_by()` for joins, `.by` over `group_by()`, `across()` for column-wise ops
 - Roxygen2 documentation
 - Default to Tidyverse style syntax when there are multiple options to achieve the same thing. 
+- Use R script sections `# <header-title> --------------------------` and subsections 
+`## <header-title> --------------------------`to break up sections and tasks within the code or script.
+- in-line comments inserted above the relevant code and use the same indentation as the code the are referring to. 
+Do NOT insert in-line comments after (to the right) of the code itself. 
 
-## Language Style
-- use American z's in words like "Standardizing" rather than "Standardizing" or "visualization" vs "visualisation" 
+## Written English Language Style
+- use American z's in words like "Standardizing" rather than "Standardising" or "visualization" vs "visualisation" 
 - no emojis unless specifically requested by user
 
 ## Response Style
-- When asked for a response in markdown syntax OR to summarize for a GitHub issue - always bound the code with `~~~` in a single code chunk
 - Prefer concise responses — no filler, no sycophancy
 - Do not repeat yourself in a response
 - Warnings and errors: quote them verbatim, don't paraphrase
@@ -31,10 +34,10 @@ For developing the ARTIS model package
   - emojis
   - excessive bold `**example bold text**`
   - em dashes 
-- When asked to generate markdown syntax Please use the following:
+- When asked to generate markdown syntax OR to summarize for a GitHub issue or Wiki page - Please use the following:
+  - Always bound the entire markdown document or response with `~~~` in a single chunk
   - Use markdown hierarchical headers to organize content or introduce subsections
   - Can use github alert blocks if user specifies the markdown is destine for GitHub (NOTE, TIP, IMPORTANT, WARNING, CAUTION)
-
 
 ## Broader Context
 - The `artis` package is an open-science open-source piece of research software
