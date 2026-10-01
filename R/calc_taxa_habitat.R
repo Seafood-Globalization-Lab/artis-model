@@ -16,15 +16,20 @@
 #' rank with no single habitat assignment); the warning is informational and
 #' does not stop execution. Add manual corrections to this function when a
 #' missing code requires a fix.
-#'
+#' 
 #' ## Manual habitat corrections
+#' 
+#' Uses an internal tribble `corrections_habitat` to hold manual corrections 
+#' to FB / SLB aquarium habitat assignment columns. 
 #'
-#' Applies `Fresh01 = 1` for taxa that are known freshwater species but whose
-#' FishBase / SeaLifeBase records lack a freshwater habitat code:
+#' ## Calculate `habitat_fb` column
+#' 
+#' Use binary encoded columns in `prod_taxa` (`Fresh01 + Brack01 + Saltwater01`) 
+#' to calculate the `habitat_fb` column which represents taxa specific habitat. 
+#' This is used downstream along with FAO production record habitat information
+#' to create the final habitat assignment used within ARTIS. 
 #'
-#' * *Neocaridina denticulata*
-#' * *Caridina nilotica*
-#'
+#' 
 #' @param prod_taxa Data frame. The production taxa classification table
 #'   containing at minimum `SciName`, `Fresh01`, `Brack01`, and `Saltwater01`
 #'   columns. Typically `prod_taxa_classification`.
@@ -46,15 +51,16 @@
 #' @importFrom magrittr %>%
 #' @export
 
-correct_taxa_habitat <- function(prod_taxa) {
+calc_taxa_habitat <- function(prod_taxa) {
 
   # Diagnostic: missing habitat check ---------------------------------------
 
   missing_habitat_scinames <- prod_taxa %>%
     mutate(habitat_sum = Fresh01 + Brack01 + Saltwater01) %>%
-    filter(habitat_sum == 0 | is.na(habitat_sum))
+    filter(habitat_sum == 0 | is.na(habitat_sum)) %>% 
+    select(SciName, habitat_sum)
 
-  cli::cli_h2("Missing Habitat information - production taxa data")
+  cli::cli_h2("Production Taxa Habitat Check")
 
   if (nrow(missing_habitat_scinames) > 0) {
     cli::cli_alert_warning(
@@ -64,10 +70,10 @@ correct_taxa_habitat <- function(prod_taxa) {
       "{.field SciName} without habitat coding: {.val {missing_habitat_scinames$SciName}}"
     )
     cli::cli_alert_info(
-      "Check {.field Fresh01}, {.field Brack01}, and {.field Saltwater01} columns in {.var prod_taxa_classification}"
+      "Check {.field Fresh01}, {.field Brack01}, and {.field Saltwater01} columns in {.var prod_taxa_classification} data frame"
     )
     cli::cli_alert_info(
-      "Add manual fixes to {.fn correct_taxa_habitat}"
+      "Add manual fixes to {.fn calc_taxa_habitat}"
     )
     cli::cli_alert_info("Some missing habitat encodings may be expected — verify before adding corrections")
   } else {
@@ -76,6 +82,7 @@ correct_taxa_habitat <- function(prod_taxa) {
 
   # Manual habitat corrections ----------------------------------------------
 
+  # Add manual corrections to this Tribble
   corrections_habitat <- tribble(
     ~SciName,                   ~Fresh01,
     "neocaridina denticulata",  1L,
@@ -83,7 +90,24 @@ correct_taxa_habitat <- function(prod_taxa) {
   )
 
   prod_taxa <- prod_taxa %>%
-    rows_update(corrections_habitat, by = "SciName", unmatched = "ignore")
+    rows_update(corrections_habitat, by = "SciName", unmatched = "ignore") 
+
+  # Calculate Prod Taxa habitat (FB/SLB) values ----------------------------
+
+  # calculate habitat column based on fb/slb aquarium table binary encoded columns
+  # used downstream with prod_fao habitat to impute habitat value for ARTIS
+
+  prod_taxa <- prod_taxa %>% 
+    mutate(
+      habitat_fb = case_when(
+        Fresh01 == 1 & Saltwater01 == 0 ~ "inland",
+        Fresh01 == 0 & Saltwater01 == 1 ~ "marine",
+        Fresh01 == 1 & Saltwater01 == 1 ~ "diadromous",
+        # If a species just exists in brackish water we classify as marine
+        Brack01 == 1 & Fresh01 == 0 & Saltwater01 == 0 ~ "marine",
+        TRUE ~ as.character(NA)
+      )
+    )
 
   return(prod_taxa)
 }
