@@ -111,8 +111,9 @@ rm(prod_taxa_classification_1, taxa_need_corrections_1, rebuilt_fao_prod)
 
 ## Correct Common Names ---------------------------------------------------
 
-# CommonNames exist in prod_fao. Joins values to prod_taxa. Detects SciNames with multiple CommonNames. Apply Corrections. 
-prod_taxa_classification <- artis::correct_prod_common_names(
+# CommonNames exist in prod_fao. Joins values to prod_taxa. 
+# Detects SciNames with multiple CommonNames. Apply Corrections. 
+prod_taxa_classification <- artis::correct_common_names(
   prod_data = prod_fao,
   prod_taxa = match_prod_taxa_results_2$prod_taxa_classification,
   corr_tbl = artis::build_corr_tbl_prod_com_name()
@@ -122,7 +123,7 @@ prod_taxa_classification <- artis::correct_prod_common_names(
 # like the taxa additions below. Would simplify nested functions. But maybe having a separate function
 # to document and build a correction table at the end is useful for post-cleaning documentation. 
 
-## Manual taxonomy corrections for leftover taxa -----------------------
+## Manual taxonomy insertions for leftover taxa -----------------------
 
 # taxa_need_corrections_2 contains 3 FAO prod taxa names that are known deviations from the FB/SLB taxonomic: 
 # "batoidea", "perciformes", "selachii". 
@@ -141,6 +142,7 @@ corrections_taxa_class <- tribble(
   "batoidea",    "rays",              NA_character_, "elasmobranchii", "chondrichthyes",
   "selachii",    "sharks",            NA_character_, "elasmobranchii", "chondrichthyes"
 ) %>%
+  # retain corrections that are only needed - as determined by taxa_need_corrections_2 dataframe
   filter(SciName %in% taxa_need_corrections_2$value)
 
 if (nrow(corrections_taxa_class) > 0) {
@@ -150,14 +152,12 @@ if (nrow(corrections_taxa_class) > 0) {
 
 ## Correct habitat in taxa table ------------------------------------------
 
-prod_taxa_classification <- correct_taxa_habitat(
+prod_taxa_classification <- calc_taxa_habitat(
   prod_taxa = prod_taxa_classification
 )
 
-## Gap-fill and expand taxa ranks ------------------------------------------
+## Expand and fill taxa ranks ------------------------------------------
 
-# FIXIT: 2026-09-22 This is the place to add new Suborder column to accomidate `perciformes/serranoidei` Order values
-# DO this.
 prod_taxa_classification <- fill_prod_taxa_ranks(
   prod_taxa = prod_taxa_classification
 )
@@ -165,16 +165,16 @@ prod_taxa_classification <- fill_prod_taxa_ranks(
 # remove large less-clean environmental objects no longer needed
 rm(match_prod_taxa_results_1, match_prod_taxa_results_2)
 
-# Write out clean_fao_taxa.csv -------------------------------------------
+## Write out clean_fao_taxa.csv -------------------------------------------
 
 data.table::fwrite(
   prod_taxa_classification, 
   file = file.path(datadir, "clean_fao_taxa.csv"), 
   row.names = FALSE)
 
-## Structure FAO prod for ARTIS -----------------------------------------------------
+## Structure FAO prod data for ARTIS -----------------------------------------------------
 
-## Join corrected SciName from prod_taxa into prod_data ------------------
+### Join corrected SciName from prod_taxa into prod_data ------------------
 # prod_fao$SciName still holds the original reported names (= SciName_prod).
 # Join via SciName_prod to update to the resolved / corrected working SciName values.
 prod_fao_corr <- prod_fao %>%
@@ -185,27 +185,48 @@ prod_fao_corr <- prod_fao %>%
   ) %>%
   # replace all prod_fao SciName values with prod_taxa_classification value
   mutate(SciName = SciName.y) %>%
-  select(-SciName.y)
+  select(-SciName.y) %>% 
 
-## Impute final prod_data habitat -----------------------------------------
+### Join corrected CommonName from prod_taxa into prod_data ------------------
+
+  # FIXIT: Could remove CommonName from prod_data all together - check downstream
+  left_join(
+    prod_taxa_classification %>% 
+      distinct(SciName, CommonName),
+    join_by(SciName)
+  ) %>% 
+  mutate(CommonName = coalesce(CommonName.y, CommonName.x)) %>% 
+  select(-c(CommonName.x, CommonName.y))
+
+### Impute final prod_data habitat -----------------------------------------
 prod_fao_corr <- impute_prod_habitat(
   prod_taxa = prod_taxa_classification,
   prod_data = prod_fao_corr
 )
 
-write.csv(prod_fao_corr, file = file.path(datadir, "clean_fao_prod.csv"), row.names = FALSE)
+## Write out clean_fao_prod.csv -------------------------------------------
+
+data.table::fwrite(
+  prod_fao_corr,
+  file = file.path(datadir, "clean_fao_prod.csv"),
+  row.names = FALSE
+)
 
 # Attribute Table ISSCAAP ---------------------------------------------------------
 # used to create code_max_resolved which is used in ARTIS calculate_consumption
 # requires prod_data with isscaap_group column
 
-build_attr_isscaap(prod_fao = prod_fao_corr, output_dir = outdir_attribute)
+build_attr_isscaap(
+  prod_fao = prod_fao_corr, 
+  output_dir = outdir_attribute)
 
-# Aggregate data down to ARTIS columns ----------------
-prod_fao_corr <- prod_fao_corr %>% 
-  group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en, area.code) %>%
-  summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
-  ungroup()
+# Aggregate Prod data down to ARTIS specs ----------------
+prod_fao_corr <- prod_fao_corr %>%
+  summarize(
+    quantity = sum(quantity, na.rm = TRUE),
+    .by = c(SciName, year, taxa_source, habitat, prod_method,
+            country_iso3_alpha, country_name_en, area.code)
+  )
 
 # If Running Test ---------------------------------
 # `test <- TRUE` in 00-local-machine-setup.R config file
