@@ -3,22 +3,25 @@
 #' Joins `CommonName` from production data into the taxa classification table
 #' and identifies taxa where a single `SciName` maps to multiple or missing
 #' `CommonName` values. Optionally applies a manual correction table to resolve
-#' inconsistencies. Emits `cli` diagnostics before and after corrections.
+#' inconsistencies, then replaces any remaining `NA` `CommonName` values with a
+#' fallback string. Emits `cli` diagnostics at each stage.
 #'
 #' @details
 #' Called in `01-clean-input-data.R` after [match_prod_taxa_to_fb_slb()] to
 #' standardize `CommonName` values before downstream processing. The output is
-#' assigned to `prod_taxa_classification`.
+#' assigned to `prod_taxa_classification` in `01-clean-input-data.R`.
 #'
 #' ## Data integrity checks
 #'
-#' Runs two `cli`-reported data integrity checks:
+#' Runs two `cli`-reported checks before corrections are applied:
 #'
-#' * **Check 1 — before corrections**: reports all `SciName` values associated
+#' * **Check 1 — multiple CommonNames**: reports all `SciName` values associated
 #'   with more than one `CommonName`, including cases where one value is `NA`.
-#' * **Check 2 — after corrections**: reports remaining `SciName` values with
-#'   multiple `CommonName` values and separately reports any `SciName` values
-#'   with at least one `NA` `CommonName`.
+#' * **Check 2 — NA CommonNames**: reports all `SciName` values with at least
+#'   one `NA` `CommonName`.
+#'
+#' After corrections are applied, a third check re-runs Check 1 to report any
+#' `SciName` values that still have multiple `CommonName` values.
 #'
 #' ## Manual corrections
 #'
@@ -27,6 +30,13 @@
 #' values via `coalesce()`. Duplicate rows introduced by the join are collapsed
 #' with `distinct()`. If `corr_tbl` is `NULL`, the joined table is returned
 #' without modification.
+#'
+#' ## NA fallback
+#'
+#' After corrections, any remaining `NA` `CommonName` values are replaced with
+#' `paste0(SciName, " no common")`. This ensures no `NA` values propagate
+#' downstream. The `" no common"` suffix is arbitrary and can be changed in the
+#' function body.
 #'
 #' @param prod_data Data frame. Cleaned production data containing `SciName`
 #'   and `CommonName` columns. `SciName` here corresponds to the original
@@ -45,8 +55,9 @@
 #' @return
 #' A data frame with the same columns as `prod_taxa` plus `CommonName`. One
 #' row per unique combination of production taxa attributes after corrections
-#' and deduplication. Assigned to `prod_taxa_classification` in
-#' `01-clean-input-data.R`.
+#' and deduplication. `CommonName` contains no `NA` values — any remaining
+#' `NA`s after correction are replaced with `paste0(SciName, " no common")`.
+#' Assigned to `prod_taxa_classification` in `01-clean-input-data.R`.
 #'
 #' @seealso
 #' * [match_prod_taxa_to_fb_slb()] — produces the `prod_taxa` input
@@ -56,7 +67,7 @@
 #' @import cli
 #' @importFrom magrittr %>%
 #' @export
-correct_prod_common_names <- function(
+correct_common_names <- function(
   prod_data,
   prod_taxa,
   corr_tbl = NULL
@@ -80,10 +91,23 @@ correct_prod_common_names <- function(
 
   n_multiples <- length(unique(common_name_multiples$SciName))
 
-  cli::cli_h2("Production taxa - multiple {.field CommonName}s")
+  cli::cli_h2("Production taxa {.field CommonName} check 1 - multiple values")
   cli::cli_alert_warning("{.val {no(n_multiples)}} working {.filed SciNames} have multiple {.field CommonName} values")
   if (n_multiples > 0) {
     cli::cli_alert_warning("They are: {.val {unique(common_name_multiples$SciName)}}")
+  }
+
+  # Check 2: which SciNames have NA CommonName values?
+  common_name_na <- taxa_com_names %>% 
+    distinct(SciName, CommonName) %>% 
+    filter(is.na(CommonName))
+
+  n_na <- length(common_name_na$CommonName)
+
+  cli::cli_h2("Production taxa {.field CommonName} check 2 - {.val NA} values")
+  cli::cli_alert_warning("{.val {no(n_na)}} {.field CommonName}{?s} have {.val NA}{?s}")
+  if (n_na > 0) {
+    cli::cli_alert_warning("They are: {.val {unique(common_name_na$SciName)}}")
   }
 
   # Apply corrections from corr_tbl - join via working SciName column (contains manual and synonym corrections)
@@ -114,7 +138,7 @@ correct_prod_common_names <- function(
 
   n_multiples_2 <- length(unique(common_name_multiples_2$SciName))
 
-  cli::cli_h3("After {.field CommonName} corrections")
+  cli::cli_h3("Post {.field CommonName} corrections:")
   if (n_multiples_2 == 0) {
     cli::cli_alert_success("All {.field CommonName} multiples resolved")
   } else {
@@ -122,6 +146,32 @@ correct_prod_common_names <- function(
     cli::cli_alert_warning("They are: {.val {unique(common_name_multiples_2$SciName)}}")
     cli::cli_alert_info("{.val NA} {.field SciName} values in may distort the number of remaining instances")
   }
+
+  # Apply correction for NA values
+  # NOTE: The "correction term" is arbitrary - can change in the paste0 function below
+  
+  taxa_com_name_corr <- taxa_com_name_corr %>%
+    mutate(
+      CommonName = case_when(
+        is.na(CommonName) ~ paste0(SciName, " no common"),
+        .default = CommonName
+      )
+    )
+  
+    # Check 2: which SciNames have NA CommonName values?
+  common_name_na_2 <- taxa_com_name_corr %>% 
+    distinct(SciName, CommonName) %>% 
+    filter(is.na(CommonName))
+
+  n_na_2 <- length(common_name_na_2$CommonName)
+
+  if(n_na_2 == 0){
+    cli::cli_alert_success("All {.field CommonName} {.val NA}s resolved")
+  } else {
+    cli::cli_alert_warning("{.val {no(n_na_2)}} {.field SciNames} still have {.val NA} {.field CommonName} values")
+    cli::cli_alert_warning("They are: {.val {unique(common_name_na_2$SciName)}}")
+  }
+  
 
   return(taxa_com_name_corr)
 }
