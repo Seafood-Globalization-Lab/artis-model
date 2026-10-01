@@ -1,7 +1,7 @@
 #' Impute final habitat column in production data
 #'
 #' Reconciles FAO-reported habitat with FishBase / SeaLifeBase habitat at the
-#' species level to produce the final `habitat`, `fao_habitat`, `prod_method`,
+#' species level to produce the final `habitat`, `habitat_fao`, `prod_method`,
 #' and `taxa_source` columns in `prod_data`.
 #'
 #' @details
@@ -21,7 +21,7 @@
 #' A per-`SciName` reference table (`prod_taxa_habitat`) is extracted from
 #' `prod_taxa` and joined to `prod_data`. The FishBase / SeaLifeBase
 #' designation (`habitat_fb`) takes precedence over the FAO designation
-#' (`fao_habitat`) when both of the following are true:
+#' (`habitat_fao`) when both of the following are true:
 #'
 #' 1. `SciName` contains a space (i.e., is a species-level name).
 #' 2. `habitat_fb` is one of `"inland"` or `"marine"`.
@@ -42,7 +42,7 @@
 #' A data frame with the same rows as `prod_data` with the following columns
 #' added or updated:
 #'
-#' * `fao_habitat` — standardized FAO habitat label (`"inland"`, `"marine"`,
+#' * `habitat_fao` — standardized FAO habitat label (`"inland"`, `"marine"`,
 #'   or the original `habitat` value).
 #' * `prod_method` — standardized production method (`"aquaculture"` or
 #'   `"capture"`).
@@ -51,7 +51,7 @@
 #' * `habitat_fb` — FishBase / SeaLifeBase habitat label joined from
 #'   `prod_taxa`.
 #' * `habitat` — final reconciled habitat: `habitat_fb` where it overrides
-#'   FAO, otherwise `fao_habitat`.
+#'   FAO, otherwise `habitat_fao`.
 #' * `taxa_source` — composite key combining `SciName`, `habitat`, and
 #'   `prod_method`, used in downstream ARTIS matching functions.
 #'
@@ -71,15 +71,14 @@ impute_prod_habitat <- function(prod_taxa, prod_data) {
   # Build per-SciName habitat reference from taxa table --------------------
 
   prod_taxa_habitat <- prod_taxa %>%
-    select(SciName, Fresh01, Brack01, Saltwater01, habitat_fb) %>%
-    distinct()
+    distinct(SciName, habitat_fb) 
 
   # Reconcile FAO and FB/SLB habitat at the production-record level --------
 
   prod_data_out <- prod_data %>%
     # Standardize FAO habitat and production method labels
     mutate(
-      fao_habitat = case_when(
+      habitat_fao = case_when(
         habitat == "Inland waters" ~ "inland",
         habitat == "Marine areas"  ~ "marine",
         TRUE ~ habitat
@@ -96,9 +95,9 @@ impute_prod_habitat <- function(prod_taxa, prod_data) {
     mutate(
       habitat = case_when(
         str_detect(SciName, " ") &
-          habitat_fb != fao_habitat &
+          habitat_fb != habitat_fao &
           habitat_fb %in% c("inland", "marine") ~ habitat_fb,
-        TRUE ~ fao_habitat
+        TRUE ~ habitat_fao
       )
     ) %>%
     mutate(

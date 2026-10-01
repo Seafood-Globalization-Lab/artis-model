@@ -615,19 +615,19 @@ match_prod_taxa_to_fb_slb <- function(
       Saltwater01,
       correction_source
     ) %>%
-    arrange(SciName) %>%
-    # impute habitat column based on fb/slb aquarium table
-    # used downstream with prod_fao habitat to impute habitat value for ARTIS
-    mutate(
-      habitat_fb = case_when(
-        Fresh01 == 1 & Saltwater01 == 0 ~ "inland",
-        Fresh01 == 0 & Saltwater01 == 1 ~ "marine",
-        Fresh01 == 1 & Saltwater01 == 1 ~ "diadromous",
-        # If a species just exists in brackish water we classify as marine
-        Brack01 == 1 & Fresh01 == 0 & Saltwater01 == 0 ~ "marine",
-        TRUE ~ as.character(NA)
-      )
-    )
+    arrange(SciName) #%>%
+    # # impute habitat column based on fb/slb aquarium table
+    # # used downstream with prod_fao habitat to impute habitat value for ARTIS
+    # mutate(
+    #   habitat_fb = case_when(
+    #     Fresh01 == 1 & Saltwater01 == 0 ~ "inland",
+    #     Fresh01 == 0 & Saltwater01 == 1 ~ "marine",
+    #     Fresh01 == 1 & Saltwater01 == 1 ~ "diadromous",
+    #     # If a species just exists in brackish water we classify as marine
+    #     Brack01 == 1 & Fresh01 == 0 & Saltwater01 == 0 ~ "marine",
+    #     TRUE ~ as.character(NA)
+    #   )
+    # )
 
   # Update prod_taxa with corrections and classification info ---------------------------------
   # joined by original production SciNames before corrections as key.
