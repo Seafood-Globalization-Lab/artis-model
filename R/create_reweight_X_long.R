@@ -21,7 +21,7 @@ create_reweight_X_long <- function(country_est, V1, V2) {
   #   cli::cli_warn(c(
   #     "!" = "Reweighted X long proportions DO NOT sum to 1.",
   #     "Threshold: {.code abs(difference) > 1e-9}",
-  #     "Problematic iso3c–hs6 pairs:",
+  #     "Problematic iso3c--hs6 pairs:",
   #     setNames(
   #       glue::glue_data(
   #         check_reweight_X_long,
@@ -54,12 +54,12 @@ show_reweight_diag_cli <- function(reweight_X_long, tol = 1e-9, max_show = 100) 
   cli::cli_h2("Reweight X diagnostics")
   cli::cli_text("Tolerance: {.code abs(1 - sum_rew) > {format(tol, digits = 6, scientific = TRUE)}}")
   cli::cli_ul()
-  cli::cli_li("{nrow(diag_check)} iso3c–hs6 groups checked")
+  cli::cli_li("{nrow(diag_check)} iso3c--hs6 groups checked")
   cli::cli_li("{nrow(zero_groups)} groups with no positive weights (sum == 0 or all NA)")
   cli::cli_li("{nrow(bad_sum_groups)} groups with non-unit sums beyond tolerance")
   cli::cli_end()
 
-  # Helper to print a description list (name = 'iso3c – hs6', value = details)
+  # Helper to print a description list (name = 'iso3c -- hs6', value = details)
   .emit_dl <- function(df, value_fmt, nmax = max_show) {
     if (!nrow(df)) return(invisible())
     if (nrow(df) > nmax) {
@@ -75,7 +75,7 @@ show_reweight_diag_cli <- function(reweight_X_long, tol = 1e-9, max_show = 100) 
   # Section A: zero/NA groups
   if (nrow(zero_groups)) {
     cli::cli_rule("Zero/NA groups")
-    cli::cli_warn("Found iso3c–hs6 groups with no positive weights")
+    cli::cli_warn("Found iso3c--hs6 groups with no positive weights")
     .emit_dl(
       zero_groups,
       "sum={sprintf('%.12f', sum_rew)}; n_rows={n_rows}; n_nonzero={n_nonzero}; all_na={all_na}"

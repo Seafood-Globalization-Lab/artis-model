@@ -15,7 +15,6 @@
 #' @importFrom DBI dbConnect dbExecute dbDisconnect dbExistsTable dbWriteTable
 #' @import glue
 #' @import qs2
-#' @import data.table
 #' @export
 combine_partitioned_data <- function(
     search_dir,

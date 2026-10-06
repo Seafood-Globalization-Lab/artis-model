@@ -7,6 +7,7 @@
 #' @param datadir_raw Character. Path to directory containing All_HS_Codes.csv
 #' @param datadir Character. Path to directory containing hs-hs-match files
 #' @param outdir_attribute Character. Path to directory where products.csv will be written
+#' @param hs_raw_file Character. Filename of the raw HS codes CSV file located in \code{datadir_raw} (e.g., "All_HS_Codes.csv").
 #'
 #' @return Invisibly returns the products data frame
 #' @importFrom dplyr mutate select distinct left_join rename bind_rows

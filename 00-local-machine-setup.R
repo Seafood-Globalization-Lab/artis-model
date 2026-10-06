@@ -27,7 +27,7 @@ test <- FALSE
 test_year <- c()
 # 02-artis-pipeline parameters ------------------------------------
 # set years to run - empty if all years [c()], [c(2017)] or [c(2017,2020)] for subset of years
-test_years <- c(1996) 
+test_years <- c() 
 # set model estimate - "min", "midpoint", "max" - default is "midpoint"
 estimate_data_type <- "midpoint"
 # hs_version_run is set in 02-artis-pipeline because of current `artis-hpc` setup
@@ -126,10 +126,15 @@ cli::cli_verbatim("
  / ___ |/ _, _/ / /  _/ / ___/ / 
 /_/  |_/_/ |_| /_/  /___//____/  
 ")
-cli::cli_h1(" 🦐 🐟 🦪 Configured ARTIS {.strong v{artis_version}} 🐙 🦀 🐠")
-cli:: cli_li("Production data: {.field {prod_data_type}}")
-cli:: cli_li("Years covered: {.field {test_years}}")
-cli:: cli_li("Estimate type: {.field {estimate_data_type}}")
+cli::cli_h1(" 🦐 🐟 🦪 ARTIS {.strong v{artis_version}} Configured 🐙 🦀 🐠")
+cli::cli_li("Production data: {.field {prod_data_type}}")
+if(is.null(test_years)){
+  cli::cli_li("Years covered: {.field 1996 - {max_year}}")
+} else{
+  cli::cli_li("Years covered: {.field {test_years}}")
+}
+cli::cli_li("Estimate type: {.field {estimate_data_type}}")
+cli::cli_li("Develop mode enabled: {.field {dev_mode}}")
 #cli:: cli_li("Local data path: {.file {local_data_path}}")
 
 
