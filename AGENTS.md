@@ -46,8 +46,17 @@ Do NOT insert in-line comments after (to the right) of the code itself.
 - Documentation is critical at the code and developer level all the way up to user facing documentation. 
 
 ## Skills (lab-genAI-toolbox)
-Project skills are in `.lab-genAI-toolbox/skills/`. At the start of any relevant task,
-check that directory and load the matching skill with the `skill` tool before proceeding.
+Project skills are in `.lab-genAI-toolbox/skills/` git submodule. At the start of any relevant task,
+identify the matching skill below and read its `SKILL.md` file directly before proceeding.
+Do NOT use the `skill` tool — these are not registered skills; use the `read` tool on the file path.
+
+Available skills:
+- `cli-messaging` — writing user-facing CLI messages with the `cli` package
+- `draft-changelog-entry` — drafting CHANGELOG entries
+- `git-commit-summary` — summarizing git commits
+- `give-ai-some-credit` — AI attribution and disclosure conventions
+- `roxygen2-function-documentation` — writing roxygen2 documentation for R functions
+- `write-repo-readme` — writing repository README files
 
 ## ARTIS specific info
 - "taxa" refers to scientific names at any taxonomic classification rank, often used as shorthand for "sciname"
