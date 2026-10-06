@@ -35,6 +35,7 @@ Imports:
     countrycode,
     data.table,
     DBI,
+    devtools,
     doParallel,
     dplyr,
     foreach,
