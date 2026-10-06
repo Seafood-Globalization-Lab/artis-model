@@ -3,7 +3,7 @@
 #' Constructs a manual correction table of standardized common names for
 #' broad taxonomic groups (e.g., class, order, family) that appear in FAO
 #' or SAU production data with inconsistent or absent common name values.
-#' Called by [correct_prod_common_names()] to resolve production `CommonName`
+#' Called by [correct_common_names()] to resolve production `CommonName`
 #' values that are missing or vary across records sharing the same `SciName`.
 #'
 #' @details
@@ -12,7 +12,7 @@
 #' ## 1) Identify which taxa need corrections
 #'
 #' * The `common_name_multiples` dataframe is output from
-#'   [correct_prod_common_names()]. View it to see which `SciName` values
+#'   [correct_common_names()]. View it to see which `SciName` values
 #'   have more than one associated `CommonName` and require a correction.
 #'
 #' ## 2) Determine the correct common name
@@ -55,7 +55,7 @@
 #' the production taxa cleaning process.
 #'
 #' @seealso
-#' * [correct_prod_common_names()] — applies this correction table to
+#' * [correct_common_names()] — applies this correction table to
 #'   production data to standardize `CommonName` values.
 #'
 #' @importFrom tibble tribble

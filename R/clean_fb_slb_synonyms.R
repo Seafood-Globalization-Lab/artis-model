@@ -10,10 +10,10 @@
 #' and later read by multiple downstream functions that pass it to
 #' [query_synonyms()] for synonym resolution:
 #'
-#' * [match_prod_taxa_to_fbslb()] — resolves unmatched production scientific
+#' * [match_prod_taxa_to_fb_slb()] — resolves unmatched production scientific
 #'   names during taxa matching
-#' * [clean_hs()] — resolves HS product code species names to accepted names
-#' * [compile_cf()] — resolves unmatched species names during conversion factor
+#' * `clean_hs()` — resolves HS product code species names to accepted names
+#' * `compile_cf()` — resolves unmatched species names during conversion factor
 #'   compilation
 #'
 #' ## Data integrity checks

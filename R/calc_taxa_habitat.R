@@ -39,7 +39,7 @@
 #'   `01-clean-input-data.R`.
 #'
 #' @seealso
-#' * [correct_prod_common_names()] — called directly upstream
+#' * [correct_common_names()] — called directly upstream
 #' * [fill_prod_taxa_ranks()] — called directly downstream
 #' * [impute_prod_habitat()] — uses the corrected habitat columns to reconcile
 #'   FAO-reported habitat with FishBase / SeaLifeBase at the production-record
