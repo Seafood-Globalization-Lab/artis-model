@@ -12,8 +12,8 @@
 #' classification scheme across all ranks above it. The rank schemas differ
 #' slightly between databases:
 #'
-#' * **FishBase:** Species → Genus → Subfamily → Family → Order → Class → SuperClass
-#' * **SeaLifeBase:** Species → Genus → Subfamily → Family → Order → Class → Phylum → Kingdom
+#' * **FishBase:** Species -> Genus -> Subfamily -> Family -> Order -> Class -> SuperClass
+#' * **SeaLifeBase:** Species -> Genus -> Subfamily -> Family -> Order -> Class -> Phylum -> Kingdom
 #'
 #' A violation means a taxon (e.g. a Genus) appears in the source data with two
 #' or more distinct combinations of all upstream ranks (e.g. two different
@@ -43,9 +43,9 @@
 #'   to `NA`, `SpecCode` removed, and any manual corrections applied.
 #'
 #' @seealso
-#' * [clean_fb_slb_data()] — calls this function for both FB and SLB
-#' * [match_prod_taxa_to_fb_slb()] — reads the cleaned output CSVs
-#' * [warn_fbslb_taxa_join()] — downstream safety-net check; fires if a
+#' * [clean_fb_slb_data()] -- calls this function for both FB and SLB
+#' * [match_prod_taxa_to_fb_slb()] -- reads the cleaned output CSVs
+#' * [warn_fbslb_taxa_join()] -- downstream safety-net check; fires if a
 #'   violation in the source data reaches the hierarchical join step
 #'
 #' @import dplyr
@@ -80,7 +80,7 @@ clean_fb_slb_taxa <- function(
 
     # Family veneridae appeared with two Order values (nuculida and venerida).
     # WoRMS confirms venerida is correct. Excluding nuculida restores the
-    # one-to-one Family → Order relationship required by ARTIS.
+    # one-to-one Family -> Order relationship required by ARTIS.
     # FIXIT: This situation is more complex than this fix. May require correcting family 
     # to Nuculidae for instances where Order is equal to Nuculida (congruent with Worms)
     # https://www.marinespecies.org/aphia.php?p=taxdetails&id=506582
@@ -155,7 +155,7 @@ clean_fb_slb_taxa <- function(
     cli::cli_abort(c(
       "x" = "{.field {the_server}} taxa table is missing expected rank column{?s}: {.val {missing_cols}}.",
       "i" = "This may indicate a schema change in the {.val {the_snapshot}}
-             {.field {the_server}} snapshot — verify with {.code rfishbase::load_taxa()}."
+             {.field {the_server}} snapshot -- verify with {.code rfishbase::load_taxa()}."
     ))
   }
 
@@ -173,7 +173,7 @@ clean_fb_slb_taxa <- function(
       # lumped together arbitrarily and produce false violations.
       # Placeholder values (e.g. "Incertae sedis") span unrelated clades by design
       # and are excluded here; they remain in the_df for downstream handling.
-      # Note: NA values in *upstream* (parent) ranks are intentionally kept — they
+      # Note: NA values in *upstream* (parent) ranks are intentionally kept -- they
       # are evaluated by the sentinel coalesce() step below.
       filter(!is.na(.data[[a_focal_rank]]), !(.data[[a_focal_rank]] %in% excl)) %>%
       # Sentinel: replace NA in any upstream rank with the literal "missing_value".
@@ -186,7 +186,7 @@ clean_fb_slb_taxa <- function(
       # Count how many distinct upstream schemes each focal-rank value has.
       # A well-formed hierarchy has n_schemes == 1 for every taxon.
       summarize(n_schemes = n(), .by = all_of(a_focal_rank)) %>%
-      # Keep only taxa with more than one upstream scheme — these are the violations.
+      # Keep only taxa with more than one upstream scheme -- these are the violations.
       filter(n_schemes > 1) %>%
       rename(taxon = 1) %>%
       mutate(a_focal_rank = a_focal_rank, upstream_ranks = paste(parents, collapse = ", "))
@@ -218,7 +218,7 @@ clean_fb_slb_taxa <- function(
     cli::cli_alert_info("{.strong Developer Notes}:")
     cli::cli_ul(c(
       "Manual correction may not be needed depending on if the taxa in violation is included in production data.",
-      "Violations are stored in {.code hierarchy_violations} list — step into {.fn clean_fb_slb_taxa} to inspect.",
+      "Violations are stored in {.code hierarchy_violations} list -- step into {.fn clean_fb_slb_taxa} to inspect.",
       "Open FishBase taxa: {.code fb_taxa_raw <- fread(file.path(current_fb_slb_dir, 'fb_taxa_raw.csv'), data.table = FALSE)}",
       "Open Sealifebase taxa: {.code slb_taxa_raw <- fread(file.path(current_fb_slb_dir, 'slb_taxa_raw.csv'), data.table = FALSE)}",
       "Verify the correct higher-rank assignment on Fishbase, Sealifebase, and WoRMS before applying any fix.",
@@ -254,7 +254,7 @@ clean_fb_slb_taxa <- function(
       all_of(names(rank_placeholder_taxa)),
       ~if_else(. %in% rank_placeholder_taxa[[cur_column()]], NA_character_, .)
     )) %>%
-    # Lowercase all values as the final step — after corrections and checks so
+    # Lowercase all values as the final step -- after corrections and checks so
     # that filter comparisons above match raw source capitalization and violation
     # messages report taxa names as they appear in the original data.
     mutate(across(everything(), tolower))

@@ -27,7 +27,7 @@
 #' @import dplyr
 #' @importFrom magrittr %>%
 #' @import stringr
-#' @import data.table
+#' @importFrom data.table fread
 #' @export
 
 clean_prod_data <- function(

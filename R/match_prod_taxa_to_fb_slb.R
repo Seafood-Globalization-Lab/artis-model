@@ -81,7 +81,7 @@
 #' @import dplyr
 #' @import cli
 #' @importFrom magrittr %>%
-#' @import data.table
+#' @importFrom data.table fread
 #' @export
 
 match_prod_taxa_to_fb_slb <- function(

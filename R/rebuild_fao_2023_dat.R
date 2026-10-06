@@ -48,7 +48,7 @@
 #' )
 #' }
 #'
-#' @seealso \code{\link{rebuild_fao_2024_dat}} for processing 2024 format data
+#' @seealso [rebuild_fao_2022_dat()] for the superseded 2022 format version.
 #'
 #' @import dplyr
 #' @importFrom magrittr %>%

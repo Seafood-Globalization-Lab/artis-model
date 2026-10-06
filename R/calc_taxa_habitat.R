@@ -39,9 +39,9 @@
 #'   `01-clean-input-data.R`.
 #'
 #' @seealso
-#' * [correct_common_names()] — called directly upstream
-#' * [fill_prod_taxa_ranks()] — called directly downstream
-#' * [impute_prod_habitat()] — uses the corrected habitat columns to reconcile
+#' * [correct_common_names()] -- called directly upstream
+#' * [fill_prod_taxa_ranks()] -- called directly downstream
+#' * [impute_prod_habitat()] -- uses the corrected habitat columns to reconcile
 #'   FAO-reported habitat with FishBase / SeaLifeBase at the production-record
 #'   level
 #'
@@ -75,7 +75,7 @@ calc_taxa_habitat <- function(prod_taxa) {
     cli::cli_alert_info(
       "Add manual fixes to {.fn calc_taxa_habitat}"
     )
-    cli::cli_alert_info("Some missing habitat encodings may be expected — verify before adding corrections")
+    cli::cli_alert_info("Some missing habitat encodings may be expected -- verify before adding corrections")
   } else {
     cli::cli_alert_success("All taxa have habitat coding in {.field Fresh01}, {.field Brack01}, or {.field Saltwater01}")
   }
