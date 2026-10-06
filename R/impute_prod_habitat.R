@@ -56,7 +56,7 @@
 #'   `prod_method`, used in downstream ARTIS matching functions.
 #'
 #' @seealso
-#' * [correct_taxa_habitat()] — corrects habitat encoding in `prod_taxa` before
+#' * [calc_taxa_habitat()] — corrects habitat encoding in `prod_taxa` before
 #'   this function is called
 #' * [fill_prod_taxa_ranks()] — finalizes `prod_taxa` directly upstream
 #'

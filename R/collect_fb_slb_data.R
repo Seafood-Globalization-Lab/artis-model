@@ -6,7 +6,7 @@
 #' datasets for use in taxonomic classification workflows.
 #'
 #' @param parent_outdir Character string. Path to the parent directory where the 
-#'   timestamped fishbase_sealifebase_[database snapshot release] folder will be created.
+#'   timestamped fishbase_sealifebase_`[database snapshot release]` folder will be created.
 #'
 #' @return Character string. Path to the created output directory containing
 #'   

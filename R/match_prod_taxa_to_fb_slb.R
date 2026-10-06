@@ -17,7 +17,7 @@
 #' * **Pass 2** (`corr_tbl = build_corr_tbl_prod_sciname()`): Applies manual
 #'   corrections before matching, then produces the final matched output.
 #'   The `$prod_taxa_classification` result is passed to
-#'   [correct_prod_common_names()], then [correct_taxa_habitat()], then
+#'   [correct_common_names()], then [calc_taxa_habitat()], then
 #'   [fill_prod_taxa_ranks()] for gap-filling and finalization.
 #'
 #' `prod_data` is treated as **read-only** throughout. The original `SciName`
@@ -74,7 +74,7 @@
 #'   returned as `$synonym_results`
 #' * [warn_fbslb_taxa_join()] — called after each hierarchical FB/SLB join to
 #'   flag many-to-many matches
-#' * [correct_taxa_habitat()] — applies habitat corrections to `$prod_taxa_classification`
+#' * [calc_taxa_habitat()] — applies habitat corrections to `$prod_taxa_classification`
 #' * [fill_prod_taxa_ranks()] — gap-fills universal taxonomic ranks in `$prod_taxa_classification`
 #' * [impute_prod_habitat()] — reconciles FAO and FB/SLB habitat in `prod_data`
 #'

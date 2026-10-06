@@ -79,8 +79,6 @@
 #' * [match_prod_taxa_to_fb_slb()] — upstream function that produces the
 #'   `prod_taxa_classification` input passed to this function
 #'
-#' ---
-#'
 #' *Documentation generated with `claude-sonnet-4-5` using the
 #' [`roxygen2-function-documentation`](https://github.com/Seafood-Globalization-Lab/lab-genAI-toolbox/commit/7d207f2be4e1b1f670e8bf423e563b8a920949d9)
 #' skill (commit `7d207f2`).*
