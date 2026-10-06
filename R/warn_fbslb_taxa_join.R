@@ -45,7 +45,7 @@ warn_fbslb_taxa_join <- function(
 
   # Decision tree based on provided rank index -----------------------------
 
-  # Invalid matched_rank argument (not part of classification schema defined above) — abort loudly
+  # Invalid matched_rank argument (not part of classification schema defined above) -- abort loudly
   if (is.na(matched_rank_idx)) {
     cli::cli_abort(c(
       "x" = "{.arg matched_rank} value {.val {matched_rank}} is not a recognized rank in the \\
@@ -55,20 +55,20 @@ warn_fbslb_taxa_join <- function(
     call = match.call())
   }
 
-  # At the top of the hierarchy — no parent rank to check, nothing to do, exit quietly 
+  # At the top of the hierarchy -- no parent rank to check, nothing to do, exit quietly 
   if (matched_rank_idx == length(rank_hierarchy)) {
     return(invisible(joined_dat))
   }
 
-  # Identify the next-higher rank — this is what we check for conflicts
+  # Identify the next-higher rank -- this is what we check for conflicts
   parent_rank <- rank_hierarchy[matched_rank_idx + 1]
 
   # For each SciName, count how many distinct parent rank values it maps to.
-  # NA values are replaced with the sentinel "missing_value" before counting —
+  # NA values are replaced with the sentinel "missing_value" before counting --
   # this ensures a row with NA and a row with a real value for the same SciName
   # are detected as a conflict rather than masked by filtering NAs out first.
   # Two NAs for the same SciName collapse to one "missing_value" via distinct(),
-  # so n_distinct = 1 — correctly not flagged as a conflict.
+  # so n_distinct = 1 -- correctly not flagged as a conflict.
   conflicts <- joined_dat %>%
     mutate(across(all_of(parent_rank), ~coalesce(., "missing_value"))) %>%
     distinct(SciName, .data[[parent_rank]]) %>%
@@ -83,7 +83,7 @@ warn_fbslb_taxa_join <- function(
       "i" = "{.field sciname} values with multiple taxonomic classification schemes: {.val {conflicts$SciName}}",
       "i" = "Inspect the raw data: {.code fb_taxa_raw <- fread(file.path(current_fb_slb_dir, 'fb_taxa_raw.csv'), data.table = FALSE)}",
       "i" = "Inspect the raw data: {.code slb_taxa_raw <- fread(file.path(current_fb_slb_dir, 'slb_taxa_raw.csv'), data.table = FALSE)}",
-      "i" = "Add a targeted fix in {.fn clean_fb_slb_taxa} — scoped to the snapshot version and server",
+      "i" = "Add a targeted fix in {.fn clean_fb_slb_taxa} -- scoped to the snapshot version and server",
       "i" = "Run {.code devtools::load_all()} or {.code devtools::install()} and re-run {.fn clean_fb_slb_data} to apply the fix before proceeding"
     ),
     call = match.call())

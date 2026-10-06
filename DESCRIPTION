@@ -1,11 +1,11 @@
 Package: artis
 Title: Aquatic Resource Trade in Species (ARTIS) Model
-Version: 2.0.0
-Date: 2024-09-08
+Version: 3.0.0
+Date: 2026-10-06
 Authors@R: c(
     person("Jessica", "Gephart", , email = "gephart@uw.edu", role = c("aut", "cre", "cph", "fnd"),
            comment = c(ORCID = "0000-0001-6836-9291")),
-    person("Althea", "Marks", , email = "amarks1@uw.edu", role = c("aut", "cre"),
+    person("Althea", "Marks", , email = "amarks1@uw.edu", role = "aut",
            comment = c(ORCID = "0000-0002-9370-9128")),
     person("Rahul", "Agrawal Bejarano", role = "aut",
            comment = c(ORCID = "0000-0002-3944-4149")),
@@ -36,7 +36,6 @@ Imports:
     countrycode,
     data.table,
     DBI,
-    devtools,
     doParallel,
     dplyr,
     duckdb,
@@ -44,6 +43,7 @@ Imports:
     future,
     future.apply,
     glue,
+    lifecycle,
     magrittr,
     parallel,
     qs2,

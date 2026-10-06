@@ -1,6 +1,7 @@
 ^renv$
 ^renv\.lock$
 ^requirements\.txt$
+^requirements\.lock$
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^dev$
@@ -25,6 +26,8 @@
 # ignore numbered root-level pipeline scripts
 ^0[0-8]
 
+AGENTS.md
+CHANGELOG.md
 
 
 ^data-raw$

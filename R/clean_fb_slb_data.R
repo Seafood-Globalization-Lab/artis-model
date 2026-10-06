@@ -3,7 +3,7 @@
 #' Cleans, corrects, and structures taxonomic, synonym, species, and common name data from
 #' FishBase and SeaLifeBase database snapshots saved locally.
 #'
-#' @param fb_slb_dir Character string. Path to the local
+#' @param parent_outdir Character string. Path to the local
 #'   \code{fishbase_sealifebase_[snapshot]} directory containing raw CSV files.
 #'
 #' @return Invisibly returns \code{NULL}. Writes cleaned CSV files to \code{fb_slb_dir}.

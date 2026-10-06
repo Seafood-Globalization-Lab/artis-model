@@ -13,9 +13,9 @@
 #'
 #' Habitat information enters at two resolutions:
 #'
-#' * **Taxa level** — `prod_taxa$habitat_fb`, derived from FishBase /
+#' * **Taxa level** -- `prod_taxa$habitat_fb`, derived from FishBase /
 #'   SeaLifeBase per `SciName`.
-#' * **Record level** — `prod_data$habitat`, reported by FAO per production
+#' * **Record level** -- `prod_data$habitat`, reported by FAO per production
 #'   record.
 #'
 #' A per-`SciName` reference table (`prod_taxa_habitat`) is extracted from
@@ -42,23 +42,23 @@
 #' A data frame with the same rows as `prod_data` with the following columns
 #' added or updated:
 #'
-#' * `habitat_fao` — standardized FAO habitat label (`"inland"`, `"marine"`,
+#' * `habitat_fao` -- standardized FAO habitat label (`"inland"`, `"marine"`,
 #'   or the original `habitat` value).
-#' * `prod_method` — standardized production method (`"aquaculture"` or
+#' * `prod_method` -- standardized production method (`"aquaculture"` or
 #'   `"capture"`).
-#' * `Fresh01`, `Brack01`, `Saltwater01` — binary habitat flags joined from
+#' * `Fresh01`, `Brack01`, `Saltwater01` -- binary habitat flags joined from
 #'   `prod_taxa`.
-#' * `habitat_fb` — FishBase / SeaLifeBase habitat label joined from
+#' * `habitat_fb` -- FishBase / SeaLifeBase habitat label joined from
 #'   `prod_taxa`.
-#' * `habitat` — final reconciled habitat: `habitat_fb` where it overrides
+#' * `habitat` -- final reconciled habitat: `habitat_fb` where it overrides
 #'   FAO, otherwise `habitat_fao`.
-#' * `taxa_source` — composite key combining `SciName`, `habitat`, and
+#' * `taxa_source` -- composite key combining `SciName`, `habitat`, and
 #'   `prod_method`, used in downstream ARTIS matching functions.
 #'
 #' @seealso
-#' * [calc_taxa_habitat()] — corrects habitat encoding in `prod_taxa` before
+#' * [calc_taxa_habitat()] -- corrects habitat encoding in `prod_taxa` before
 #'   this function is called
-#' * [fill_prod_taxa_ranks()] — finalizes `prod_taxa` directly upstream
+#' * [fill_prod_taxa_ranks()] -- finalizes `prod_taxa` directly upstream
 #'
 #' @import dplyr
 #' @import stringr
@@ -105,7 +105,7 @@ impute_prod_habitat <- function(prod_taxa, prod_data) {
     )
 
   cli::cli_alert_success(
-    "Production data habitat reconciled — {.field habitat} column updated from FAO and FishBase / SeaLifeBase sources"
+    "Production data habitat reconciled -- {.field habitat} column updated from FAO and FishBase / SeaLifeBase sources"
   )
 
   return(prod_data_out)

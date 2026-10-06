@@ -12,6 +12,7 @@
 #' @param reweight_W_long dataframe. containing reweighted product reallocation factors for processing seafood products.
 #' @param X_long dataframe. mapping production species to HS6 codes based on available trade data.
 #' @param V1_long dataframe. mapping species to HS6 codes using an alternative approach.
+#' @param V2_long dataframe. mapping species to HS6 codes using a secondary alternative approach.
 #' @param pop dataframe. containing country population data for per capita consumption calculations.
 #' @param code_max_resolved dataframe. ARTIS attribute table required to resolve taxa to finest resolution possible.
 #' @param max_percap_consumption Numeric. maximum allowable per capita consumption in kg (default 100).
