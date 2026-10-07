@@ -275,10 +275,8 @@ extract_fao_hs6_descriptions <- function(pdf_path) {
 
   for (i in seq_along(pages)) {
     if (is.na(section2_start) &&
-        stringr::str_detect(
-          pages[i],
-          "Full description of fish"
-        )) {
+        stringr::str_detect(pages[i], "Full description of fish") &&
+        stringr::str_detect(pages[i], range_header_pat)) {
       section2_start <- i
       section2_end   <- i
       next
