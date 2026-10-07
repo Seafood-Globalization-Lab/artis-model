@@ -5,8 +5,8 @@
 # Aquaculture Products - Harmonized System Nomenclature 2022 (DOI: 10.4060/cc6347en)
 # PDF: https://www.fao.org/3/cc6347en/cc6347en.pdf (310 pages, HS2022 edition)
 #
-# Validated output: 266 unique HS6 codes, ~270-300 rows (multi-description entries
-# produce more rows than unique codes)
+# Compatible with multiple HS editions (tested: HS2017, HS2022). Unique HS6
+# code and row counts vary by edition.
 
 
 # Internal helpers -------------------------------------------------------
@@ -108,7 +108,7 @@
   # section title heading, and bare page numbers
   skip_pat <- paste0(
     "\\d{4}\\.\\d{2}\\s*-\\s*\\d{4}\\.\\d{2}",
-    "|Full description of fisheries",
+    "|Full description of fish",
     "|^\\s*\\d{1,3}\\s*$"
   )
 
@@ -201,7 +201,7 @@
 #'
 #' * Rows represent individual product descriptions as listed in Section II of
 #'   the handbook. HS codes with multiple descriptions produce multiple rows.
-#' * Columns are `hs_version` (character, e.g. `"HS2022"`), `hs6` (character,
+#' * Columns are `hs_version` (character, e.g. `"HS22"`), `hs6` (character,
 #'   6-digit code with no period separator, e.g. `"030111"`), and
 #'   `description_orig` (character, full description text as extracted).
 #' * Rows are sorted ascending by `hs6`.
@@ -249,7 +249,7 @@ extract_fao_hs6_descriptions <- function(pdf_path) {
 
   # Extract HS version from document ---------------------------------------
   early_text <- paste(pages[seq_len(min(6L, length(pages)))], collapse = "\n")
-  hs_year <- stringr::str_match(early_text, "Nomenclature\\s+(\\d{4})")[1, 2]
+  hs_year <- stringr::str_match(early_text, "Nomenclature[^\\d]+(\\d{4})")[1, 2]
 
   if (is.na(hs_year)) {
     cli::cli_warn(c(
@@ -258,7 +258,7 @@ extract_fao_hs6_descriptions <- function(pdf_path) {
     ))
     hs_version <- NA_character_
   } else {
-    hs_version <- paste0("HS", hs_year)
+    hs_version <- paste0("HS", substr(hs_year, 3, 4))
     cli::cli_alert_success("HS version detected: {.val {hs_version}}")
   }
 
@@ -267,8 +267,8 @@ extract_fao_hs6_descriptions <- function(pdf_path) {
   # Every Section II page carries a range header: "XXXX.XX - XXXX.XX"
   # This header is unique to Section II and is the most reliable boundary marker.
   # NOTE: Do NOT use "Photo credits" or "Pictures, basic information" to detect
-  # the section end — these appear at content pages 284+ (PDF page 294+ in the
-  # HS2022 edition), pulling Section III species photo pages into the parse.
+  # the section end — these appear near the end of some editions and would pull
+  # Section III species photo pages into the parse.
   section2_start    <- NA_integer_
   section2_end      <- NA_integer_
   range_header_pat  <- "\\d{4}\\.\\d{2}\\s*-\\s*\\d{4}\\.\\d{2}"
@@ -277,7 +277,7 @@ extract_fao_hs6_descriptions <- function(pdf_path) {
     if (is.na(section2_start) &&
         stringr::str_detect(
           pages[i],
-          "Full description of fisheries and aquaculture products"
+          "Full description of fish"
         )) {
       section2_start <- i
       section2_end   <- i
