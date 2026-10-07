@@ -43,6 +43,7 @@ Imports:
     glue,
     magrittr,
     parallel,
+    pdftools,
     qs2,
     readxl,
     reticulate,
