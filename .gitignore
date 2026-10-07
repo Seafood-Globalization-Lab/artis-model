@@ -26,7 +26,10 @@ requirements_old_local.txt
 *.html
 *.pdf
 /.quarto/
-README_files/*
+README_files/
 *_files
 .Renviron
 *.parquet
+
+.posit/*
+
