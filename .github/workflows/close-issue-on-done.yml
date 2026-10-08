@@ -7,8 +7,9 @@ on:
 jobs:
   close-issue:
     runs-on: ubuntu-latest
-    if: |
+    if: >-
       github.event.changes.field_value.field_name == 'Status' &&
+      github.event.changes.field_value.to.name == 'Done' &&
       github.event.projects_v2_item.content_type == 'Issue'
     steps:
       - name: Close issue if status is "Done"
