@@ -60,9 +60,9 @@ jobs:
                 );
                 if (!statusField) continue;
 
-                // Find the "Needs Review" option
+                // Find the "🔍  Needs Review" option
                 const needsReviewOption = statusField.options?.find(
-                  o => o.name === 'Needs Review'
+                  o => o.name === '🔍  Needs Review'
                 );
                 if (!needsReviewOption) continue;
 
@@ -85,6 +85,6 @@ jobs:
                   optionId: needsReviewOption.id
                 });
 
-                core.info(`Updated status to "Needs Review" for project item ${projectItem.id}`);
+                core.info(`Updated status to "🔍  Needs Review" for project item ${projectItem.id}`);
               }
             }

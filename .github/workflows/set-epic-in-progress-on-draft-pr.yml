@@ -1,0 +1,103 @@
+name: Epic status: In Progress on draft PR
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  set-in-progress:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == true
+    steps:
+      - name: Set PR and linked epic issue status to "In Progress"
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ORG_PROJECTS_TOKEN }}
+          script: |
+            const prNodeId = context.payload.pull_request.node_id;
+
+            // Get PR's own project items and closing issue project items
+            const data = await github.graphql(`
+              query($nodeId: ID!) {
+                node(id: $nodeId) {
+                  ... on PullRequest {
+                    projectItems(first: 10) {
+                      nodes {
+                        id
+                        project {
+                          id
+                          fields(first: 20) {
+                            nodes {
+                              ... on ProjectV2SingleSelectField {
+                                id
+                                name
+                                options { id name }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                    closingIssuesReferences(first: 10) {
+                      nodes {
+                        projectItems(first: 10) {
+                          nodes {
+                            id
+                            project {
+                              id
+                              fields(first: 20) {
+                                nodes {
+                                  ... on ProjectV2SingleSelectField {
+                                    id
+                                    name
+                                    options { id name }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `, { nodeId: prNodeId });
+
+            // Collect all project items: the PR itself and linked issues
+            const prItems = data.node.projectItems.nodes;
+            const issueItems = data.node.closingIssuesReferences.nodes
+              .flatMap(issue => issue.projectItems.nodes);
+            const allItems = [...prItems, ...issueItems];
+
+            for (const projectItem of allItems) {
+              const statusField = projectItem.project.fields.nodes.find(
+                f => f.name === 'Status'
+              );
+              if (!statusField) continue;
+
+              const inProgressOption = statusField.options?.find(
+                o => o.name === '🏗  In Progress'
+              );
+              if (!inProgressOption) continue;
+
+              await github.graphql(`
+                mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                  updateProjectV2ItemFieldValue(input: {
+                    projectId: $projectId
+                    itemId: $itemId
+                    fieldId: $fieldId
+                    value: { singleSelectOptionId: $optionId }
+                  }) {
+                    projectV2Item { id }
+                  }
+                }
+              `, {
+                projectId: projectItem.project.id,
+                itemId: projectItem.id,
+                fieldId: statusField.id,
+                optionId: inProgressOption.id
+              });
+
+              core.info(`Updated status to "🏗  In Progress" for project item ${projectItem.id}`);
+            }
