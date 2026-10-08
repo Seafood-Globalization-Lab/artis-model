@@ -16,11 +16,7 @@ Thank you for contributing to the ARTIS model package. This document describes t
     - [Branch Workflow Diagram](#branch-workflow-diagram)
 - [🍉 The Workflow](#the-workflow)
 - [📋 Prepare for Merging Work into `develop`](#prepare-for-merging-work-into-develop)
-- [Rebasing Before Merge](#rebasing-before-merge)
-- [Pull Requests](#pull-requests)
-  - [PR Scope](#pr-scope)
-  - [Merging](#merging)
-  - [Stable Releases](#stable-releases)
+- [🎩 Rebasing Before Merge](#rebasing-before-merge)
 - [🤖 Automated Workflows](#automated-workflows)
 - [💃 Code Style](#code-style)
 
@@ -39,7 +35,7 @@ There are a few key components to our git and GitHub software development workfl
     - the `develop` branch as the integration branch, and 
     - short-lived "feature branches" for each theme/epic.
 
-- **Pull Requests (PRs)** — A GitHub mechanism for proposing that changes on a feature branch be merged into another branch. PRs provide a dedicated space for code review, discussion, checklist tracking, and linking related issues before changes are integrated. In ARTIS, each PR corresponds to one theme/epic issue and targets `develop`.
+- **Pull Requests (PRs)** — A GitHub mechanism for proposing that changes on a feature branch be merged into another branch. PRs provide a dedicated space for code review, discussion, checklist tracking, and linking related issues before changes are integrated. **In ARTIS, each PR corresponds to one theme/epic issue and targets `develop`.**
 
 - **Projects** — A GitHub project board for organizing and tracking work across issues and PRs using a customizable status-based workflow. In ARTIS, all issues move through statuses (Backlog → Ready → In Progress → Needs Review → Done) on the project board, with some transitions automated via GitHub Actions.
 
@@ -158,7 +154,16 @@ gitGraph
     > [!NOTE] 
     > You will need to make a change on the feature branch and push to origin in order to open a draft PR. Try adding a new section to the `CHANGELOG.md` about the work. 
 
-3) Get to work on sub-issues on the feature branch `develop-<theme-epic-issue-number>-<feature/bug-name>`. 
+3) Get to work on sub-issues on the feature branch `develop-<theme-epic-issue-number>-<feature/bug-name>`. Keep your branch current with any upstream changes during active development using the fetch/rebase/push loop:
+
+    ```bash
+    git fetch
+    git rebase
+    git push
+    ```
+> [!IMPORTANT]
+> The `git fetch/rebase/push` loop directly replaces a more common place `git pull/push` workflow. This is intentional to keep a linear history and avoid accidentally pulling down and overwriting your local work with unexpected changes from GitHub. 
+
 
 4) When a sub-issue is complete, reference the issue number in the final commit message. 
     - For a full list of linking keywords see the related [GitHub Docs](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword)
@@ -184,53 +189,41 @@ gitGraph
 
 4) Assign a reviewer (if applicable) and notify them directly outside of GitHub about the pending code review. 
 
-## Rebasing Before Merge
+## Rebasing Before Merge 🎩
 
-1) Before merging, rebase the feature branch onto `develop` to maintain a clean linear history:
+Rebasing takes all of your feature branch commits and replays them onto the tip of `develop`. This keeps a clean, linear history and avoids tangled merge commits. It only affects your feature branch — `develop` is unchanged until you merge.
+
+1) Rebase the feature branch onto `develop`:
 
     ```bash
     git checkout develop
-    git pull
+    git pull origin develop
     git checkout develop-<feature-name>
-    git rebase develop
+    git rebase origin/develop
     ```
 
-2) Resolve any conflicts
+2) If there are [merge conflicts](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/about-merge-conflicts), resolve them file by file, then continue the rebase. See the [GitHub Docs](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/resolving-a-merge-conflict-using-the-command-line) for a step-by-step walkthrough.
+
+    ```bash
+    git add <conflicted-files>
+    git rebase --continue
+    ```
 
 3) Re-run `devtools::check()` and address any errors and warnings
 
-4) Push to origin
+4) Push to origin. Because rebase rewrites commit history, a force-push is required. Use `--force-with-lease` rather than `--force` — it will refuse if someone else has pushed to the remote branch since your last fetch, protecting against accidental overwrites.
 
-    If there were no merge conflicts: 
+    If there were no conflicts:
 
     ```bash
-    git push origin develop-<feature-name> 
+    git push origin develop-<feature-name>
     ```
 
-    Or if there were merge conflicts: 
+    If there were conflicts:
 
     ```bash
     git push origin develop-<feature-name> --force-with-lease
     ```
-
-## Pull Requests
-
-### PR Scope
-
-Each PR corresponds to one theme/epic issue and one feature branch. Sub-issue work accumulates on the theme/epic branch — sub-issues do not have their own PRs.
-
-
-### Merging
-
-PRs are "merged with commit" into `develop` after:
-
-- All sub-issues are marked Done
-- `devtools::check()` passes with 0 ERRORS and 0 WARNINGS
-- At least one reviewer has approved
-
-### Stable Releases
-
-Stable releases are cut by merging `develop` into `main` and tagging a version. This is a periodic, intentional step separate from day-to-day PR merges.
 
 ## Automated Workflows 🤖 
 
