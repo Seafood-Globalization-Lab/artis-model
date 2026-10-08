@@ -1,0 +1,90 @@
+name: Set epic status to "Needs Review" when PR is ready
+
+on:
+  pull_request:
+    types: [ready_for_review]
+
+jobs:
+  update-epic-status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update linked epic issue status to "Needs Review"
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PROJECT_TOKEN }}
+          script: |
+            const prNodeId = context.payload.pull_request.node_id;
+
+            // Get closing issues referenced in the PR body and their project items
+            const data = await github.graphql(`
+              query($nodeId: ID!) {
+                node(id: $nodeId) {
+                  ... on PullRequest {
+                    closingIssuesReferences(first: 10) {
+                      nodes {
+                        id
+                        projectItems(first: 10) {
+                          nodes {
+                            id
+                            project {
+                              id
+                              fields(first: 20) {
+                                nodes {
+                                  ... on ProjectV2SingleSelectField {
+                                    id
+                                    name
+                                    options {
+                                      id
+                                      name
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `, { nodeId: prNodeId });
+
+            const issues = data.node.closingIssuesReferences.nodes;
+
+            for (const issue of issues) {
+              for (const projectItem of issue.projectItems.nodes) {
+                // Find the Status field
+                const statusField = projectItem.project.fields.nodes.find(
+                  f => f.name === 'Status'
+                );
+                if (!statusField) continue;
+
+                // Find the "Needs Review" option
+                const needsReviewOption = statusField.options?.find(
+                  o => o.name === 'Needs Review'
+                );
+                if (!needsReviewOption) continue;
+
+                // Update the project item status
+                await github.graphql(`
+                  mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                    updateProjectV2ItemFieldValue(input: {
+                      projectId: $projectId
+                      itemId: $itemId
+                      fieldId: $fieldId
+                      value: { singleSelectOptionId: $optionId }
+                    }) {
+                      projectV2Item { id }
+                    }
+                  }
+                `, {
+                  projectId: projectItem.project.id,
+                  itemId: projectItem.id,
+                  fieldId: statusField.id,
+                  optionId: needsReviewOption.id
+                });
+
+                core.info(`Updated status to "Needs Review" for project item ${projectItem.id}`);
+              }
+            }
