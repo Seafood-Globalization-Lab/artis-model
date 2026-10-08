@@ -1,4 +1,4 @@
-name: Set epic status to "Needs Review" when PR is ready
+name: Epic status change on PR ready
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ jobs:
       - name: Update linked epic issue status to "Needs Review"
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.PROJECT_TOKEN }}
+          github-token: ${{ secrets.ORG_PROJECTS_TOKEN }}
           script: |
             const prNodeId = context.payload.pull_request.node_id;
 

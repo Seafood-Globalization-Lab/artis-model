@@ -232,10 +232,10 @@ Automation is handled by two layers: **GitHub Actions** (repository-level workfl
 ### GitHub Actions
 
 **Close issue on Done status** (`.github/workflows/close-issue-on-done.yml`)
-Triggered when a project item's Status field changes to "Done". Automatically closes the linked issue with state reason `completed`. Requires a `PROJECT_TOKEN` secret with Projects and Issues write permissions.
+Triggered when a project item's Status field changes to "Done". Automatically closes the linked issue with state reason `completed`. Requires the `ORG_PROJECTS_TOKEN` organization secret with Projects and Issues write permissions.
 
 **Update theme/epic status on PR ready** (`.github/workflows/update-epic-status-on-review.yml`)
-Triggered when a draft PR is marked ready for review. Automatically sets the linked theme/epic issue's project status to "Needs Review". Requires the same `PROJECT_TOKEN` secret.
+Triggered when a draft PR is marked ready for review. Automatically sets the linked theme/epic issue's project status to "Needs Review". Requires the same `ORG_PROJECTS_TOKEN` secret.
 
 ### GitHub Project Workflows
 
