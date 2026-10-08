@@ -3,9 +3,9 @@
 Thank you for contributing to the ARTIS model package. This document describes the git an GitHub software development workflow and conventions for the `artis` R package repository. 
 
 
-## Table of Contents
+## Table of Contents 
 
-- [GitHub Workflow Components](#github-workflow-components)
+- [🧱 GitHub Workflow Components](#github-workflow-components)
   - [Definitions](#definitions)
   - [Details: Issues](#details-issues)
     - [Theme/Epic Lifecycle](#themeepic-lifecycle)
@@ -14,17 +14,17 @@ Thank you for contributing to the ARTIS model package. This document describes t
   - [Details: Branches](#details-branches)
     - [Branch Naming](#branch-naming)
     - [Branch Workflow Diagram](#branch-workflow-diagram)
-- [The Workflow](#the-workflow)
-- [Prepare for Merging Work into `develop`](#prepare-for-merging-work-into-develop)
+- [🍉 The Workflow](#the-workflow)
+- [📋 Prepare for Merging Work into `develop`](#prepare-for-merging-work-into-develop)
 - [Rebasing Before Merge](#rebasing-before-merge)
 - [Pull Requests](#pull-requests)
   - [PR Scope](#pr-scope)
   - [Merging](#merging)
   - [Stable Releases](#stable-releases)
-- [Automated Workflows](#automated-workflows)
-- [Code Style](#code-style)
+- [🤖 Automated Workflows](#automated-workflows)
+- [💃 Code Style](#code-style)
 
-## GitHub Workflow Components
+## GitHub Workflow Components 🧱
 
 ### Definitions
 
@@ -134,7 +134,7 @@ gitGraph
 ```
 
 
-## The Workflow
+## The Workflow 🍉
 
 > [!IMPORTANT] 
 > Theme/Epic parent issues, feature branches, and PRs should correspond directly with each other. 
@@ -174,7 +174,7 @@ gitGraph
     > This status change event triggers the `close-issue-on-done.yml` GitHub Action 
 
 
-## Prepare for Merging Work into `develop`
+## Prepare for Merging Work into `develop` 📋
 
 1) Change Pull Request (PR) state from "Draft" to "Open" on GitHub UI at the bottom of the PR body.
 
@@ -232,7 +232,7 @@ PRs are "merged with commit" into `develop` after:
 
 Stable releases are cut by merging `develop` into `main` and tagging a version. This is a periodic, intentional step separate from day-to-day PR merges.
 
-## Automated Workflows
+## Automated Workflows 🤖 
 
 Two GitHub Actions workflows support this development process:
 
@@ -242,6 +242,6 @@ Triggered when a project item's Status field changes to "Done". Automatically cl
 **Update theme/epic status on PR ready** (`.github/workflows/update-epic-status-on-review.yml`)
 Triggered when a draft PR is marked ready for review. Automatically sets the linked theme/epic issue's project status to "Needs Review". Requires the same `PROJECT_TOKEN` secret.
 
-## Code Style
+## Code Style 💃
 
 This project follows Tidyverse style conventions. See the project `AGENTS.md` for full coding and syntax guidelines including pipe operator usage, file I/O conventions, and CLI messaging patterns.
