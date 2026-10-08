@@ -227,13 +227,36 @@ Rebasing takes all of your feature branch commits and replays them onto the tip 
 
 ## Automated Workflows 🤖 
 
-Two GitHub Actions workflows support this development process:
+Automation is handled by two layers: **GitHub Actions** (repository-level workflows) and **GitHub Project workflows** (built-in project board automations).
+
+### GitHub Actions
 
 **Close issue on Done status** (`.github/workflows/close-issue-on-done.yml`)
 Triggered when a project item's Status field changes to "Done". Automatically closes the linked issue with state reason `completed`. Requires a `PROJECT_TOKEN` secret with Projects and Issues write permissions.
 
 **Update theme/epic status on PR ready** (`.github/workflows/update-epic-status-on-review.yml`)
 Triggered when a draft PR is marked ready for review. Automatically sets the linked theme/epic issue's project status to "Needs Review". Requires the same `PROJECT_TOKEN` secret.
+
+### GitHub Project Workflows
+
+These are built-in automations configured directly on the [ARTIS Dev project board](https://github.com/orgs/Seafood-Globalization-Lab/projects/1/workflows).
+
+| Workflow | Filter | Action | Status |
+|---|---|---|---|
+| Auto-add sub-issues to project | — | Add sub-issues to project | ✅ On |
+| Auto-add to project | `artis-model` issue is open | Add to project | ✅ On |
+| Auto-archive items | Issue or PR is closed, updated more than 2 weeks ago | Archive item | ✅ On |
+| Code changes requested | — | Set status → **Needs Review** | ✅ On |
+| Item reopened | Issue or PR | Set status → **In Progress** | ✅ On |
+| Pull request linked to issue | — | Set status → **Needs Review** | ✅ On |
+| Pull request merged | — | Set status → **Done** | ✅ On |
+| Auto-close issue | — | — | ❌ Off  |
+| Pull request Approved | — | — | ❌ Off  |
+| Item added to project | — | — | ❌ Off |
+| Item closed | — | — | ❌ Off |
+
+> [!NOTE]
+> "Pull request merged → Done" handles the theme/epic status update on the project board when a PR is merged. "Item closed → Done" is intentionally off to avoid misrepresenting stalled issues closed as "not planned" rather than completed.
 
 ## Code Style 💃
 
