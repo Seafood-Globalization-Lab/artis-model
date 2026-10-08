@@ -199,42 +199,6 @@ The `artis-model` repo follows a GitFlow style branching workflow described belo
 
 All work should be done in **feature branches** and integrated back into `develop` using rebasing to maintain a linear history.
 
-### Branch Workflow Diagram
-
-```mermaid
-gitGraph
-   commit tag: "v1.1.0"
-   branch develop
-   checkout develop
-   commit id: " "
-   branch develop-feature-a
-   commit id: "added x"
-   commit id: "fixed y"
-   checkout develop
-   branch develop-feature-b
-   commit id: "cleaned z"
-   commit id: "updated w"
-   checkout develop-feature-a
-   commit id: "documentation"
-   checkout develop
-   merge develop-feature-a id: "merge reabsed feature-a"
-   checkout develop-feature-b
-   commit id: "document"
-   merge develop id: "bring in develop updates"
-   commit id: "added v"
-   checkout develop
-   merge develop-feature-b id: "merge reabsed feature-b"
-   checkout develop
-   branch develop-bug-fix
-   commit id: "bug-fix"
-   checkout develop
-   merge develop-bug-fix id: "merge reabsed bug fix"
-   checkout main
-   merge develop id: "Merge to release v2.0" tag: "v2.0" type: NORMAL 
-   checkout develop
-   merge main id: "long-lived develop branch"
-```
-
 ## GitFlow Git commands summary
 
 ### Create Feature Branch
