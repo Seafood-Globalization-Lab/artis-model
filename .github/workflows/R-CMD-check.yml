@@ -3,6 +3,7 @@ name: R-CMD-check
 on:
   pull_request:
     branches: [develop, main]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   R-CMD-check:
