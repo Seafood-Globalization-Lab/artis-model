@@ -36,10 +36,6 @@ estimate_data_type <- "midpoint"
 dev_mode <- FALSE
 devdir <- "./AM_local/dev-artis-3.0"
 
-if(dev_mode == TRUE){
-  library(devtools)
-}
-
 # UW gephardtlab.fish server paths ---------------------------------------
 
 # FIXIT: Time to switch this over to a config.yml file to hold the config combos -

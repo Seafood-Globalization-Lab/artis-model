@@ -7,11 +7,9 @@
 # FIXIT: Use pak here
 {
   library(artis)
-  library(rfishbase)
   library(data.table)
   library(magrittr)
   library(glue)
-  library(countrycode)
   library(stringr)
   library(dplyr)
   library(tidyr)
