@@ -8,8 +8,8 @@ For developing the ARTIS model package
 - **GitHub:** https://github.com/Seafood-Globalization-Lab/artis-model
 
 ## Coding and Syntax Style
-- Tidyverse style, `%>%` pipe opperator used in the `artis` package
-- `data.table::fread()` / `fwrite()` for file I/O with the `data.table = FALSE` arguement always for fread
+- Tidyverse style, `%>%` pipe operator used in the `artis` package
+- `data.table::fread()` / `fwrite()` for file I/O with the `data.table = FALSE` argument always for `fread()`
 - `cli` package for all user-facing messages — never `message()`, `cat()`, or `print()`
 - `dplyr::join_by()` for joins, `.by` over `group_by()`, `across()` for column-wise ops
 - Roxygen2 documentation
@@ -42,7 +42,7 @@ Do NOT insert in-line comments after (to the right) of the code itself.
 ## Broader Context
 - The `artis` package is an open-science open-source piece of research software
 - Development and distribution follow the FAIR convention https://www.go-fair.org/fair-principles/
-- Design decisions are made to enhance transparencey and reproducibility of the code, assumptions, and resulting data. 
+- Design decisions are made to enhance transparency and reproducibility of the code, assumptions, and resulting data. 
 - Documentation is critical at the code and developer level all the way up to user facing documentation. 
 
 ## Skills (lab-genAI-toolbox)
@@ -61,3 +61,8 @@ Available skills:
 ## ARTIS specific info
 - "taxa" refers to scientific names at any taxonomic classification rank, often used as shorthand for "sciname"
 - "sciname" is a data column throughout ARTIS that refers to scientific names at any taxonomic classification rank
+
+## Writing work plans
+- name the produced work plan .md file with the following naming convention: `ai_plan_<work-title>_<yyyy_mm_dd>.md`
+- At the top of the plan .md file please record the specific branch the plan is relevant to. This is most likely be the active git branch. 
+- At the top of the plan document the relevant PR or issue number that corresponds to the work. If not known please ask user. 

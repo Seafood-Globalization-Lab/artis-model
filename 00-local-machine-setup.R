@@ -17,6 +17,9 @@ fao_pop_version <- "2026_03_09" # last update date from website
 max_year <- 2024
 #local_data_path <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data"
 
+# Regex to filter to ARTIS-relevant HS codes (chapter 03, 05/0511, 16/1604/1605, 23/2301)
+artis_hs_regex <- "^03$|^03[0-9]{2}$|^16$|^160[45]$|^23$|^03[0-9]{4}$|^160[45][0-9]{2}$|^2301$|^230120$|^051191$|^05$|^0511$"
+
 # 01-clean-model-inputs parameters --------------------------------
 # Model Mode for 01-clean-model-inputs - TRUE for SAU; FALSE for FAO
 running_sau <- FALSE

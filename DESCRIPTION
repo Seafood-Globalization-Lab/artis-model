@@ -46,6 +46,7 @@ Imports:
     lifecycle,
     magrittr,
     parallel,
+    pdftools,
     qs2,
     readxl,
     reticulate,
