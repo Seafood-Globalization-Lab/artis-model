@@ -18,7 +18,6 @@ AM_local/*
 grateful-report.html
 .env
 .env.swp
-man/*
 dev/*
 renv/*
 requirements_old_local.txt
