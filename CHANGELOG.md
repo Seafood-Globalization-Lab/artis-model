@@ -4,6 +4,40 @@ All notable changes to **artis-model** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Add most recent changes at the top, and retain all older text, this is a running/living document.
 
+## [Unreleased]
+
+### develop-ingest-FAO-2026.1.0-classify_prod_dat (#217)
+
+#### Added
+
+-   **`match_prod_taxa_to_fb_slb()`**: New function matching production taxa to FishBase/SeaLifeBase data; returns a named list of all intermediate dataframes; part of the decomposition of `classify_prod_dat()`
+-   **`resolve_synonyms()`**: Vectorized synonym resolution replacing the for-loop approach; returns an explicit lookup table with a single `cli_warn()` on violations (Resolves #213)
+-   **`clean_fb_slb_taxa()`**: Separates FishBase/SeaLifeBase taxa cleaning into a dedicated function (Fixes #211)
+-   **`clean_fb_slb_synonyms()`**: Separates FishBase/SeaLifeBase synonym cleaning into a dedicated function (Fixes #212)
+-   **`clean_fb_slb_data()`**: New wrapper breaking apart `collect_fb_slb_data.R` for cleaner separation of concerns (Fixes #218)
+-   **`clean_prod_data()`**: Moves production data cleaning out of `01-clean-input-data.R` into a standalone function
+-   **`build_corr_tbl_prod_sciname()`**: Builds and validates the manual sciname corrections table for production data (Resolves #219)
+-   **`build_corr_tbl_prod_com_name()`**: Builds the manual common name corrections table for production data
+-   **`correct_common_names()`**: Corrects production common names using a human-verified corrections table (Fixes #76)
+-   **`calc_taxa_habitat()`**: Assigns taxa-level habitat from FishBase/SeaLifeBase origin information into `prod_taxa` (Resolves #166)
+-   **`impute_prod_habitat()`**: Combines `prod_data` row-level habitat with `prod_taxa` habitat from `calc_taxa_habitat()` for the final ARTIS-ready habitat column (Resolves #166)
+-   **`fill_prod_taxa_ranks()`**: Fills taxonomic rank gaps in `prod_taxa`; renamed from `fill_taxa_classification_gaps()`
+-   **`warn_fbslb_taxa_join()`**: Warning function to catch unexpected multiple taxonomic records or paths for a taxon during the fb/slb join
+
+#### Changed
+
+-   **`01-clean-input-data.R` refactor**: Substantial cleanup moving data cleaning, habitat assignment, taxa matching, and common name correction into dedicated functions; script now orchestrates function calls rather than containing inline logic
+-   **`build_attr_isscaap()`**: Manual corrections switched from `case_when` to `tribble` + `dplyr::rows_update()` for readability and easier updating
+-   **`clean_fb_slb_synonyms()`**: Added assumption checks and manual corrections (Fixes #212)
+-   **Manual corrections approach**: All data filling across production taxa and common name workflows switched from `case_when` to `tribble` dataframes applied via `dplyr::rows_update()` (Closes #220, Fixes #163)
+    -   Added `suborder` taxa rank column to handle `perciformes/*` and `*/misc` syntax in the `Order` column
+
+#### Removed
+
+-   **`classify_prod_dat()`**: Removed from `R/classify_prod_dat.R`, `NAMESPACE`, and public API — functionality decomposed into the new dedicated functions above
+
+    > **Breaking change**: Any code calling `classify_prod_dat()` directly will need to be updated to use the replacement functions.
+
 ## \[2.0.0\] – 2025-09-24
 
 ### Added

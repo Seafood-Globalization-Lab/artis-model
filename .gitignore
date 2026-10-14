@@ -4,6 +4,7 @@
 .Ruserdata
 .DS_Store
 .posit/
+*.log
 demo/outputs
 venv/
 model_inputs_raw*
@@ -24,7 +25,7 @@ requirements_old_local.txt
 *.html
 *.pdf
 /.quarto/
-README_files/
-QA/
-
+README_files/*
+*_files
 .Renviron
+*.parquet

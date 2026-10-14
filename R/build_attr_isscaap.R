@@ -29,6 +29,8 @@
 #'
 #' @import dplyr
 #' @importFrom utils write.csv
+#' @importFrom tibble tribble
+#' 
 #' @export
 
 build_attr_isscaap <- function(prod_fao, output_dir = NULL) {
@@ -55,19 +57,24 @@ build_attr_isscaap <- function(prod_fao, output_dir = NULL) {
     distinct()
   
   # Add ISSCAAP groups for custom "unknown origin" scinames
-  unknown_isscaap <- data.frame(
-    sciname = c("arthropoda", "chondrichthyes", "engraulis", "actinopteri", "homarus",
-                "mytilinae", "clupea", "hippoglossinae", "scombrinae", "salmoninae", 
-                "animalia", "dissostichus", "cypriniformes", "micromesistius", 
-                "echinoida", "chordata"),
-    isscaap_group = c("Multiple ISSCAAP groups", "Sharks, rays, chimaeras",
-                      "Herrings, sardines, anchovies", "Multiple ISSCAAP groups",
-                      "Lobsters, spiny-rock lobsters", "Mussels",
-                      "Herrings, sardines, anchovies", "Flounders, halibuts, soles", 
-                      "Multiple ISSCAAP groups", "Salmons, trouts, smelts", 
-                      "Multiple ISSCAAP groups", "Miscellaneous demersal fishes", 
-                      "Carps, barbels and other cyprinids", "Cods, hakes, haddocks",
-                      "Sea-urchins and other echinoderms", "Multiple ISSCAAP groups")
+  unknown_isscaap <- tribble(
+    ~sciname,           ~isscaap_group,
+    "actinopteri",      "Multiple ISSCAAP groups",
+    "animalia",         "Multiple ISSCAAP groups",
+    "arthropoda",       "Multiple ISSCAAP groups",
+    "chordata",         "Multiple ISSCAAP groups",
+    "chondrichthyes",   "Sharks, rays, chimaeras",
+    "clupea",           "Herrings, sardines, anchovies",
+    "cypriniformes",    "Carps, barbels and other cyprinids",
+    "dissostichus",     "Miscellaneous demersal fishes",
+    "echinoida",        "Sea-urchins and other echinoderms",
+    "engraulis",        "Herrings, sardines, anchovies",
+    "hippoglossinae",   "Flounders, halibuts, soles",
+    "homarus",          "Lobsters, spiny-rock lobsters",
+    "micromesistius",   "Cods, hakes, haddocks",
+    "mytilinae",        "Mussels",
+    "salmoninae",       "Salmons, trouts, smelts",
+    "scombrinae",       "Multiple ISSCAAP groups"
   )
   
   # Combine original and custom mappings
