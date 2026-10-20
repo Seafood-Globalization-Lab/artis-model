@@ -21,12 +21,6 @@ hs_version_run <- "96"
 if (run_env == "aws") {
   # High Performance Computing on AWS Setup
   source("00-aws-hpc-setup.R")
-} else if (run_env == "demo") {
-  
-  # Demo Setup
-  # Uncomment the line below if you are running the ARTIS demo
-  # Note: you do not need to run the local machine setup if you are running the demo
-  source("00-demo-setup.R")
 } else {
   # Local Machine Setup
   # Uncomment the line below if creating the ARTIS database and outputs on a
