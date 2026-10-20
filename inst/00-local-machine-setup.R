@@ -1,9 +1,25 @@
 # Model configuration parameters for running ARTIS pipeline on a local machine
 
 # R packages required ------------------------------------------------------
-library(glue)
-library(reticulate)
-library(cli)
+
+# make Posit package manager primary install repo (uses faster binaries)
+# @ snapshot date - hold all package versions to the "latest" version at this date
+# Think about updating this date, but a few months delayed from "today" to avoid release bugs
+pak::repo_add(CRAN = "RSPM@2026-06-21")
+
+# install packages
+pak::pak(c(
+  "glue",
+  "reticulate",
+  "cli"
+))
+
+# load packages
+{
+  library(glue)
+  library(reticulate)
+  library(cli)
+}
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()
@@ -162,25 +178,5 @@ reticulate::use_virtualenv(python_path, required = TRUE)
 artis_bucket <- ""
 artis_bucket_region <- ""
 
-# Demo Mode -----------------------------------------------------------------
-# Not sure if working AM 2025-04-28
-# Will determine if the ARTIS pipeline functions are run with the demo variables
-# or to run functions to create the ARTIS database for all years and HS versions
-# TRUE or FALSE explicitly required for several conditionals within model functions
-demo_run <- FALSE
-
-# If running a test environment with specific codes scinames this variable should be true else false
-# test <- FALSE
-# test_year <- 2018
-# test_hs <- "12"
-# 
-# if(test == TRUE){
-#   test_scinames <- read.csv("demo/sciname_shrimps_prawns.csv") %>%
-#     select(sciname) %>%
-#     distinct() %>%
-#     pull(sciname)
-#   
-#   test_codes <- c("030617", "160529", "160521", "030627", "030616", "030626")
-# }else{}
 
 
