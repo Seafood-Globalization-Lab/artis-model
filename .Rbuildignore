@@ -1,11 +1,11 @@
 ^renv$
 ^renv\.lock$
 ^requirements\.txt$
+^requirements\.lock$
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^dev$
-^07-post-processing-validation.Rmd
-^08-validatation-single-HS-year.Rmd
+^LICENSE\.md$
 \.html$
 ^demo$
 ^model_inputs/
@@ -23,3 +23,18 @@
 .quarto/
 .Rproj.user
 venv/
+.env.swp
+.github
+.lab-genAI-toolbox/
+.posit/
+.Renviron
+
+# ignore numbered root-level pipeline scripts
+^0[0-8]
+
+AGENTS.md
+CHANGELOG.md
+
+
+^data-raw$
+

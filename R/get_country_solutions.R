@@ -143,11 +143,11 @@ s3_clear_prefix <- function(bucket, prefix, region) {
 #' @param num_cores Integer. Controls parallel worker allocation for solving
 #'   country-level mass balance problems within each year.
 #'   
-#'   - `num_cores = 1` → **sequential mode** (no parallelism; useful for debugging).
-#'   - `num_cores = 0` or `NULL` → **auto mode**: use all available cores minus one
+#'   - `num_cores = 1` -> **sequential mode** (no parallelism; useful for debugging).
+#'   - `num_cores = 0` or `NULL` -> **auto mode**: use all available cores minus one
 #'     (to leave one free for the OS), then cap by the number of countries
 #'     to analyze for that year.
-#'   - `num_cores >= 2` → **explicit cap**: request that many workers, but will
+#'   - `num_cores >= 2` -> **explicit cap**: request that many workers, but will
 #'     still be capped at the number of countries for that year.
 #'
 #'   In all cases, the number of workers is
@@ -244,9 +244,9 @@ get_country_solutions <- function(datadir,
                        warn = FALSE))
   sink()
 
-  cli::cli_h1("Starting HS{HS_year_rep} 🌏 country solutions 🌍 with {solver_type} solver")
+  cli::cli_h1("Starting HS{HS_year_rep} country solutions with {solver_type} solver")
   start_time <- Sys.time()
-  cli::cli_alert_info("⚙️ Configuration:")
+  cli::cli_alert_info("Configuration:")
   cli::cli_ul(c(
     "Start time: {.val {format(start_time)}}",
     "Analysis years: {.val {paste(analysis_years_rep$analysis_year, collapse = ', ')}}",
@@ -706,7 +706,7 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
       future::plan("sequential")
       workers_to_use <- 1L
 
-      cli::cli_h2("⚙️ Parallel Processing Settings")
+      cli::cli_h2("Parallel Processing Settings")
       cli::cli_ul(c(
         "Strategy: {.val sequentially} not parallel processing",
         "Workers allocated: {.val {workers_to_use}}",
@@ -738,7 +738,7 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
       # multisession = fork-safe, works with reticulate/Python
       future::plan("multisession", workers = workers_to_use)
       
-      cli::cli_h2("⚙️ Parallel Processing Settings")
+      cli::cli_h2("Parallel Processing Settings")
       cli::cli_ul(c(
         "Strategy: {.val multisession}",
         "Workers allocated: {.val {workers_to_use}}",
@@ -817,7 +817,7 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
       }
     }
 
-    cli::cli_h3("✏️ Compiling and Writing Results")
+    cli::cli_h3("Compiling and Writing Results")
     cli::cli_ul(c("Building all-country-est object"))
     # Build all-country-est ------------------------------------------
     # File contains:
@@ -1037,10 +1037,10 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
   elapsed_time <- end_time - start_time
   
   # Display completion message and perform environment-specific cleanup
-  cli::cli_h2("✅ Completed HS{HS_year_rep} country solutions with {solver_type} solver")
+  cli::cli_h2("Completed HS{HS_year_rep} country solutions with {solver_type} solver")
   cli::cli_alert_success("All analysis years completed: {.val {paste(analysis_years_rep$analysis_year, collapse = ', ')}}")
   cli::cli_ul(c(
-    "⏱️ Total elapsed time: {.val {format(elapsed_time, digits = 2)}}"
+    "Total elapsed time: {.val {format(elapsed_time, digits = 2)}}"
   ))
 
   # Cleanup - Final all years complete ----------------------------------------------------------
@@ -1059,7 +1059,7 @@ x = qpsolvers.solve_qp(P,q,G,h,A,b,lb,ub, solver=\"cvxopt\")',
       "Cleaning up local (docker instance) model data: {.path {datadir}}"
     ))
     unlink(datadir, recursive = TRUE)
-    cli::cli_alert_success("🧹 Docker instance cleanup complete")
+    cli::cli_alert_success("Docker instance cleanup complete")
   } 
 
   # Return invisibly (function is called for side effects, not return value)

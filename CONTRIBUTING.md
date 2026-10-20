@@ -144,11 +144,12 @@ gitGraph
     ```
 
 2) Open a **draft PR**: `base: develop | compare: develop-<num>-<feature> `. This signals active work and starts the theme/epic's lifecycle on the project board. 
-    a) Link the Theme/Epic issue in the PR metadata right-hand-side column under Development.
-    b) Include a closing reference in the PR body to link the PR to the theme/epic issue and enable auto-close on merge:
+    - Include a closing reference (`closingIssuesReferences`) in the PR body to link the PR to the theme/epic issue and enable auto-close on merge:
 
     ```
     Closes #<issue-number>
+    Resolves #<issue-number>
+    Fixes #<issue-number>
     ```
 
     > [!NOTE] 

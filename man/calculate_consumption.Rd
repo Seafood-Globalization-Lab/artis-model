@@ -38,6 +38,8 @@ calculate_consumption(
 
 \item{V1_long}{dataframe. mapping species to HS6 codes using an alternative approach.}
 
+\item{V2_long}{dataframe. mapping species to HS6 codes using a secondary alternative approach.}
+
 \item{pop}{dataframe. containing country population data for per capita consumption calculations.}
 
 \item{code_max_resolved}{dataframe. ARTIS attribute table required to resolve taxa to finest resolution possible.}

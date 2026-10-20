@@ -156,15 +156,15 @@ get_snet <- function(quadprog_dir,
     # Get country solutions ---------------------------------------------------------------
     # read in all-country-est file created in get_county_solutions.R for both solver output folers
     
-    # build solver‐specific paths
+    # build solver-specific paths
     quad_hs_yr_dir <- file.path(quadprog_dir, hs_dir, analysis_year)
     cvx_hs_yr_dir  <- file.path(cvxopt_dir,  hs_dir, analysis_year)
     
     # pattern to match the combined all country RDS files
     rds_pattern <- paste0(
-      ".*_all-country-est_.*",     # any prefix + “_all-country-est_”
-      analysis_year,               # “_<year>_”
-      "_HS", HS_year_rep,          # “_HS<ver>”
+      ".*_all-country-est_.*",     # any prefix + "_all-country-est_"
+      analysis_year,               # "_<year>_"
+      "_HS", HS_year_rep,          # "_HS<ver>"
       "\\.RDS$"
     )
     
@@ -174,7 +174,7 @@ get_snet <- function(quadprog_dir,
     all_files <- c(qp_files, cvx_files)
     
     if (length(all_files) == 0) {
-      stop("No country‐estimate RDS files found for ", analysis_year, " HS", HS_year_rep)
+      stop("No country-estimate RDS files found for ", analysis_year, " HS", HS_year_rep)
     }
     
     # read both lists into a single list

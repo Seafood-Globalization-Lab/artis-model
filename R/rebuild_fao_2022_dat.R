@@ -1,9 +1,26 @@
+#' Rebuild FAO Global Production Data from 2022 Format (Superseded)
+#'
+#' @description
+#' `r lifecycle::badge("superseded")`
+#'
+#' This function has been superseded by [rebuild_fao_2023_dat()], which handles
+#' the updated FAO zip file format introduced in the 2023 data release. Use
+#' [rebuild_fao_2023_dat()] for all new workflows.
+#'
+#' @param datadir Character string. Path to the directory containing the FAO zip file.
+#' @param filename Character string. Name of the FAO zip file to process.
+#'
+#' @return A data frame of cleaned and standardized FAO production data.
+#'
+#' @seealso [rebuild_fao_2023_dat()] for the current supported version.
+#'
 #' @import dplyr
 #' @importFrom magrittr %>%
 #' @importFrom readxl read_excel
 #' @import stringr
 #' @export
 rebuild_fao_2022_dat <- function(datadir, filename){
+  lifecycle::deprecate_warn("2.0.0", "rebuild_fao_2022_dat()", "rebuild_fao_2023_dat()")
   unzip_folder <- file.path(datadir, str_remove(filename, ".zip"))
   # Test if file was already unzipped
   if (dir.exists(unzip_folder)==FALSE){

@@ -6,7 +6,7 @@
 #' other FAO production data releases with the same file structure.
 #'
 #' @param datadir Character string. Path to the directory containing the FAO zip file.
-#' @param filename Character string. Name of the FAO zip file to process (e.g., "GlobalProduction_2023_1.0.0.zip").
+#' @param filename Character string. Name of the FAO zip file to process. Works if .zip removed and exoabded folder exists with the same name (e.g., "GlobalProduction_2026.1.0.zip").
 #'
 #' @return A data frame containing cleaned and standardized FAO production data with columns:
 #'   \itemize{
@@ -48,7 +48,7 @@
 #' )
 #' }
 #'
-#' @seealso \code{\link{rebuild_fao_2024_dat}} for processing 2024 format data
+#' @seealso [rebuild_fao_2022_dat()] for the superseded 2022 format version.
 #'
 #' @import dplyr
 #' @importFrom magrittr %>%

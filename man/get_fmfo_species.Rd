@@ -22,7 +22,7 @@ in the FMFO list. Default is 1.}
 that a species must contribute in order to be included in the FMFO list. Default is 0.5.}
 
 \item{fishmeal_primary_threshold}{Percentage of a species’ total production that must
-go to fishmeal for it to be labeled as `primary_fishmeal = 1`. These species are considered
+go to fishmeal for it to be labeled as \code{primary_fishmeal = 1}. These species are considered
 to have a strong functional association with fishmeal production. Default is 75.}
 }
 \description{

@@ -1,7 +1,7 @@
 Package: artis
 Title: Aquatic Resource Trade in Species (ARTIS) Model
-Version: 2.0.0
-Date: 2024-09-08
+Version: 3.0.0
+Date: 2026-10-06
 Authors@R: c(
     person("Jessica", "Gephart", , "gephart@uw.edu", role = c("aut", "cre", "cph", "fnd"),
            comment = c(ORCID = "0000-0001-6836-9291")),
@@ -43,13 +43,13 @@ Imports:
     future,
     future.apply,
     glue,
+    lifecycle,
     magrittr,
     parallel,
     qs2,
     readxl,
     reticulate,
     rfishbase,
-    stats,
     stringr,
     tibble,
     tidyr,
@@ -60,4 +60,5 @@ Config/testthat/edition: 3
 Encoding: UTF-8
 LazyData: true
 LicenseFile: LICENSE
+Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
