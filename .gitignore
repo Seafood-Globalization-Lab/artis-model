@@ -4,7 +4,6 @@
 .Ruserdata
 .DS_Store
 .posit/
-demo/outputs
 venv/
 model_inputs_raw*
 baci_raw/
