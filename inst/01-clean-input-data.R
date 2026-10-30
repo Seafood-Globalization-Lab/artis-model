@@ -3,21 +3,29 @@
 
 # Setup -----------------------------------------------------------
 
-# load packages
-# FIXIT: Use pak here
-{
-  library(artis)
-  library(data.table)
-  library(magrittr)
-  library(glue)
-  library(stringr)
-  library(dplyr)
-  library(tidyr)
-  library(cli)
-}
-
 # Run Local Machine Configuration (directory paths, parameters)
 source("00-local-machine-setup.R")
+
+# install packages
+pak::pak(c(
+  "data.table",
+  "magrittr",
+  "countrycode",
+  "stringr",
+  "dplyr",
+  "tidyr"
+))
+
+# install artis from the package root
+pak::local_install(".")  
+
+# load packages
+library(artis)
+library(data.table)
+library(magrittr)
+library(stringr)
+library(dplyr)
+library(tidyr)
 
 # FishBase & SeaLifeBase Data ------------------------------------------------------
 
