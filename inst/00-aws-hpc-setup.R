@@ -1,21 +1,26 @@
 # Model configuration parameters for running ARTIS pipeline on AWS infrastructure
 
-# sourced from 02-artis-pipeline
+# sourced from 02-artis-pipeline.R
 
 # R packages required ------------------------------------------------------
-#library(data.table)
-library(magrittr)
-#library(Matrix)
-#library(parallel)
+
+# make Posit package manager primary install repo (uses faster binaries)
+# @ snapshot date - hold all package versions to the "latest" version at this date
+# Think about updating this date, but a few months delayed from "today" to avoid release bugs
+pak::repo_add(CRAN = "RSPM@2026-06-21")
+
+# install packages
+pak::pak(c(
+  "glue",
+  "reticulate",
+  "cli",
+  "aws.s3",
+))
+
 library(reticulate)
-#library(slam)
-#library(tidyverse)
-#library(doParallel)
 library(aws.s3)
-library(glue) # needed
-#library(arrow) # parquet files
-# loading in ARTIS R package
-library(artis)
+library(glue) 
+library(cli)
 
 # configure environment ---------------------------------------------------
 # Create and download ARTIS R package

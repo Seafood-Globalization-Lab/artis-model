@@ -1,5 +1,7 @@
 # Model configuration parameters for running ARTIS pipeline on a local machine
 
+# sourced from 01-clean-input-data.R
+
 # R packages required ------------------------------------------------------
 
 # make Posit package manager primary install repo (uses faster binaries)
