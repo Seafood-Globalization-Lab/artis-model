@@ -338,36 +338,36 @@ fwrite(prod_classification_sau, file.path(datadir, "clean_sau_taxa.csv"),
 # Not completed yet. https://github.com/Seafood-Globalization-Lab/artis-model/issues/57
 
 # Pre Country Cleaning
-prod_data_sau <- prod_data_sau %>%
-  mutate(country_name_en = str_remove(country_name_en, ' \\(.+\\)$')) %>%
-  # use countrycode package to translate names into iso3c codes
-  mutate(country_iso3_alpha = countrycode::countrycode(country_name_en, origin = 'country.name', destination = 'iso3c')) %>%
-  # Renaming for standardize countries function later
-  mutate(country_name_en = case_when(
-    country_name_en == 'Channel Isl.' ~ 'Channel Islands',
-    country_name_en == 'Unknown Fishing Country' ~ 'Other nei',
-    TRUE ~ country_name_en
-  )) %>%
-  mutate(country_iso3_alpha = case_when(
-    country_name_en == 'Ascension Isl.' ~ 'SHN', # (will get standardized later)
-    country_name_en == 'Azores Isl.' ~ 'PRT', # Azores Islands part of Portugal
-    country_name_en == 'Bonaire' ~ 'BES', # Bonaire (will get standardized later)
-    country_name_en == 'Brit. Indian Ocean Terr.' ~ 'IOT', # British Indian Ocean Territory (will get standardized later)
-    country_name_en == 'Madeira Isl.' ~ 'PRT', # Madeira Islands part of Portugal
-    country_name_en == 'Micronesia' ~ 'FSM', # Federated States of Micronesia
-    country_name_en == 'Saba and Saint Eustaius' ~ 'BES', # Saba and Saint Eustaius (will get standardized later)
-    country_name_en == 'St Martin' ~ 'MAF', # (will get standardized later)
-    country_name_en == 'Tristan da Cunha Isl.' ~ 'SHN', # (will get standardized later)
-    country_name_en == 'US Virgin Isl.' ~ 'VIR',
-    country_name_en == 'Unknown Fishing Country' ~ 'NEI',
-    TRUE ~ country_iso3_alpha
-  )) %>%
-  mutate(country_iso3_numeric = countrycode::countrycode(country_iso3_alpha, 
-                                            origin = 'iso3c', 
-                                            destination = 'iso3n'))
+# prod_data_sau <- prod_data_sau %>%
+#   mutate(country_name_en = str_remove(country_name_en, ' \\(.+\\)$')) %>%
+#   # use countrycode package to translate names into iso3c codes
+#   mutate(country_iso3_alpha = countrycode::countrycode(country_name_en, origin = 'country.name', destination = 'iso3c')) %>%
+#   # Renaming for standardize countries function later
+#   mutate(country_name_en = case_when(
+#     country_name_en == 'Channel Isl.' ~ 'Channel Islands',
+#     country_name_en == 'Unknown Fishing Country' ~ 'Other nei',
+#     TRUE ~ country_name_en
+#   )) %>%
+#   mutate(country_iso3_alpha = case_when(
+#     country_name_en == 'Ascension Isl.' ~ 'SHN', # (will get standardized later)
+#     country_name_en == 'Azores Isl.' ~ 'PRT', # Azores Islands part of Portugal
+#     country_name_en == 'Bonaire' ~ 'BES', # Bonaire (will get standardized later)
+#     country_name_en == 'Brit. Indian Ocean Terr.' ~ 'IOT', # British Indian Ocean Territory (will get standardized later)
+#     country_name_en == 'Madeira Isl.' ~ 'PRT', # Madeira Islands part of Portugal
+#     country_name_en == 'Micronesia' ~ 'FSM', # Federated States of Micronesia
+#     country_name_en == 'Saba and Saint Eustaius' ~ 'BES', # Saba and Saint Eustaius (will get standardized later)
+#     country_name_en == 'St Martin' ~ 'MAF', # (will get standardized later)
+#     country_name_en == 'Tristan da Cunha Isl.' ~ 'SHN', # (will get standardized later)
+#     country_name_en == 'US Virgin Isl.' ~ 'VIR',
+#     country_name_en == 'Unknown Fishing Country' ~ 'NEI',
+#     TRUE ~ country_iso3_alpha
+#   )) %>%
+#   mutate(country_iso3_numeric = countrycode::countrycode(country_iso3_alpha, 
+#                                             origin = 'iso3c', 
+#                                             destination = 'iso3n'))
 
-# standardize countries for SAU production (options are FAO or BACI, FAO correct for SAU)
-prod_data_sau <- standardize_countries(prod_data_sau, "FAO")
+# # standardize countries for SAU production (options are FAO or BACI, FAO correct for SAU)
+# prod_data_sau <- standardize_countries(prod_data_sau, "FAO")
 
 # condense / aggregate data down to select columns
 prod_data_sau <- prod_data_sau %>% 
