@@ -226,39 +226,44 @@ prod_fao_corr <- prod_fao_corr %>%
             country_iso3_alpha, country_name_en, area.code)
   )
 
-# If Running Test ---------------------------------
-# `test <- TRUE` in 00-local-machine-setup.R config file
-if (test) {
-  
-  prod_fao_corr <- prod_fao_corr %>%
-    filter(year == test_year) %>%
-    filter(SciName %in% test_scinames)
-  
-  prod_taxa_classification<- prod_taxa_classification %>%
-    filter(SciName %in% test_scinames)
-}
-
 # FAO Standardize Countries ------------------------------
-prod_fao_corr <- standardize_countries(df = prod_fao_corr, 
-                                   data_source = "FAO")
+# prod_fao_corr <- standardize_countries(df = prod_fao_corr,
+#                                    data_source = "FAO")
+
+prod_fao_std <- artis::std_artis_input_countries(
+  prod_fao_corr,
+  data_source = "FAO"
+) %>%
+  # FIXIT 2026-11-02 AM - could think about incorporating this grouping and renaming/replacement into function
+  ungroup() %>% 
+  select(-c(country_iso3_alpha, country_name_en)) %>%
+  rename(
+    country_iso3_alpha = artis_iso3c,
+    country_name_en = artis_country_name
+  ) %>% 
+  # aggregate data across all columns except for quantity
+  summarize(quantity = sum(quantity, na.rm = TRUE), .by = !quantity)
 
 # Write Prod (more columns)
 # retain FAO area.code column
-write.csv(prod_fao_corr, file = file.path(datadir, "standardized_fao_prod_more_cols.csv"), row.names = FALSE)
+data.table::fwrite(prod_fao_std, file = file.path(datadir, "standardized_fao_prod_more_cols.csv"), row.names = FALSE)
 
 # Write Prod (ARTIS)
 # remove area.code column to format to prod version used in model
-prod_fao_corr <- prod_fao_corr %>% 
-  group_by(SciName, year, taxa_source, habitat, prod_method, country_iso3_alpha, country_name_en) %>%
-  summarize(quantity = sum(quantity, na.rm = TRUE)) %>%
-  ungroup()
+prod_fao_std <- prod_fao_std %>% 
+  select(-area.code) %>% 
+  # aggregate data across all columns except for quantity
+  summarize(quantity = sum(quantity, na.rm = TRUE), .by = !quantity)
 
-write.csv(prod_fao_corr, file = file.path(datadir, "standardized_fao_prod.csv"), row.names = FALSE)
+data.table::fwrite(prod_fao_std, file = file.path(datadir, "standardized_fao_prod.csv"), row.names = FALSE)
+
+# remove excess objects
+rm(prod_fao_corr, prod_fao, corrections_taxa_class, taxa_need_corrections_2)
 
 # SAU Production Data -------------------------
 ## SAU Clean Taxa and Classification ------------------------------
 
-prod_sau_raw <- fread(
+prod_sau_raw <- data.table::fread(
   file.path(path_sau_prod_raw, "SAU_Production_Data.csv"), 
   stringsAsFactors = FALSE, 
   header = TRUE, 
@@ -268,7 +273,7 @@ prod_sau_raw <- fread(
   filter(year >= 1996, sum > 0)
 
 # Step 1: Clean raw SAU production data
-prod_ts_sau <- clean_prod_dat(
+prod_ts_sau <- artis::clean_prod_dat(
   prod_df          = prod_sau_raw,
   prod_data_source = "SAU",
   datadir          = path_sau_prod_raw,
@@ -276,7 +281,7 @@ prod_ts_sau <- clean_prod_dat(
 )
 
 # Step 2: Pass 1 — match without corrections to surface unmatched names
-pass1_sau <- match_prod_taxa_to_fbslb(
+pass1_sau <- artis::match_prod_taxa_to_fbslb(
   prod_ts          = prod_ts_sau,
   fb_slb_dir       = current_fb_slb_dir,
   prod_data_source = "SAU",
@@ -286,7 +291,7 @@ pass1_sau <- match_prod_taxa_to_fbslb(
 # → update R/build_corr_tbl_prod_sciname.R as needed, then devtools::load_all()
 
 # Step 3: Pass 2 — match with corrections applied
-pass2_sau <- match_prod_taxa_to_fbslb(
+pass2_sau <- artis::match_prod_taxa_to_fbslb(
   prod_ts          = prod_ts_sau,
   fb_slb_dir       = current_fb_slb_dir,
   prod_data_source = "SAU",
@@ -294,7 +299,7 @@ pass2_sau <- match_prod_taxa_to_fbslb(
 )
 
 # Step 4: Gap-fill taxa classification
-prod_classification_sau <- fill_taxa_classification_gaps(
+prod_classification_sau <- artis::fill_taxa_classification_gaps(
   prod_taxa_classification = pass2_sau$prod_taxa_classification,
   prod_ts                  = pass2_sau$prod_ts,
   outdir                   = outdir
@@ -440,6 +445,7 @@ write.csv(fmfo_species, file.path(datadir, 'fmfo_species_list.csv'), row.names =
 # Get HS years for data cleaning loops below
 HS_year <- unique(df_years$HS_year)
 
+# FIXIT: AM 2026-10-30 Examine if we can remove this. Do we want to retain utility of only running select HS years?
 if (test) {
   HS_year <- HS_year[HS_year %in% test_hs]
   hs_data_clean <- hs_data_clean %>%

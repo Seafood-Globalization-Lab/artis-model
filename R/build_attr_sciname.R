@@ -42,63 +42,63 @@ build_attr_sciname <- function(fao_taxa_data,
                               write_dir) {
   
   # Create 1-to-1 matching for common names and taxa info
-  taxa_attribute <- fao_taxa_data %>%
-    mutate(common_name = case_when(
-      sciname == "alosa" ~ "shads nei", 
-      sciname == "asteroidea" ~ "starfishes nei", 
-      sciname == "branchiopoda" ~ "crustaceans nei", 
-      sciname == "carcharhiniformes" ~ "ground sharks nei", 
-      sciname == "clarias" ~ "catfishes nei", 
-      sciname == "clupeidae" ~ "sardines nei", 
-      sciname == "clupeiformes" ~ "clupeoids nei", 
-      sciname == "dentex tumifrons" ~ "yellowback seabream",
-      sciname == "epinephelus" ~ "groupers nei", 
-      sciname == "gadus macrocephalus" ~ "pacific cod", 
-      sciname == "gobiidae" ~ "gobies nei", 
-      sciname == "jasus edwardsii" ~ "red rock lobster", 
-      sciname == "lepidonotothen squamifrons" ~ "grey rockcod", 
-      sciname == "macrobrachium" ~ "river prawns nei", 
-      sciname == "merluccius" ~ "hakes nei", 
-      sciname == "mollusca" ~ "molluscs nei", 
-      sciname == "mullus" ~ "surmullets(=red mullets) nei", 
-      sciname == "myliobatidae" ~ "eagle and manta rays nei", 
-      sciname == "oreochromis" ~ "tilapias nei", 
-      sciname == "osteichthyes" ~ "fish nei", 
-      sciname == "palaemonidae" ~ "palaemonid shrimps nei", 
-      sciname == "parastacidae" ~ "crayfishes nei", 
-      sciname == "penaeidae" ~ "penaeid shrimps nei", 
-      sciname == "perciformes" ~ "tuna-like fishes nei", 
-      sciname == "planiliza haematocheilus" ~ "so-iny (redlip) mullet", 
-      sciname == "salmonidae" ~ "almonids nei", 
-      sciname == "sardinops sagax" ~ "south american pilchard", 
-      sciname == "sebastes" ~ "redfishes nei", 
-      sciname == "serrasalmidae" ~ "serrasalmids nei", 
-      sciname == "thunnus" ~ "tunas nei", 
-      sciname == "xiphopenaeus kroyeri" ~ "atlantic seabob", 
-      sciname == "bryzoa" ~ "bryzoa",
-      TRUE ~ common_name
-    )) %>%
-    distinct() %>%
-    bind_rows(
-      tibble::tribble(
-  ~sciname,           ~common_name,                                   ~Genus,               ~Subfamily,          ~Family,               ~Order,               ~Class,               ~Superclass,         ~Phylum,            ~Kingdom,
-  "arthropoda",       "arthropods",                                   NA_character_,        NA_character_,       NA_character_,         NA_character_,        NA_character_,        NA_character_,        "arthropoda",       "animalia",
-  "engraulis",        "anchovies",                                    "engraulis",          "engraulinae",       "engraulidae",         "clupeiformes",       "teleostei",          "osteichthyes",       "chordata",         "animalia",
-  "hippoglossinae",   "flounders",                                    NA_character_,        "hippoglossinae",    "pleuronectidae",      "pleuronectiformes",  "teleostei",          "osteichthyes",       "chordata",         "animalia",
-  "scombrinae",       "mackerels, tunas, and bonitos",                NA_character_,        "scombrinae",        "scombridae",          "scombriformes",      "teleostei",          "osteichthyes",       "chordata",         "animalia",
-  "clupea",           "herrings",                                     "clupea",             "clupeinae",         "clupeidae",           "clupeiformes",       "teleostei",          "osteichthyes",       "chordata",         "animalia",
-  "chondrichthyes",   "sharks, skates, rays, and chimaeras",          NA_character_,        NA_character_,       NA_character_,         NA_character_,        "chondrichthyes",     NA_character_,        "chordata",         "animalia",
-  "salmoninae",       "salmons and trouts",                           NA_character_,        "salmoninae",        "salmonidae",          "salmoniformes",      "teleostei",          "osteichthyes",       "chordata",         "animalia",
-  "mytilinae",        "saltwater mussels",                            NA_character_,        "mytilinae",         "mytilidae",           "mytilida",           "bivalvia",           NA_character_,        "mollusca",         "animalia",
-  "actinopteri",      "ray-finned fish",                              NA_character_,        NA_character_,       NA_character_,         NA_character_,        "teleostei",          "osteichthyes",       "chordata",         "animalia",
-  "animalia",         "aquatic animals",                              NA_character_,        NA_character_,       NA_character_,         NA_character_,        NA_character_,        NA_character_,        NA_character_,      "animalia",
-  "homarus",          "lobsters",                                     "homarus",            NA_character_,       "nephropidae",         "decapoda",           "malacostraca",       NA_character_,        "arthropoda",       "animalia",
-  "cypriniformes",    "carps, minnows, loaches, etc",                 NA_character_,        NA_character_,       NA_character_,         "cypriniformes",      "teleostei",          "osteichthyes",       "chordata",         "animalia",
-  "dissostichus",     "toothfish",                                    "dissostichus",       NA_character_,       "nototheniidae",       "perciformes",        "teleostei",          "osteichthyes",       "chordata",         "animalia",
-  "micromesistius",   "blue whitings",                                "micromesistius",     NA_character_,       "gadidae",             "gadiformes",         "teleostei",          "osteichthyes",       "chordata",         "animalia",
-  "echinoida",        "sea urchins",                                  NA_character_,        NA_character_,       NA_character_,         "echinoida",          "echinoidea",         NA_character_,        "echinodermata",    "animalia"
-)
-  ) 
+   taxa_attribute <- fao_taxa_data #%>%
+#     mutate(common_name = case_when(
+#       sciname == "alosa" ~ "shads nei", 
+#       sciname == "asteroidea" ~ "starfishes nei", 
+#       sciname == "branchiopoda" ~ "crustaceans nei", 
+#       sciname == "carcharhiniformes" ~ "ground sharks nei", 
+#       sciname == "clarias" ~ "catfishes nei", 
+#       sciname == "clupeidae" ~ "sardines nei", 
+#       sciname == "clupeiformes" ~ "clupeoids nei", 
+#       sciname == "dentex tumifrons" ~ "yellowback seabream",
+#       sciname == "epinephelus" ~ "groupers nei", 
+#       sciname == "gadus macrocephalus" ~ "pacific cod", 
+#       sciname == "gobiidae" ~ "gobies nei", 
+#       sciname == "jasus edwardsii" ~ "red rock lobster", 
+#       sciname == "lepidonotothen squamifrons" ~ "grey rockcod", 
+#       sciname == "macrobrachium" ~ "river prawns nei", 
+#       sciname == "merluccius" ~ "hakes nei", 
+#       sciname == "mollusca" ~ "molluscs nei", 
+#       sciname == "mullus" ~ "surmullets(=red mullets) nei", 
+#       sciname == "myliobatidae" ~ "eagle and manta rays nei", 
+#       sciname == "oreochromis" ~ "tilapias nei", 
+#       sciname == "osteichthyes" ~ "fish nei", 
+#       sciname == "palaemonidae" ~ "palaemonid shrimps nei", 
+#       sciname == "parastacidae" ~ "crayfishes nei", 
+#       sciname == "penaeidae" ~ "penaeid shrimps nei", 
+#       sciname == "perciformes" ~ "tuna-like fishes nei", 
+#       sciname == "planiliza haematocheilus" ~ "so-iny (redlip) mullet", 
+#       sciname == "salmonidae" ~ "almonids nei", 
+#       sciname == "sardinops sagax" ~ "south american pilchard", 
+#       sciname == "sebastes" ~ "redfishes nei", 
+#       sciname == "serrasalmidae" ~ "serrasalmids nei", 
+#       sciname == "thunnus" ~ "tunas nei", 
+#       sciname == "xiphopenaeus kroyeri" ~ "atlantic seabob", 
+#       sciname == "bryzoa" ~ "bryzoa",
+#       TRUE ~ common_name
+#     )) %>%
+#     distinct() %>%
+#     bind_rows(
+#       tibble::tribble(
+#   ~sciname,           ~common_name,                                   ~Genus,               ~Subfamily,          ~Family,               ~Order,               ~Class,               ~Superclass,         ~Phylum,            ~Kingdom,
+#   "arthropoda",       "arthropods",                                   NA_character_,        NA_character_,       NA_character_,         NA_character_,        NA_character_,        NA_character_,        "arthropoda",       "animalia",
+#   "engraulis",        "anchovies",                                    "engraulis",          "engraulinae",       "engraulidae",         "clupeiformes",       "teleostei",          "osteichthyes",       "chordata",         "animalia",
+#   "hippoglossinae",   "flounders",                                    NA_character_,        "hippoglossinae",    "pleuronectidae",      "pleuronectiformes",  "teleostei",          "osteichthyes",       "chordata",         "animalia",
+#   "scombrinae",       "mackerels, tunas, and bonitos",                NA_character_,        "scombrinae",        "scombridae",          "scombriformes",      "teleostei",          "osteichthyes",       "chordata",         "animalia",
+#   "clupea",           "herrings",                                     "clupea",             "clupeinae",         "clupeidae",           "clupeiformes",       "teleostei",          "osteichthyes",       "chordata",         "animalia",
+#   "chondrichthyes",   "sharks, skates, rays, and chimaeras",          NA_character_,        NA_character_,       NA_character_,         NA_character_,        "chondrichthyes",     NA_character_,        "chordata",         "animalia",
+#   "salmoninae",       "salmons and trouts",                           NA_character_,        "salmoninae",        "salmonidae",          "salmoniformes",      "teleostei",          "osteichthyes",       "chordata",         "animalia",
+#   "mytilinae",        "saltwater mussels",                            NA_character_,        "mytilinae",         "mytilidae",           "mytilida",           "bivalvia",           NA_character_,        "mollusca",         "animalia",
+#   "actinopteri",      "ray-finned fish",                              NA_character_,        NA_character_,       NA_character_,         NA_character_,        "teleostei",          "osteichthyes",       "chordata",         "animalia",
+#   "animalia",         "aquatic animals",                              NA_character_,        NA_character_,       NA_character_,         NA_character_,        NA_character_,        NA_character_,        NA_character_,      "animalia",
+#   "homarus",          "lobsters",                                     "homarus",            NA_character_,       "nephropidae",         "decapoda",           "malacostraca",       NA_character_,        "arthropoda",       "animalia",
+#   "cypriniformes",    "carps, minnows, loaches, etc",                 NA_character_,        NA_character_,       NA_character_,         "cypriniformes",      "teleostei",          "osteichthyes",       "chordata",         "animalia",
+#   "dissostichus",     "toothfish",                                    "dissostichus",       NA_character_,       "nototheniidae",       "perciformes",        "teleostei",          "osteichthyes",       "chordata",         "animalia",
+#   "micromesistius",   "blue whitings",                                "micromesistius",     NA_character_,       "gadidae",             "gadiformes",         "teleostei",          "osteichthyes",       "chordata",         "animalia",
+#   "echinoida",        "sea urchins",                                  NA_character_,        NA_character_,       NA_character_,         "echinoida",          "echinoidea",         NA_character_,        "echinodermata",    "animalia"
+# )
+#   ) 
 
   # Join with ISSCAAP attribute data
   taxa_attribute <- taxa_attribute %>%
