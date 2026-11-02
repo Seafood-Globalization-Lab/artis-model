@@ -51,11 +51,11 @@ calculate_consumption(
 \item{dev_mode}{Logical. if TRUE, enables debugging output and writes out discrepancies in consumption estimates.}
 }
 \value{
-A data frame with estimated seafood consumption by country, species, and end use. 
+A data frame with estimated seafood consumption by country, species, and end use.
 The output includes both raw consumption estimates and a capped version adjusted for per capita consumption limits.
 }
 \description{
-This function estimates seafood consumption by country using trade, production, 
-and processing data. It accounts for domestic and foreign consumption by integrating 
+This function estimates seafood consumption by country using trade, production,
+and processing data. It accounts for domestic and foreign consumption by integrating
 trade flow data and conversion factors for processed seafood products.
 }

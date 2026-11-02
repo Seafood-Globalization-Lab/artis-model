@@ -28,10 +28,10 @@ the year, used to join the time-dependent ARTIS corrections table.}
 \value{
 A data frame with all original columns from \code{data} plus:
 \describe{
-  \item{artis_country_name}{Standardized ARTIS sovereign country name.
-    \code{NA} if the identifier could not be resolved.}
-  \item{artis_iso3c}{Standardized ARTIS ISO3c code. \code{NA} if the
-    identifier could not be resolved.}
+\item{artis_country_name}{Standardized ARTIS sovereign country name.
+\code{NA} if the identifier could not be resolved.}
+\item{artis_iso3c}{Standardized ARTIS ISO3c code. \code{NA} if the
+identifier could not be resolved.}
 }
 }
 \description{
@@ -78,15 +78,15 @@ by the corrections join is removed from the output. Unresolvable country
 identifiers produce \code{NA} in output columns and are reported via
 \code{cli} warning rather than causing an error.
 
-Data aggregation is likely needed after the standardization process is complete. 
+Data aggregation is likely needed after the standardization process is complete.
 This is because country values are often reduced in the output data, and may
 produce duplicate rows.
 }
 \seealso{
 \itemize{
-  \item \code{\link{build_std_countries_tbl}} — produces the ARTIS corrections
-    table used internally by this function
-  \item \code{\link{std_artis_input_countries}} — calls this function as the
-    core standardization step for FAO, BACI, and SAU pipeline inputs
+\item \code{\link{build_std_countries_tbl}} — produces the ARTIS corrections
+table used internally by this function
+\item \code{\link{std_artis_input_countries}} — calls this function as the
+core standardization step for FAO, BACI, and SAU pipeline inputs
 }
 }

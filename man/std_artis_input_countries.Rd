@@ -10,11 +10,11 @@ std_artis_input_countries(data, data_source = c("FAO", "BACI", "SAU"))
 \item{data}{Data frame. Raw input table for the specified source type.
 Expected columns vary by \code{data_source}:
 \itemize{
-  \item \strong{FAO}: \code{country_iso3_alpha}, \code{country_name_en},
-    \code{year}
-  \item \strong{BACI}: \code{exporter_iso3c}, \code{exporter_country},
-    \code{importer_iso3c}, \code{importer_country}, \code{year}
-  \item \strong{SAU}: \code{country_name_en}, \code{year}
+\item \strong{FAO}: \code{country_iso3_alpha}, \code{country_name_en},
+\code{year}
+\item \strong{BACI}: \code{exporter_iso3c}, \code{exporter_country},
+\code{importer_iso3c}, \code{importer_country}, \code{year}
+\item \strong{SAU}: \code{country_name_en}, \code{year}
 }}
 
 \item{data_source}{Character. Source type of the input data. One of
@@ -60,9 +60,9 @@ The BACI branch removes circular trade flows (rows where the standardized
 }
 \seealso{
 \itemize{
-  \item \code{\link{standardize_countries}} — core standardization function
-    called within each source branch
-  \item \code{\link{build_std_countries_tbl}} — produces the ARTIS corrections
-    table used by \code{\link{standardize_countries}}
+\item \code{\link{standardize_countries}} — core standardization function
+called within each source branch
+\item \code{\link{build_std_countries_tbl}} — produces the ARTIS corrections
+table used by \code{\link{standardize_countries}}
 }
 }
