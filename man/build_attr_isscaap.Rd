@@ -7,10 +7,10 @@
 build_attr_isscaap(prod_fao, output_dir = NULL)
 }
 \arguments{
-\item{prod_fao}{Data frame containing FAO production data with SciName and
+\item{prod_fao}{Data frame containing FAO production data with SciName and 
 isscaap_group columns from FAO or other production sources.}
 
-\item{output_dir}{Character string. Directory path where the ISSCAAP attribute
+\item{output_dir}{Character string. Directory path where the ISSCAAP attribute 
 CSV file will be saved. If NULL, no file is written.}
 }
 \value{
