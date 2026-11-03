@@ -1,3 +1,12 @@
+#' Reweight the W matrix by observed import volumes and conversion factors
+#'
+#' @param W_long Data frame. Long-form W matrix from create_W_long().
+#' @param baci_data_analysis_year Data frame. BACI trade data for the analysis year.
+#' @param V2_long Data frame. Long-form V2 conversion factors.
+#' @return Data frame with columns exporter_iso3c, hs6_processed, hs6_original,
+#'   product_cf, and reweighted_W. Returns NULL with a warning if proportions do
+#'   not sum to 1.
+#' @importFrom dplyr left_join group_by summarize ungroup rename filter mutate select
 #' @export
 create_reweight_W_long <- function(W_long, 
                                    baci_data_analysis_year,

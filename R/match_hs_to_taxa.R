@@ -1,6 +1,15 @@
-#' @importFrom data.table data.table
+#' Match HS codes to production taxa
+#'
+#' @param hs_data_clean Data frame. Output from clean_hs().
+#' @param prod_taxa_classification Data frame. Taxa classification table.
+#' @param fmfo_species_list Data frame. FMFO species list from get_fmfo_species().
+#' @param hs_version Character. HS version (e.g., "HS17").
+#' @return Data frame with columns Code, SciName, Match_category, HS_version,
+#'   Description, and Modification.
+#' @importFrom data.table data.table rbindlist
 #' @import dplyr
 #' @import stringr
+#' @importFrom tidyr pivot_longer pivot_wider
 #' @export
 match_hs_to_taxa <- function(hs_data_clean, prod_taxa_classification, fmfo_species_list, hs_version){
 

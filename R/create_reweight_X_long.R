@@ -1,3 +1,10 @@
+#' Reweight X long across all countries
+#'
+#' @param country_est Named list. Per-country optimization results.
+#' @param V1 Matrix. Live-weight-to-product conversion factors (products x species).
+#' @param V2 Matrix. Product-to-product conversion factors (products x products).
+#' @return Data frame with columns iso3c, hs6, SciName, and reweighted_X.
+#' @importFrom dplyr bind_rows group_by summarize ungroup mutate filter
 #' @export
 create_reweight_X_long <- function(country_est, V1, V2) {
   
