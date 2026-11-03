@@ -19,7 +19,7 @@ max_year <- 2024
 
 # 01-clean-model-inputs parameters --------------------------------
 # Model Mode for 01-clean-model-inputs - TRUE for SAU; FALSE for FAO
-running_sau <- TRUE
+running_sau <- FALSE
 ## Set TRUE if new SeaLifeBase/FishBase data collection needed for 01-clean-model-inputs:
 need_new_fb_slb <- FALSE
 # AM - I think this is leftover code - can set HS year and year for running tests

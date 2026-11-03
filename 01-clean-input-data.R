@@ -227,8 +227,6 @@ prod_fao_corr <- prod_fao_corr %>%
   )
 
 # FAO Standardize Countries ------------------------------
-# prod_fao_corr <- standardize_countries(df = prod_fao_corr,
-#                                    data_source = "FAO")
 
 prod_fao_std <- artis::std_artis_input_countries(
   prod_fao_corr,
@@ -409,6 +407,16 @@ if (running_sau) {
   data.table::fwrite(prod_taxa_classification, file = file.path(datadir, "clean_taxa_combined.csv"))
 } # End of if running_sau == TRUE
 
+# FMFO Species from SAU --------------------------------------------------
+# Getting list of fmfo species - required for both FAO and SAU runs
+fmfo_species <- get_fmfo_species(
+  sau_fp = file.path(datadir, 'standardized_sau_prod_more_cols.csv'),
+  fishmeal_min_threshold_sp = 1,
+  fishmeal_min_threshold_global = 0.5,
+  fishmeal_primary_threshold = 75
+)
+
+data.table::fwrite(fmfo_species, file.path(datadir, 'fmfo_species_list.csv'), row.names = FALSE)
 
 # Prep for Matching and CF Funs ------------------------------------------
 
@@ -448,16 +456,6 @@ hs_data_raw <- fread(file.path(path_hs_codes_raw, "All_HS_Codes.csv"), colClasse
 hs_data_clean <- clean_hs(hs_data_raw = hs_data_raw,
                           fb_slb_dir = current_fb_slb_dir)
 
-## FMFO Species from SAU --------------------------------------------------
-# Getting list of fmfo species
-fmfo_species <- get_fmfo_species(
-  sau_fp = file.path(datadir, 'standardized_sau_prod_more_cols.csv'),
-  fishmeal_min_threshold_sp = 1,
-  fishmeal_min_threshold_global = 0.5,
-  fishmeal_primary_threshold = 75
-)
-
-data.table::fwrite(fmfo_species, file.path(datadir, 'fmfo_species_list.csv'), row.names = FALSE)
 
 # Get HS years for data cleaning loops below
 HS_year <- unique(df_years$HS_year)

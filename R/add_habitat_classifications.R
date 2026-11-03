@@ -25,6 +25,8 @@ add_habitat_classifications <- function(hs_taxa_match, sciname_habitat, prod_dat
   tmp <- hs_taxa_match %>%
     distinct() %>%
     filter(str_detect(SciName, " "))
+
+  # FIXIT: 2026-11-03 AM - Add check for NA values
   
   # Calculate percent marine and inland by Code (secondary)
   tmp <- tmp %>%
