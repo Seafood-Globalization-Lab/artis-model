@@ -1,4 +1,4 @@
-name: Epic status: In Progress on draft PR
+name: "Epic status: In Progress on draft PR"
 
 on:
   pull_request:
