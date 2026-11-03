@@ -1,4 +1,14 @@
-#' @importFrom dplyr filter
+#' Load and standardize BACI bilateral trade data
+#'
+#' @param baci_data Data frame. Raw BACI data with columns k (HS6), i (exporter
+#'   country code), j (importer country code), v (value), q (quantity).
+#' @param hs_codes Character vector. HS6 codes to retain.
+#' @param baci_country_codes Data frame. Mapping of country codes to ISO3c and
+#'   country names.
+#' @return Data frame with columns exporter_iso3c, importer_iso3c, hs6,
+#'   total_q, total_v, and country name and numeric code fields.
+#' @importFrom dplyr filter rename select full_join group_by summarise ungroup
+#'   mutate
 #' @export
 load_baci <- function(baci_data, hs_codes, baci_country_codes){
   

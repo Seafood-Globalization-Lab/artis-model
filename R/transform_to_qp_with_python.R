@@ -1,7 +1,19 @@
-#' @importFrom data.table data.table
-#' @importFrom data.table as.data.table 
-#' @importFrom reticulate import
-#' @importFrom reticulate py_to_r
+#' Transform country data into quadratic programming problem inputs
+#'
+#' @param country_j Character. ISO3c code of the focal country.
+#' @param V1 Matrix. Live-weight-to-product conversion factors (products x species).
+#' @param V2 Matrix. Product-to-product conversion factors (products x products).
+#' @param baci_data_clean Data frame. Cleaned BACI trade data for the analysis year.
+#' @param prod_data_clean Data frame. Cleaned production data for the analysis year.
+#' @param sc_n Character vector. Species codes (columns of V1).
+#' @param cc_m Character vector. Commodity codes (rows of V1).
+#' @param Xq Matrix. Match strength matrix from categorize_hs_to_taxa().
+#' @return A named list containing the QP problem matrices (P, q, G, A, b, u)
+#'   and auxiliary outputs needed for unstack_qp_sol() (Z, null_production,
+#'   null_consumption, null_imports, dim_V1, dim_V2, V_X, V_W, scale_factor,
+#'   production, imports, exports).
+#' @importFrom data.table data.table as.data.table setnames
+#' @importFrom reticulate import py_to_r
 #' @export
 transform_to_qp_with_python <- function(country_j, V1, V2, baci_data_clean, prod_data_clean, sc_n, cc_m, Xq){
   # Create data table with all hs codes to standardize the order

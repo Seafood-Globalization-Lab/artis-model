@@ -1,4 +1,13 @@
+#' Build V2 HS-to-HS conversion factor matrix (products x products)
+#'
+#' @param hs_hs_match Data frame. Output from match_hs_to_hs().
+#' @param hs_taxa_CF_match Data frame. HS code-to-taxa conversion factor matches.
+#' @param coproduct_codes Character vector. HS codes to exclude as co-products.
+#' @return A list of three elements: (1) V2 numeric matrix (Code_post x Code_pre)
+#'   of commodity-to-commodity conversion factors, (2) row_order character vector
+#'   of Code_post values, (3) col_order character vector of Code_pre values.
 #' @import dplyr
+#' @importFrom tidyr pivot_wider
 #' @export
 make_v2 <- function(hs_hs_match = hs_hs_match, hs_taxa_CF_match = hs_taxa_CF_match, coproduct_codes){
   CF_for_v2 <- hs_taxa_CF_match %>%

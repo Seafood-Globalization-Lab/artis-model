@@ -1,4 +1,12 @@
-#' @importFrom dplyr filter
+#' Filter production taxa to those matching an HS code commodity category
+#'
+#' @param hs_code_row Data frame row. Must include logical columns Fishes,
+#'   Crustaceans, Molluscs, and Aquatic_invertebrates.
+#' @param prod_taxa_classification Data frame. Taxa classification table with
+#'   SciName, Class, Superclass, and Phylum columns.
+#' @return Data frame of production taxa whose taxonomic group matches the
+#'   commodity category flags in hs_code_row.
+#' @importFrom dplyr filter pull
 #' @export
 get_taxa_group <- function(hs_code_row, prod_taxa_classification){
   

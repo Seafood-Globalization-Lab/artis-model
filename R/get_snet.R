@@ -1,7 +1,24 @@
+#' Run the full ARTIS snet and consumption estimation pipeline
+#'
+#' @param quadprog_dir Character. Path to quadprog solver output directory.
+#' @param cvxopt_dir Character. Path to cvxopt solver output directory.
+#' @param datadir Character. Path to model input data directory.
+#' @param outdir Character. Path to output directory.
+#' @param num_cores Integer. Number of parallel cores (default 10).
+#' @param hs_version Character. HS version to run (e.g., "17").
+#' @param test_years Numeric vector. Subset of years to run; empty runs all years.
+#' @param prod_type Character. "FAO" or "SAU".
+#' @param estimate_type Character. "midpoint", "max", or "min".
+#' @param run_env Character. "aws" or local.
+#' @param s3_bucket_name Character. S3 bucket name (used when run_env == "aws").
+#' @param s3_region Character. AWS region (used when run_env == "aws").
+#' @return Invisibly NULL. Writes snet and consumption outputs to disk or S3.
 #' @importFrom tibble rownames_to_column
-#' @importFrom qs2 qd_save
-#' @importFrom qs2 qs_save
-#' @importFrom qs2 qs_readm
+#' @importFrom qs2 qd_save qs_save qs_readm
+#' @importFrom dplyr filter mutate select rename left_join bind_rows
+#' @importFrom tidyr pivot_longer
+#' @importFrom stringr str_detect str_replace
+#' @importFrom glue glue
 #' @export
 #' 
 get_snet <- function(quadprog_dir, 
