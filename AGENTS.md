@@ -61,3 +61,8 @@ Available skills:
 ## ARTIS specific info
 - "taxa" refers to scientific names at any taxonomic classification rank, often used as shorthand for "sciname"
 - "sciname" is a data column throughout ARTIS that refers to scientific names at any taxonomic classification rank
+
+## Plan Mode
+- name plan file names following this convention: `plan_<quick_description_of_work>_<yyyy_mm_dd>.md`
+- save plan file to the `.posit/assistant/plans/` directory
+- Ask user if this plan corresponds with a GitHub issue - if yes, document in the contents of the plan document. 
