@@ -52,7 +52,7 @@ clean_prod_data <- function(
         SciName = tolower(as.character(SciName))
       ) %>%
       # Trim any leading/trailing whitespace
-      dplyr::mutate_all(str_trim) %>%
+      dplyr::mutate(across(where(is.character), str_trim)) %>%
       # Filter out groups not considered in this analysis
       dplyr::filter(
         !species_major_group %in%
@@ -166,9 +166,7 @@ clean_prod_data <- function(
         sci_2_common %>% select(-common_name),
         by = c("SciName" = "scientific_name")
       ) %>%
-      # FIXIT: Superseded syntax (AM 2026-05-20)
-      # Possibly: mutate(across(where(is.character), stringr::str_trim))
-      dplyr::mutate_all(str_trim) %>%
+      dplyr::mutate(across(where(is.character), str_trim)) %>%
       filter(!is.na(SciName))
 
     # Create blank columns
@@ -229,7 +227,9 @@ clean_prod_data <- function(
           SciName == "neogastropoda"   ~ 1,
           TRUE ~ Other01
         )
-      )
+      ) %>%
+      # Final type coercion
+      mutate(quantity = as.numeric(quantity), year = as.integer(year))
   }
 
   # Replace empty strings with NA across all character columns

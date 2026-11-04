@@ -15,14 +15,14 @@ will cover \code{1996} through \code{max_year}. Default: the current year.}
 A tibble with one row per unique combination of country identifier and year.
 Columns:
 \describe{
-  \item{country_name}{Country name as a character string.}
-  \item{iso3c}{ISO 3166-1 alpha-3 country code as character string.}
-  \item{year}{Year as an integer.}
-  \item{artis_country_name}{Sovereign country name used in ARTIS as character string.}
-  \item{artis_iso3c}{Sovereign ISO3c code used in ARTIS as character string. Non-standard
-    codes include \code{"NEI"} (not elsewhere identified),
-    \code{"SCG"} (Serbia and Montenegro), and \code{"ZA1"}
-    (Southern African Customs Union).}
+\item{country_name}{Country name as a character string.}
+\item{iso3c}{ISO 3166-1 alpha-3 country code as character string.}
+\item{year}{Year as an integer.}
+\item{artis_country_name}{Sovereign country name used in ARTIS as character string.}
+\item{artis_iso3c}{Sovereign ISO3c code used in ARTIS as character string. Non-standard
+codes include \code{"NEI"} (not elsewhere identified),
+\code{"SCG"} (Serbia and Montenegro), and \code{"ZA1"}
+(Southern African Customs Union).}
 }
 }
 \description{
@@ -38,30 +38,30 @@ sovereign-country mapping.
 
 Three types of mappings are combined:
 \itemize{
-  \item \strong{Territory mappings}: Dependent territories mapped to their
-    sovereign country (e.g., US, UK, French, and Chinese territories).
-  \item \strong{Time-dependent corrections}: Countries whose sovereignty
-    changed over the year range, such as Timor-Leste, South Sudan,
-    Serbia/Montenegro, and the Southern African Customs Union.
-  \item \strong{Special corrections}: FAO-specific country name variants
-    and small states grouped under \code{"NEI"}.
+\item \strong{Territory mappings}: Dependent territories mapped to their
+sovereign country (e.g., US, UK, French, and Chinese territories).
+\item \strong{Time-dependent corrections}: Countries whose sovereignty
+changed over the year range, such as Timor-Leste, South Sudan,
+Serbia/Montenegro, and the Southern African Customs Union.
+\item \strong{Special corrections}: FAO-specific country name variants
+and small states grouped under \code{"NEI"}.
 }
 }
 \note{
 The lower bound of the year range is fixed at \code{1996} and is not
-  user-configurable; only \code{max_year} can be adjusted. Rows where
-  \code{year} or \code{artis_iso3c} are \code{NA} are dropped from the
-  final output. Time-dependent mappings are filtered so that only the
-  correct sovereign assignment for each year is retained — entries whose
-  \code{start_year} falls after \code{max_year} (e.g., post-independence
-  state codes for a \code{max_year} before independence) produce no rows,
-  which is historically correct.
+user-configurable; only \code{max_year} can be adjusted. Rows where
+\code{year} or \code{artis_iso3c} are \code{NA} are dropped from the
+final output. Time-dependent mappings are filtered so that only the
+correct sovereign assignment for each year is retained — entries whose
+\code{start_year} falls after \code{max_year} (e.g., post-independence
+state codes for a \code{max_year} before independence) produce no rows,
+which is historically correct.
 }
 \seealso{
 \itemize{
-  \item \code{\link{standardize_countries}} — uses the ARTIS corrections
-    table produced by this function to harmonize country identifiers
-  \item \code{\link{std_artis_input_countries}} — higher-level wrapper that
-    applies standardization to FAO, BACI, and SAU data
+\item \code{\link{standardize_countries}} — uses the ARTIS corrections
+table produced by this function to harmonize country identifiers
+\item \code{\link{std_artis_input_countries}} — higher-level wrapper that
+applies standardization to FAO, BACI, and SAU data
 }
 }
