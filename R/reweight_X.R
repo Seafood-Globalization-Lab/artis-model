@@ -1,3 +1,15 @@
+#' Reweight X matrix by species production volumes for a single country
+#'
+#' @param country_est Named list. Per-country optimization results.
+#' @param country_j Character. ISO3c code of the country to process.
+#' @param V1 Matrix. Live-weight-to-product conversion factors (products x species).
+#' @param V2 Matrix. Product-to-product conversion factors (products x products).
+#' @return Data frame with columns iso3c, hs6, SciName, and reweighted_X
+#'   (proportion of each HS6 product attributable to each species).
+#' @importFrom tibble rownames_to_column
+#' @importFrom tidyr pivot_longer
+#' @importFrom dplyr filter mutate left_join group_by ungroup select
+#' @importFrom stringr str_extract
 #' @export
 reweight_X <- function(country_est, country_j, V1, V2){
   # Live weight conversion factors from live weight to product weight

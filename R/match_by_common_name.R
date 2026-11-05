@@ -1,4 +1,16 @@
-#' @importFrom dplyr filter
+#' Match production taxa to an HS code by common name
+#'
+#' @param hs_codes_row Data table row. The HS code being matched.
+#' @param possible_prod_taxa Data frame. Production taxa eligible for matching.
+#' @param match_code_output Data table. Accumulated matches for the current code.
+#' @param remove_after_match Logical. If TRUE, matched taxa are removed from
+#'   possible_prod_taxa.
+#' @param match_type Character. Match category label to assign.
+#' @param hs_version Character. HS version string.
+#' @return A list of two elements: (1) updated match_code_output data.table,
+#'   (2) updated possible_prod_taxa data frame.
+#' @importFrom dplyr filter pull
+#' @importFrom data.table data.table
 #' @export
 match_by_common_name <- function(hs_codes_row, possible_prod_taxa, match_code_output, remove_after_match = TRUE, match_type, hs_version = hs_version){
   

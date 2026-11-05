@@ -1,3 +1,17 @@
+#' Resolve foreign exports one supply-chain stage back
+#'
+#' @param foreign_exports_in Data frame. Foreign export flows to be resolved.
+#' @param reweight_W_long Data frame. Output from create_reweight_W_long().
+#' @param import_props Data frame. Import proportions by source type.
+#' @param hs_clade_match Data frame. Output from match_hs_to_clade().
+#' @param resolve_threshold Numeric. Minimum product_weight_t for a flow to be
+#'   further resolved rather than assigned to error (default 1 tonne).
+#' @param zero_threshold Numeric. Flows below this weight are dropped
+#'   (default 1e-3 tonnes).
+#' @return A list of four data frames: (1) resolved domestic exports,
+#'   (2) resolved error exports, (3) resolved foreign exports still requiring
+#'   further resolution, (4) unresolved foreign exports below resolve_threshold.
+#' @importFrom dplyr rename left_join select mutate filter
 #' @export
 # Resolves foreign exports by 1 stage back
 #   finding which foreign exports originated from foreign/domestic/error exports

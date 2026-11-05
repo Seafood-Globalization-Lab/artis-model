@@ -1,3 +1,18 @@
+#' Calculate domestic, foreign, and error source weights for exports
+#'
+#' @param baci_data_analysis_year Data frame. BACI trade data for the analysis year.
+#' @param countries_to_analyze Character vector. ISO3c codes of countries to process.
+#' @param country_est Named list. Per-country optimization results.
+#' @param V1 Matrix. Live-weight-to-product conversion factors (products x species).
+#' @param V2 Matrix. Product-to-product conversion factors (products x products).
+#' @param cc_m Character vector. HS6 commodity codes used in the analysis.
+#' @param coproduct_codes Character vector. HS codes treated as co-products.
+#' @param dom_source_weight Character. One of "midpoint" (default), "max", or "min".
+#' @return Data frame with columns iso3c, hs6, domestic_weight, foreign_weight,
+#'   and error_weight.
+#' @importFrom tibble rownames_to_column
+#' @importFrom dplyr filter mutate select bind_rows
+#' @importFrom stringr str_extract
 #' @export
 create_export_source_weights <- function(baci_data_analysis_year, countries_to_analyze, country_est, V1, V2, cc_m,
                                          coproduct_codes, dom_source_weight = "midpoint") {

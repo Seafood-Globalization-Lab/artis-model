@@ -30,7 +30,6 @@ BugReports:
 Depends: 
     R (>= 4.1.0)
 Imports:
-    arrow,
     aws.s3,
     cli,
     countrycode,
@@ -38,18 +37,16 @@ Imports:
     DBI,
     doParallel,
     dplyr,
-    duckdb,
     foreach,
     future,
     future.apply,
     glue,
-    lifecycle,
     magrittr,
     parallel,
     qs2,
     readxl,
     reticulate,
-    rfishbase,
+    stats,
     stringr,
     tibble,
     tidyr,

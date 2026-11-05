@@ -1,3 +1,15 @@
+#' Create long-form X matrix across all countries
+#'
+#' @param country_est Named list. Per-country optimization results; each element
+#'   must contain an \code{X} matrix with row names encoding ISO3c and HS6 codes.
+#' @param num_cores Integer. Number of cores (currently unused; reserved for
+#'   future parallelization).
+#' @return Data frame with columns iso3c, hs6, sciname, habitat, method, and
+#'   estimated_X (non-zero allocations only).
+#' @importFrom tibble rownames_to_column
+#' @importFrom tidyr pivot_longer separate
+#' @importFrom dplyr filter mutate bind_rows
+#' @importFrom stringr str_extract
 #' @export
 create_X_long <- function(country_est, num_cores) {
 

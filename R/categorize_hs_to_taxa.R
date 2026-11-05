@@ -1,3 +1,12 @@
+#' Build HS-to-taxa match strength matrix (Xq)
+#'
+#' @param hs_taxa_match Data frame. Output from match_hs_to_taxa().
+#' @param coproduct_codes Character vector. HS codes to exclude as co-products.
+#' @return Numeric matrix (products x species) with match strength factors:
+#'   1 = explicit/aquarium match, 2 = NEC match, 3 = broad match. Co-product
+#'   codes are excluded; non-matching cells are 0.
+#' @importFrom dplyr filter mutate select arrange distinct
+#' @importFrom tidyr pivot_wider
 #' @export
 categorize_hs_to_taxa <- function(hs_taxa_match, coproduct_codes){
   # Make Xq, matrix for controlling strength of species to product estimates in optimization problem 
