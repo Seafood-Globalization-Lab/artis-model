@@ -2,26 +2,14 @@
 
 # sourced from 01-clean-input-data.R
 
-# R packages required ------------------------------------------------------
+# Load packages ------------------------------------------------------
 
-# make Posit package manager primary install repo (uses faster binaries)
-# @ snapshot date - hold all package versions to the "latest" version at this date
-# Think about updating this date, but a few months delayed from "today" to avoid release bugs
-pak::repo_add(CRAN = "RSPM@2026-06-21")
+library(glue)
+library(reticulate)
+library(cli)
 
-# install packages
-pak::pak(c(
-  "glue",
-  "reticulate",
-  "cli"
-))
 
-# load packages
-{
-  library(glue)
-  library(reticulate)
-  library(cli)
-}
+# Set configuration parameters -------------------------------------------
 
 # Set up Start date for finding no solution countries
 start_date <- Sys.Date()
