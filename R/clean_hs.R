@@ -15,6 +15,10 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
   # further downstream, use function str_to_sentence to format species names as (upper case) Genus + (lower case) species 
   
   #########################################################################
+
+  # Correction Type - spelling corrections
+  # FIXIT - 2026-09-23 create inline tribble that updates via row_updates
+
   # Correct spelling mistakes and other adjustments to HS Code Descriptions
   # Note: the following descriptions are cleaned manually (these names aren't recognized by synonyms function in rfishbase)
   hs_data$Description <- gsub(hs_data$Description, pattern="alaska pollack", replacement = "alaska pollock")
@@ -26,9 +30,15 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
   hs_data$Description <- gsub(hs_data$Description, pattern = "aequi opercularis", replacement = "aequipecten opercularis")
   hs_data$Description <- gsub(hs_data$Description, pattern = " ephrops norvegicus", replacement = " nephrops norvegicus") # Note: need space before "ephrops" so it doesn't match with "nephrops"
   
+  # Correction Type - alter definition
   # We are defining octopus species as all members of the family Octopodidae rather than only species of the genus octopus
   hs_data$Description <- gsub(hs_data$Description, pattern="octopus spp.", replacement = "octopodidae")
   
+
+  # Correction Type - standardize genus syntax
+  # FIXIT - 2026-09-23 pull unique prod_taxa_classification Genus values, run vector through string detect in descriptions, check if mention
+  # of genus is accompianed by " spp." add if not. This is an assumption of the downstream code - use CLI warning check.
+
   # Assumption in downstream code is that all genera are indicated as "<genera> spp"
   # Rewrite descriptions that are exceptions to this: "of the genus XXX" and "of the genera XXX"
   # Rewrite (Aguilla) and (Channa) as (Aguilla spp.) annd (Channa spp.)
@@ -40,7 +50,7 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
 
   hs_data <- hs_data %>%
     mutate(Description =  if_else(str_detect(string = hs_data$Description, pattern = "of the genus thunnus"), 
-                                  str_replace(hs_data$Description, pattern = "of the genus thunnus", replacement = "of thunnus spp."),
+                                  str_replace(hs_data$Description, pattern = "of the genus c", replacement = "of thunnus spp."),
                                   Description))
   
   hs_data <- hs_data %>%
@@ -54,6 +64,10 @@ clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealif
                                  Description))
   
   ###############################################################
+
+  # FIXIT - Thea look at "misformed" descriptions
+  # Can use more filled out descriptions from FAO per code - to create table and insert here - would replace manual corrections here. 
+ 
   # Fix descriptions that are poorly written, not specific enough
   # Description for code 030249 does not include fish taxa. Look up HS code on HTS.usitc.gov to get official list of taxa that should be included. There should be a heading that list possible taxa for each 5-digit family of codes:
   # Full list: Herrings (Clupea harengus, Clupea pallasii), anchovies (Engraulis spp.), sardines (Sardina pilchardus, Sardinops spp.), sardinella (Sardinella spp.), brisling or sprats (Sprattus sprattus), 
