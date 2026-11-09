@@ -1,7 +1,19 @@
-#' @importFrom data.table data.table
-#' @importFrom data.table as.data.table 
-#' @importFrom reticulate import
-#' @importFrom reticulate py_to_r
+#' Transform country data into quadratic programming problem inputs
+#'
+#' @param country_j Character.
+#' @param V1 Matrix.
+#' @param V2 Matrix.
+#' @param baci_data_clean Data frame.
+#' @param prod_data_clean Data frame.
+#' @param sc_n Character vector.
+#' @param cc_m Character vector.
+#' @param Xq Matrix.
+#' @return A named list containing the QP problem matrices (P, q, G, A, b, u)
+#'   and auxiliary outputs needed for unstack_qp_sol() (Z, null_production,
+#'   null_consumption, null_imports, dim_V1, dim_V2, V_X, V_W, scale_factor,
+#'   production, imports, exports).
+#' @importFrom data.table data.table as.data.table setnames
+#' @importFrom reticulate import py_to_r
 #' @export
 transform_to_qp_with_python <- function(country_j, V1, V2, baci_data_clean, prod_data_clean, sc_n, cc_m, Xq){
   # Create data table with all hs codes to standardize the order

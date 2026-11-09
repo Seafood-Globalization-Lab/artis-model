@@ -1,3 +1,13 @@
+#' Create long-form X matrix across all countries
+#'
+#' @param country_est Named list.
+#' @param num_cores Integer.
+#' @return Data frame with columns iso3c, hs6, sciname, habitat, method, and
+#'   estimated_X (non-zero allocations only).
+#' @importFrom tibble rownames_to_column
+#' @importFrom tidyr pivot_longer separate
+#' @importFrom dplyr filter mutate bind_rows
+#' @importFrom stringr str_extract
 #' @export
 create_X_long <- function(country_est, num_cores) {
 

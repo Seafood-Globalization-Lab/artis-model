@@ -1,4 +1,15 @@
-#' @importFrom dplyr filter
+#' Match remaining taxa to NEC (not elsewhere classified) HS codes
+#'
+#' @param hs_codes_row Data table row.
+#' @param possible_hs_codes Data frame.
+#' @param parent_output_list List.
+#' @param possible_prod_taxa Data frame.
+#' @param match_code_output Data table.
+#' @param match_type Character.
+#' @param hs_version Character.
+#' @return A data.table of HS code-to-taxa matches including NEC assignments.
+#' @importFrom dplyr filter pull
+#' @importFrom data.table data.table rbindlist
 #' @export
 match_NEC_taxa <- function(hs_codes_row, possible_hs_codes, parent_output_list, possible_prod_taxa, match_code_output, match_type, hs_version = hs_version){
   non_NEC_codes <- possible_hs_codes %>%

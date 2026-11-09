@@ -1,7 +1,24 @@
+#' Run the full ARTIS snet and consumption estimation pipeline
+#'
+#' @param quadprog_dir Character.
+#' @param cvxopt_dir Character.
+#' @param datadir Character.
+#' @param outdir Character.
+#' @param num_cores Integer.
+#' @param hs_version Character.
+#' @param test_years Numeric vector.
+#' @param prod_type Character.
+#' @param estimate_type Character.
+#' @param run_env Character.
+#' @param s3_bucket_name Character.
+#' @param s3_region Character.
+#' @return Invisibly NULL. Writes snet and consumption outputs to disk or S3.
 #' @importFrom tibble rownames_to_column
-#' @importFrom qs2 qd_save
-#' @importFrom qs2 qs_save
-#' @importFrom qs2 qs_readm
+#' @importFrom qs2 qd_save qs_save qs_readm
+#' @importFrom dplyr filter mutate select rename left_join bind_rows
+#' @importFrom tidyr pivot_longer
+#' @importFrom stringr str_detect str_replace
+#' @importFrom glue glue
 #' @export
 #' 
 get_snet <- function(quadprog_dir, 

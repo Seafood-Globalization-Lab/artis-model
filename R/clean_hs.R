@@ -1,5 +1,12 @@
+#' Clean and standardize raw HS code data
+#'
+#' @param hs_data_raw Data frame.
+#' @param fb_slb_dir Character.
+#' @return Data frame of cleaned HS codes with corrected descriptions, scientific
+#'   classification columns (Species, Genus, Family, Order, Class), habitat, and
+#'   commodity type flags.
 #' @import stringr
-#' @import dplyr 
+#' @import dplyr
 #' @export
 clean_hs <- function(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealifebase"){
   # Run ALL HS codes through clean_hs function to:

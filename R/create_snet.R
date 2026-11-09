@@ -1,3 +1,28 @@
+#' Create the ARTIS supply-chain network (S-net)
+#'
+#' @param baci_data_analysis_year Data frame.
+#' @param export_source_weights Data frame.
+#' @param reweight_W_long Data frame.
+#' @param reweight_X_long Data frame.
+#' @param V1_long Data frame.
+#' @param hs_clade_match Data frame.
+#' @param num_cores Integer.
+#' @param outdir Character.
+#' @param snet_threshold Numeric.
+#' @param estimate_type Character.
+#' @param run_env Character.
+#' @param s3_bucket_name Character.
+#' @param s3_region Character.
+#' @return Data frame with columns importer_iso3c, exporter_iso3c,
+#'   source_country_iso3c, hs6, sciname, habitat, method, dom_source,
+#'   product_weight_t, and live_weight_t.
+#' @importFrom dplyr left_join filter mutate rename select group_by summarize
+#'   ungroup bind_rows
+#' @importFrom tidyr pivot_longer separate
+#' @importFrom stringr str_extract
+#' @importFrom parallel makeCluster stopCluster
+#' @importFrom doParallel registerDoParallel
+#' @importFrom foreach foreach %dopar%
 #' @export
 create_snet <- function(baci_data_analysis_year, export_source_weights,
                         reweight_W_long, reweight_X_long, V1_long, hs_clade_match, num_cores,

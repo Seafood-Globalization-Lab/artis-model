@@ -1,3 +1,19 @@
+#' Set up initial variables for the ARTIS pipeline
+#'
+#' @param datadir Character.
+#' @param outdir Character.
+#' @param hs_version Character.
+#' @param test_years Numeric vector.
+#' @param prod_type Character.
+#' @param run_env Character.
+#' @param s3_bucket_name Character.
+#' @param s3_region Character.
+#' @return A list of 24 elements including production data, taxa classification,
+#'   HS taxa/CF/HS-HS matches, V1/V2 matrices, Xq, dimension vectors, species
+#'   and commodity code lists, and analysis year configuration.
+#' @importFrom dplyr filter mutate select left_join rename right_join distinct
+#' @importFrom stringr str_detect str_replace
+#' @importFrom data.table fread
 #' @export
 initial_variable_setup <- function(datadir, 
                                    outdir, 

@@ -1,4 +1,11 @@
-#' @importFrom dplyr select 
+#' Build V1 live-weight conversion factor matrix (products x species)
+#'
+#' @param hs_taxa_CF_match Data frame.
+#' @param coproduct_codes Character vector.
+#' @return A list of three elements: (1) V1 numeric matrix (products x species)
+#'   of live-weight-to-commodity conversion factors, (2) row_order character
+#'   vector of HS codes, (3) col_order character vector of taxa names.
+#' @importFrom dplyr filter select arrange distinct
 #' @importFrom tidyr pivot_wider
 #' @export
 make_v1 <- function(hs_taxa_CF_match, coproduct_codes){

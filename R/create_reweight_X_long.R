@@ -1,3 +1,10 @@
+#' Reweight X long across all countries
+#'
+#' @param country_est Named list.
+#' @param V1 Matrix.
+#' @param V2 Matrix.
+#' @return Data frame with columns iso3c, hs6, SciName, and reweighted_X.
+#' @importFrom dplyr bind_rows group_by summarize ungroup mutate filter
 #' @export
 create_reweight_X_long <- function(country_est, V1, V2) {
   

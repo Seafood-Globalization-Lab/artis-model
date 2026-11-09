@@ -1,4 +1,16 @@
-#' @importFrom dplyr filter
+#' Match production taxa to an HS code by scientific classification
+#'
+#' @param hs_codes_row Data table row.
+#' @param possible_prod_taxa Data frame.
+#' @param match_code_output Data table.
+#' @param remove_after_match Logical.
+#' @param match_type Character.
+#' @param hs_version Character.
+#' @return A list of two elements: (1) updated match_code_output data.table,
+#'   (2) updated possible_prod_taxa data frame.
+#' @importFrom dplyr filter select distinct mutate pull
+#' @importFrom stringr str_extract str_extract_all
+#' @importFrom data.table data.table
 #' @export
 match_by_taxon <- function(hs_codes_row, possible_prod_taxa, match_code_output, remove_after_match = TRUE, match_type, hs_version = hs_version){
   

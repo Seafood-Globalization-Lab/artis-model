@@ -1,11 +1,13 @@
-#' @importFrom dplyr filter
-#' @importFrom dplyr select
-#' @importFrom dplyr summarize
-#' @importFrom dplyr ungroup
-#' @importFrom dplyr group_by
-#' @importFrom dplyr pull
-#' @importFrom dplyr rename
-#' @importFrom dplyr left_join
+#' Match HS codes to allowable HS-to-HS commodity conversions
+#'
+#' @param hs_taxa_match Data frame.
+#' @param hs_version Character.
+#' @param prod_taxa_classification Data frame.
+#' @param threshold Numeric.
+#' @return Data frame of all allowable Code_pre to Code_post conversions with
+#'   shared taxa, preparation/separation categories, and a Conversion_test flag.
+#' @importFrom dplyr filter select summarize ungroup group_by pull rename
+#'   left_join mutate rowwise
 #' @importFrom stringr str_detect
 #' @export
 match_hs_to_hs <- function(hs_taxa_match, hs_version, prod_taxa_classification, threshold=0.0){ 

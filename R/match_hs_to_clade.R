@@ -1,3 +1,10 @@
+#' Match each HS code to its most specific shared taxonomic clade
+#'
+#' @param hs_taxa_match Data frame.
+#' @param prod_taxa_classification Data frame.
+#' @param match_to_prod Logical.
+#' @return Data frame with columns Code, hs_clade, and classification_level
+#'   (e.g., "Species", "Genus", "Family", etc.).
 #' @import dplyr
 #' @export
 match_hs_to_clade <- function(hs_taxa_match, prod_taxa_classification, match_to_prod = TRUE){

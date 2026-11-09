@@ -1,3 +1,15 @@
+#' Resolve foreign exports one supply-chain stage back
+#'
+#' @param foreign_exports_in Data frame.
+#' @param reweight_W_long Data frame.
+#' @param import_props Data frame.
+#' @param hs_clade_match Data frame.
+#' @param resolve_threshold Numeric.
+#' @param zero_threshold Numeric.
+#' @return A list of four data frames: (1) resolved domestic exports,
+#'   (2) resolved error exports, (3) resolved foreign exports still requiring
+#'   further resolution, (4) unresolved foreign exports below resolve_threshold.
+#' @importFrom dplyr rename left_join select mutate filter
 #' @export
 # Resolves foreign exports by 1 stage back
 #   finding which foreign exports originated from foreign/domestic/error exports

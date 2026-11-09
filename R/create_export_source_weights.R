@@ -1,3 +1,18 @@
+#' Calculate domestic, foreign, and error source weights for exports
+#'
+#' @param baci_data_analysis_year Data frame.
+#' @param countries_to_analyze Character vector.
+#' @param country_est Named list.
+#' @param V1 Matrix.
+#' @param V2 Matrix.
+#' @param cc_m Character vector.
+#' @param coproduct_codes Character vector.
+#' @param dom_source_weight Character.
+#' @return Data frame with columns iso3c, hs6, domestic_weight, foreign_weight,
+#'   and error_weight.
+#' @importFrom tibble rownames_to_column
+#' @importFrom dplyr filter mutate select bind_rows
+#' @importFrom stringr str_extract
 #' @export
 create_export_source_weights <- function(baci_data_analysis_year, countries_to_analyze, country_est, V1, V2, cc_m,
                                          coproduct_codes, dom_source_weight = "midpoint") {

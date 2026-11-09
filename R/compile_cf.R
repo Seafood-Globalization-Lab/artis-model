@@ -1,3 +1,13 @@
+#' Compile live-weight conversion factors for HS codes
+#'
+#' @param conversion_factors Data frame.
+#' @param eumofa_data Data frame.
+#' @param hs_hs_match Data frame.
+#' @param hs_version Character.
+#' @param match_criteria Character.
+#' @param fb_slb_dir Character.
+#' @return Data frame with columns Code, Taxa, CF_calc, CF_live_to_commod, and
+#'   match metadata. One row per Code-Taxa combination.
 #' @import dplyr
 #' @import tidyr
 #' @importFrom data.table rbindlist

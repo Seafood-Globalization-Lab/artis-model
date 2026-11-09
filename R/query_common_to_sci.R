@@ -1,3 +1,8 @@
+#' Query a common-name-to-sciname lookup data frame
+#'
+#' @param df Data frame.
+#' @param in_query Character.
+#' @return Data frame with 0 or 1 rows containing the matching scientific name.
 #' @import dplyr
 #' @export
 query_common_to_sci <- function(df, in_query) {
