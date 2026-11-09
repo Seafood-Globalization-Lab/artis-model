@@ -43,7 +43,7 @@ There are a few key components to our git and GitHub software development workfl
 
 - **Releases** — A GitHub feature for publishing a named, versioned snapshot of a repository at a specific commit, typically accompanied by release notes. In ARTIS, releases are tagged on `main` using simplified semantic versioning (e.g., `v3.0`) and represent stable, production-ready states of the codebase.
 
-- **GitHub Actions** — A CI/CD and automation platform built into GitHub that runs workflows in response to repository events such as pushing code or updating a PR. In ARTIS, Actions automate issue closure when work is marked Done and update theme/epic statuses when draft PRs are marked ready for review.
+- **GitHub Actions** — A CI/CD and automation platform built into GitHub that runs workflows in response to repository events such as pushing code or updating a PR. In ARTIS, Actions automate project status transitions across the PR lifecycle: draft opened → In Progress, ready for review → Needs Review, merged → Done.
 
 ### Details: Issues
 
@@ -58,14 +58,12 @@ ARTIS uses two tiers of issue types to organize work:
 Theme/Epic issues follow this automated lifecycle:
 
 1. Open a draft PR linked to the theme/epic with `Closes #<issue-number>` in the PR body — the theme/epic issue and PR status automatically update to **In Progress**
-2. When the draft PR is marked ready for review, the theme/epic status automatically updates to **Needs Review**
-3. When the PR is merged into `develop`, the theme/epic issue automatically closes via the `Closes #` reference
+2. When the draft PR is marked ready for review, the theme/epic issue and PR status automatically update to **Needs Review**
+3. When the PR is merged into `develop`, the theme/epic issue and PR status automatically update to **Done**, and the theme/epic issue is automatically closed via the `Closes #` reference
 
 #### Sub-issue Lifecycle
 
-Sub-issues progress through statuses as work advances on the parent theme/epic branch. When a sub-issue is finished, set its status to **Done** — a GitHub Actions workflow will automatically close the issue. This drives the sub-issue progress bar on the parent theme/epic.
-
-Do not close sub-issues manually unless correcting an error.
+Sub-issues progress through statuses as work advances on the parent theme/epic branch. When a sub-issue is finished, set its status to **Done** and close the issue manually in the GitHub UI. This drives the sub-issue progress bar on the parent theme/epic.
 
 ### Details: Issue/PR Status Categories
 
@@ -78,7 +76,7 @@ All issues/PRs are tracked in the GitHub Project board using the following statu
 | In Progress | Actively being worked on |
 | Needs Review | Work is complete and under review (theme/epics: PR is open for review) |
 | Stalled | Work has paused; uncertain if or when it will resume |
-| Done | Work is complete — triggers automatic issue closure |
+| Done | Work is complete |
 
 ### Details: Branches
 
@@ -166,29 +164,20 @@ gitGraph
 > The `git fetch/rebase/push` loop directly replaces a more common place `git pull/push` workflow. This is intentional to keep a linear history and avoid accidentally pulling down and overwriting your local work with unexpected changes from GitHub. 
 
 
-4) When a sub-issue is complete, reference the issue number in the final commit message. 
+4) When a sub-issue is complete, reference the issue number in the body of the draft PR. 
     - For a full list of linking keywords see the related [GitHub Docs](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword)
 
-
     ```
-    Resolves #43 cleaned up function internal object naming and references. updated Roxygen2 header. 
+    Resolves #43 
     ```
-
-5) Manually change the status of the complete sub-issue on the GitHub UI to `Done` in the right-hand-side metadata column. 
-
-    > [!NOTE]
-    > This status change event triggers the `close-issue-on-done.yml` GitHub Action 
-
 
 ## Prepare for Merging Work into `develop` 📋
 
-1) Change Pull Request (PR) state from "Draft" to "Open" on GitHub UI at the bottom of the PR body.
+1) Change Pull Request (PR) state from "Draft" to "Open" on GitHub UI at the bottom of the PR body. The PR and linked  issues status' will automatically update to **Needs Review**.
 
-2) Change PR status from "In Progress" to "Needs Review" on GitHub UI on the right-hand-side metadata column.
+2) Work through checklists in the PR body (populated by a template) that include describing the work done, testing, documentation checks, and `git rebase` instructions to prep the branch for merging (also described below).
 
-3) Work through checklists in the PR body (populated by a template) that include describing the work done, testing, documentation checks, and `git rebase` instructions to prep the branch for merging (also described below). 
-
-4) Assign a reviewer (if applicable) and notify them directly outside of GitHub about the pending code review. 
+3) Assign a reviewer (if applicable) and notify them directly outside of GitHub about the pending code review.
 
 ## Rebasing Before Merge 🎩
 
@@ -232,14 +221,16 @@ Automation is handled by two layers: **GitHub Actions** (repository-level workfl
 
 ### GitHub Actions
 
-**Close sub-issue on Done** (org `.github` repo: `workflows/close-issue-on-done.yml`)
-Triggered when a project item's Status field changes to "Done". Automatically closes the linked sub-issue with state reason `completed`. Lives in the org-level `.github` repository because `projects_v2_item` is an organization event not available to repository-level workflows. Requires the `ORG_PROJECTS_TOKEN` organization secret with Projects and Issues write permissions.
+All three workflows below live in `artis-model`: `.github/workflows/` and require the `ORG_PROJECTS_TOKEN` organization secret with Projects and Issues write permissions. Each workflow updates the project Status for both the PR and any linked theme/epic issue.
 
-**Epic status: In Progress on draft PR** (`artis-model`: `.github/workflows/set-epic-in-progress-on-draft-pr.yml`)
-Triggered when a draft PR is opened. Automatically sets the linked theme/epic issue's and the PR's project status to "In Progress". Requires the same `ORG_PROJECTS_TOKEN` secret.
+**`set-draft-pr-and-issues-status.yml`**
+Triggered when a draft PR is opened. Sets the PR and linked theme/epic issue status to "In Progress".
 
-**Epic status: Needs Review on PR ready** (`artis-model`: `.github/workflows/update-epic-status-on-review.yml`)
-Triggered when a draft PR is marked ready for review. Automatically sets the linked theme/epic issue's and the PR's project status to "Needs Review". Requires the same `ORG_PROJECTS_TOKEN` secret.
+**`set-ready-pr-and-issues-status.yml`**
+Triggered when a draft PR is marked ready for review. Sets the PR and linked theme/epic issue status to "Needs Review".
+
+**`set-merged-pr-and-issues-status.yml`**
+Triggered when a PR is merged. Sets the PR and linked theme/epic issue status to "Done". GitHub natively closes any issues referenced with `Closes #N` in the PR body at the same time.
 
 ### GitHub Project Workflows
 
