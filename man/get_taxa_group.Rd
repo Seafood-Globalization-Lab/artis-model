@@ -7,11 +7,9 @@
 get_taxa_group(hs_code_row, prod_taxa_classification)
 }
 \arguments{
-\item{hs_code_row}{Data frame row. Must include logical columns Fishes,
-Crustaceans, Molluscs, and Aquatic_invertebrates.}
+\item{hs_code_row}{Data frame row.}
 
-\item{prod_taxa_classification}{Data frame. Taxa classification table with
-SciName, Class, Superclass, and Phylum columns.}
+\item{prod_taxa_classification}{Data frame.}
 }
 \value{
 Data frame of production taxa whose taxonomic group matches the

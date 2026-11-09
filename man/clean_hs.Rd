@@ -7,9 +7,9 @@
 clean_hs(hs_data_raw, fb_slb_dir = "model_inputs_raw/fishbase_sealifebase")
 }
 \arguments{
-\item{hs_data_raw}{Data frame. Raw HS code data with Code and Description columns.}
+\item{hs_data_raw}{Data frame.}
 
-\item{fb_slb_dir}{Character. Path to FishBase/SeaLifeBase data directory.}
+\item{fb_slb_dir}{Character.}
 }
 \value{
 Data frame of cleaned HS codes with corrected descriptions, scientific

@@ -7,9 +7,9 @@
 categorize_hs_to_taxa(hs_taxa_match, coproduct_codes)
 }
 \arguments{
-\item{hs_taxa_match}{Data frame. Output from match_hs_to_taxa().}
+\item{hs_taxa_match}{Data frame.}
 
-\item{coproduct_codes}{Character vector. HS codes to exclude as co-products.}
+\item{coproduct_codes}{Character vector.}
 }
 \value{
 Numeric matrix (products x species) with match strength factors:

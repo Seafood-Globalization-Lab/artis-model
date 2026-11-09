@@ -11,12 +11,11 @@ match_hs_to_clade(
 )
 }
 \arguments{
-\item{hs_taxa_match}{Data frame. Output from match_hs_to_taxa().}
+\item{hs_taxa_match}{Data frame.}
 
-\item{prod_taxa_classification}{Data frame. Taxa classification table.}
+\item{prod_taxa_classification}{Data frame.}
 
-\item{match_to_prod}{Logical. If TRUE (default), only clades present in
-production data are considered valid matches.}
+\item{match_to_prod}{Logical.}
 }
 \value{
 Data frame with columns Code, hs_clade, and classification_level

@@ -16,21 +16,21 @@ transform_to_qp_with_python(
 )
 }
 \arguments{
-\item{country_j}{Character. ISO3c code of the focal country.}
+\item{country_j}{Character.}
 
-\item{V1}{Matrix. Live-weight-to-product conversion factors (products x species).}
+\item{V1}{Matrix.}
 
-\item{V2}{Matrix. Product-to-product conversion factors (products x products).}
+\item{V2}{Matrix.}
 
-\item{baci_data_clean}{Data frame. Cleaned BACI trade data for the analysis year.}
+\item{baci_data_clean}{Data frame.}
 
-\item{prod_data_clean}{Data frame. Cleaned production data for the analysis year.}
+\item{prod_data_clean}{Data frame.}
 
-\item{sc_n}{Character vector. Species codes (columns of V1).}
+\item{sc_n}{Character vector.}
 
-\item{cc_m}{Character vector. Commodity codes (rows of V1).}
+\item{cc_m}{Character vector.}
 
-\item{Xq}{Matrix. Match strength matrix from categorize_hs_to_taxa().}
+\item{Xq}{Matrix.}
 }
 \value{
 A named list containing the QP problem matrices (P, q, G, A, b, u)

@@ -1,8 +1,8 @@
 #' Build V2 HS-to-HS conversion factor matrix (products x products)
 #'
-#' @param hs_hs_match Data frame. Output from match_hs_to_hs().
-#' @param hs_taxa_CF_match Data frame. HS code-to-taxa conversion factor matches.
-#' @param coproduct_codes Character vector. HS codes to exclude as co-products.
+#' @param hs_hs_match Data frame.
+#' @param hs_taxa_CF_match Data frame.
+#' @param coproduct_codes Character vector.
 #' @return A list of three elements: (1) V2 numeric matrix (Code_post x Code_pre)
 #'   of commodity-to-commodity conversion factors, (2) row_order character vector
 #'   of Code_post values, (3) col_order character vector of Code_pre values.

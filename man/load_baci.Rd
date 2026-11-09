@@ -7,13 +7,11 @@
 load_baci(baci_data, hs_codes, baci_country_codes)
 }
 \arguments{
-\item{baci_data}{Data frame. Raw BACI data with columns k (HS6), i (exporter
-country code), j (importer country code), v (value), q (quantity).}
+\item{baci_data}{Data frame.}
 
-\item{hs_codes}{Character vector. HS6 codes to retain.}
+\item{hs_codes}{Character vector.}
 
-\item{baci_country_codes}{Data frame. Mapping of country codes to ISO3c and
-country names.}
+\item{baci_country_codes}{Data frame.}
 }
 \value{
 Data frame with columns exporter_iso3c, importer_iso3c, hs6,

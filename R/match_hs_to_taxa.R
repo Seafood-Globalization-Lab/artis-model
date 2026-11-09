@@ -1,9 +1,9 @@
 #' Match HS codes to production taxa
 #'
-#' @param hs_data_clean Data frame. Output from clean_hs().
-#' @param prod_taxa_classification Data frame. Taxa classification table.
-#' @param fmfo_species_list Data frame. FMFO species list from get_fmfo_species().
-#' @param hs_version Character. HS version (e.g., "HS17").
+#' @param hs_data_clean Data frame.
+#' @param prod_taxa_classification Data frame.
+#' @param fmfo_species_list Data frame.
+#' @param hs_version Character.
 #' @return Data frame with columns Code, SciName, Match_category, HS_version,
 #'   Description, and Modification.
 #' @importFrom data.table data.table rbindlist

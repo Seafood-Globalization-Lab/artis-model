@@ -20,29 +20,29 @@ get_snet(
 )
 }
 \arguments{
-\item{quadprog_dir}{Character. Path to quadprog solver output directory.}
+\item{quadprog_dir}{Character.}
 
-\item{cvxopt_dir}{Character. Path to cvxopt solver output directory.}
+\item{cvxopt_dir}{Character.}
 
-\item{datadir}{Character. Path to model input data directory.}
+\item{datadir}{Character.}
 
-\item{outdir}{Character. Path to output directory.}
+\item{outdir}{Character.}
 
-\item{num_cores}{Integer. Number of parallel cores (default 10).}
+\item{num_cores}{Integer.}
 
-\item{hs_version}{Character. HS version to run (e.g., "17").}
+\item{hs_version}{Character.}
 
-\item{test_years}{Numeric vector. Subset of years to run; empty runs all years.}
+\item{test_years}{Numeric vector.}
 
-\item{prod_type}{Character. "FAO" or "SAU".}
+\item{prod_type}{Character.}
 
-\item{estimate_type}{Character. "midpoint", "max", or "min".}
+\item{estimate_type}{Character.}
 
-\item{run_env}{Character. "aws" or local.}
+\item{run_env}{Character.}
 
-\item{s3_bucket_name}{Character. S3 bucket name (used when run_env == "aws").}
+\item{s3_bucket_name}{Character.}
 
-\item{s3_region}{Character. AWS region (used when run_env == "aws").}
+\item{s3_region}{Character.}
 }
 \value{
 Invisibly NULL. Writes snet and consumption outputs to disk or S3.

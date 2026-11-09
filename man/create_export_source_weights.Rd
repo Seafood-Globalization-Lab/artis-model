@@ -16,21 +16,21 @@ create_export_source_weights(
 )
 }
 \arguments{
-\item{baci_data_analysis_year}{Data frame. BACI trade data for the analysis year.}
+\item{baci_data_analysis_year}{Data frame.}
 
-\item{countries_to_analyze}{Character vector. ISO3c codes of countries to process.}
+\item{countries_to_analyze}{Character vector.}
 
-\item{country_est}{Named list. Per-country optimization results.}
+\item{country_est}{Named list.}
 
-\item{V1}{Matrix. Live-weight-to-product conversion factors (products x species).}
+\item{V1}{Matrix.}
 
-\item{V2}{Matrix. Product-to-product conversion factors (products x products).}
+\item{V2}{Matrix.}
 
-\item{cc_m}{Character vector. HS6 commodity codes used in the analysis.}
+\item{cc_m}{Character vector.}
 
-\item{coproduct_codes}{Character vector. HS codes treated as co-products.}
+\item{coproduct_codes}{Character vector.}
 
-\item{dom_source_weight}{Character. One of "midpoint" (default), "max", or "min".}
+\item{dom_source_weight}{Character.}
 }
 \value{
 Data frame with columns iso3c, hs6, domestic_weight, foreign_weight,

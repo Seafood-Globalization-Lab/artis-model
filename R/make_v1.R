@@ -1,7 +1,7 @@
 #' Build V1 live-weight conversion factor matrix (products x species)
 #'
-#' @param hs_taxa_CF_match Data frame. HS code-to-taxa conversion factor matches.
-#' @param coproduct_codes Character vector. HS codes to exclude as co-products.
+#' @param hs_taxa_CF_match Data frame.
+#' @param coproduct_codes Character vector.
 #' @return A list of three elements: (1) V1 numeric matrix (products x species)
 #'   of live-weight-to-commodity conversion factors, (2) row_order character
 #'   vector of HS codes, (3) col_order character vector of taxa names.

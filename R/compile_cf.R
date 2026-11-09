@@ -1,11 +1,11 @@
 #' Compile live-weight conversion factors for HS codes
 #'
-#' @param conversion_factors Data frame. Species-level conversion factor data.
-#' @param eumofa_data Data frame. EUMOFA 8-digit conversion factor data.
-#' @param hs_hs_match Data frame. Output from match_hs_to_hs().
-#' @param hs_version Character. HS version (e.g., "HS17").
-#' @param match_criteria Character. One of "EUMOFA", "strict", "loose", or "fillet".
-#' @param fb_slb_dir Character. Path to FishBase/SeaLifeBase data directory.
+#' @param conversion_factors Data frame.
+#' @param eumofa_data Data frame.
+#' @param hs_hs_match Data frame.
+#' @param hs_version Character.
+#' @param match_criteria Character.
+#' @param fb_slb_dir Character.
 #' @return Data frame with columns Code, Taxa, CF_calc, CF_live_to_commod, and
 #'   match metadata. One row per Code-Taxa combination.
 #' @import dplyr

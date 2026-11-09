@@ -1,13 +1,13 @@
 #' Set up initial variables for the ARTIS pipeline
 #'
-#' @param datadir Character. Path to model input data directory.
-#' @param outdir Character. Path to output directory.
-#' @param hs_version Character. HS version to run (e.g., "17").
-#' @param test_years Numeric vector. Subset of years to run; empty runs all years.
-#' @param prod_type Character. "FAO" or "SAU".
-#' @param run_env Character. "aws" or local.
-#' @param s3_bucket_name Character. S3 bucket name (used when run_env == "aws").
-#' @param s3_region Character. AWS region (used when run_env == "aws").
+#' @param datadir Character.
+#' @param outdir Character.
+#' @param hs_version Character.
+#' @param test_years Numeric vector.
+#' @param prod_type Character.
+#' @param run_env Character.
+#' @param s3_bucket_name Character.
+#' @param s3_region Character.
 #' @return A list of 24 elements including production data, taxa classification,
 #'   HS taxa/CF/HS-HS matches, V1/V2 matrices, Xq, dimension vectors, species
 #'   and commodity code lists, and analysis year configuration.

@@ -1,8 +1,8 @@
 #' Reweight the W matrix by observed import volumes and conversion factors
 #'
-#' @param W_long Data frame. Long-form W matrix from create_W_long().
-#' @param baci_data_analysis_year Data frame. BACI trade data for the analysis year.
-#' @param V2_long Data frame. Long-form V2 conversion factors.
+#' @param W_long Data frame.
+#' @param baci_data_analysis_year Data frame.
+#' @param V2_long Data frame.
 #' @return Data frame with columns exporter_iso3c, hs6_processed, hs6_original,
 #'   product_cf, and reweighted_W. Returns NULL with a warning if proportions do
 #'   not sum to 1.

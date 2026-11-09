@@ -1,8 +1,7 @@
 #' Query a common-name-to-sciname lookup data frame
 #'
-#' @param df Data frame. Common-name-to-sciname lookup table with a CommonName
-#'   column.
-#' @param in_query Character. Common name to look up (case-insensitive).
+#' @param df Data frame.
+#' @param in_query Character.
 #' @return Data frame with 0 or 1 rows containing the matching scientific name.
 #' @import dplyr
 #' @export

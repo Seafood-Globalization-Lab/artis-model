@@ -1,18 +1,18 @@
 #' Create the ARTIS supply-chain network (S-net)
 #'
-#' @param baci_data_analysis_year Data frame. BACI trade data for the analysis year.
-#' @param export_source_weights Data frame. Output from create_export_source_weights().
-#' @param reweight_W_long Data frame. Output from create_reweight_W_long().
-#' @param reweight_X_long Data frame. Output from create_reweight_X_long().
-#' @param V1_long Data frame. Long-form V1 conversion factors.
-#' @param hs_clade_match Data frame. Output from match_hs_to_clade().
-#' @param num_cores Integer. Number of parallel cores for sciname resolution.
-#' @param outdir Character. Directory for intermediate CSV outputs.
-#' @param snet_threshold Numeric. Minimum product_weight_t to retain (default 0.1).
-#' @param estimate_type Character. One of "midpoint", "max", or "min".
-#' @param run_env Character. "aws" or "local".
-#' @param s3_bucket_name Character. S3 bucket name (used when run_env == "aws").
-#' @param s3_region Character. AWS region (used when run_env == "aws").
+#' @param baci_data_analysis_year Data frame.
+#' @param export_source_weights Data frame.
+#' @param reweight_W_long Data frame.
+#' @param reweight_X_long Data frame.
+#' @param V1_long Data frame.
+#' @param hs_clade_match Data frame.
+#' @param num_cores Integer.
+#' @param outdir Character.
+#' @param snet_threshold Numeric.
+#' @param estimate_type Character.
+#' @param run_env Character.
+#' @param s3_bucket_name Character.
+#' @param s3_region Character.
 #' @return Data frame with columns importer_iso3c, exporter_iso3c,
 #'   source_country_iso3c, hs6, sciname, habitat, method, dom_source,
 #'   product_weight_t, and live_weight_t.

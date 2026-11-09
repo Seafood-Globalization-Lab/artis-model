@@ -1,7 +1,7 @@
 #' Unstack a QP solution vector into X, W, and consumption matrices
 #'
-#' @param qp_sol Numeric vector. Solution vector returned by the QP solver.
-#' @param qp_inputs Named list. Output from transform_to_qp_with_python().
+#' @param qp_sol Numeric vector.
+#' @param qp_inputs Named list.
 #' @return A named list with elements X (production-to-HS allocation matrix),
 #'   W (import processing matrix), c (consumption vector), p (production vector),
 #'   error_term, exports, and imports. All values are rescaled to original units.

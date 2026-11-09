@@ -1,10 +1,9 @@
 #' Match HS codes to allowable HS-to-HS commodity conversions
 #'
-#' @param hs_taxa_match Data frame. Output from match_hs_to_taxa().
-#' @param hs_version Character. HS version (e.g., "HS17").
-#' @param prod_taxa_classification Data frame. Taxa classification table.
-#' @param threshold Numeric. Minimum proportion of shared taxa required for a
-#'   valid conversion (default 0.0).
+#' @param hs_taxa_match Data frame.
+#' @param hs_version Character.
+#' @param prod_taxa_classification Data frame.
+#' @param threshold Numeric.
 #' @return Data frame of all allowable Code_pre to Code_post conversions with
 #'   shared taxa, preparation/separation categories, and a Conversion_test flag.
 #' @importFrom dplyr filter select summarize ungroup group_by pull rename

@@ -7,11 +7,11 @@
 create_reweight_W_long(W_long, baci_data_analysis_year, V2_long = V2_long)
 }
 \arguments{
-\item{W_long}{Data frame. Long-form W matrix from create_W_long().}
+\item{W_long}{Data frame.}
 
-\item{baci_data_analysis_year}{Data frame. BACI trade data for the analysis year.}
+\item{baci_data_analysis_year}{Data frame.}
 
-\item{V2_long}{Data frame. Long-form V2 conversion factors.}
+\item{V2_long}{Data frame.}
 }
 \value{
 Data frame with columns exporter_iso3c, hs6_processed, hs6_original,

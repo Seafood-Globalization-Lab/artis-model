@@ -21,31 +21,31 @@ create_snet(
 )
 }
 \arguments{
-\item{baci_data_analysis_year}{Data frame. BACI trade data for the analysis year.}
+\item{baci_data_analysis_year}{Data frame.}
 
-\item{export_source_weights}{Data frame. Output from create_export_source_weights().}
+\item{export_source_weights}{Data frame.}
 
-\item{reweight_W_long}{Data frame. Output from create_reweight_W_long().}
+\item{reweight_W_long}{Data frame.}
 
-\item{reweight_X_long}{Data frame. Output from create_reweight_X_long().}
+\item{reweight_X_long}{Data frame.}
 
-\item{V1_long}{Data frame. Long-form V1 conversion factors.}
+\item{V1_long}{Data frame.}
 
-\item{hs_clade_match}{Data frame. Output from match_hs_to_clade().}
+\item{hs_clade_match}{Data frame.}
 
-\item{num_cores}{Integer. Number of parallel cores for sciname resolution.}
+\item{num_cores}{Integer.}
 
-\item{outdir}{Character. Directory for intermediate CSV outputs.}
+\item{outdir}{Character.}
 
-\item{snet_threshold}{Numeric. Minimum product_weight_t to retain (default 0.1).}
+\item{snet_threshold}{Numeric.}
 
-\item{estimate_type}{Character. One of "midpoint", "max", or "min".}
+\item{estimate_type}{Character.}
 
-\item{run_env}{Character. "aws" or "local".}
+\item{run_env}{Character.}
 
-\item{s3_bucket_name}{Character. S3 bucket name (used when run_env == "aws").}
+\item{s3_bucket_name}{Character.}
 
-\item{s3_region}{Character. AWS region (used when run_env == "aws").}
+\item{s3_region}{Character.}
 }
 \value{
 Data frame with columns importer_iso3c, exporter_iso3c,

@@ -7,9 +7,9 @@
 unstack_qp_sol(qp_sol, qp_inputs)
 }
 \arguments{
-\item{qp_sol}{Numeric vector. Solution vector returned by the QP solver.}
+\item{qp_sol}{Numeric vector.}
 
-\item{qp_inputs}{Named list. Output from transform_to_qp_with_python().}
+\item{qp_inputs}{Named list.}
 }
 \value{
 A named list with elements X (production-to-HS allocation matrix),

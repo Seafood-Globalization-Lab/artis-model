@@ -7,10 +7,9 @@
 query_common_to_sci(df, in_query)
 }
 \arguments{
-\item{df}{Data frame. Common-name-to-sciname lookup table with a CommonName
-column.}
+\item{df}{Data frame.}
 
-\item{in_query}{Character. Common name to look up (case-insensitive).}
+\item{in_query}{Character.}
 }
 \value{
 Data frame with 0 or 1 rows containing the matching scientific name.

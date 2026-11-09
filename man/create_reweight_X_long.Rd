@@ -7,11 +7,11 @@
 create_reweight_X_long(country_est, V1, V2)
 }
 \arguments{
-\item{country_est}{Named list. Per-country optimization results.}
+\item{country_est}{Named list.}
 
-\item{V1}{Matrix. Live-weight-to-product conversion factors (products x species).}
+\item{V1}{Matrix.}
 
-\item{V2}{Matrix. Product-to-product conversion factors (products x products).}
+\item{V2}{Matrix.}
 }
 \value{
 Data frame with columns iso3c, hs6, SciName, and reweighted_X.

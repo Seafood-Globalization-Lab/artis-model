@@ -7,11 +7,9 @@
 create_X_long(country_est, num_cores)
 }
 \arguments{
-\item{country_est}{Named list. Per-country optimization results; each element
-must contain an \code{X} matrix with row names encoding ISO3c and HS6 codes.}
+\item{country_est}{Named list.}
 
-\item{num_cores}{Integer. Number of cores (currently unused; reserved for
-future parallelization).}
+\item{num_cores}{Integer.}
 }
 \value{
 Data frame with columns iso3c, hs6, sciname, habitat, method, and

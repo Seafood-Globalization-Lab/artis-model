@@ -1,12 +1,12 @@
 #' Match remaining taxa to NEC (not elsewhere classified) HS codes
 #'
-#' @param hs_codes_row Data table row. The NEC HS code being matched.
-#' @param possible_hs_codes Data frame. All HS codes in the current parent group.
-#' @param parent_output_list List. Previously matched outputs for the parent group.
-#' @param possible_prod_taxa Data frame. Production taxa eligible for matching.
-#' @param match_code_output Data table. Accumulated matches for the current code.
-#' @param match_type Character. Match category label to assign.
-#' @param hs_version Character. HS version string.
+#' @param hs_codes_row Data table row.
+#' @param possible_hs_codes Data frame.
+#' @param parent_output_list List.
+#' @param possible_prod_taxa Data frame.
+#' @param match_code_output Data table.
+#' @param match_type Character.
+#' @param hs_version Character.
 #' @return A data.table of HS code-to-taxa matches including NEC assignments.
 #' @importFrom dplyr filter pull
 #' @importFrom data.table data.table rbindlist

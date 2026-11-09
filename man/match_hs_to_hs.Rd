@@ -12,14 +12,13 @@ match_hs_to_hs(
 )
 }
 \arguments{
-\item{hs_taxa_match}{Data frame. Output from match_hs_to_taxa().}
+\item{hs_taxa_match}{Data frame.}
 
-\item{hs_version}{Character. HS version (e.g., "HS17").}
+\item{hs_version}{Character.}
 
-\item{prod_taxa_classification}{Data frame. Taxa classification table.}
+\item{prod_taxa_classification}{Data frame.}
 
-\item{threshold}{Numeric. Minimum proportion of shared taxa required for a
-valid conversion (default 0.0).}
+\item{threshold}{Numeric.}
 }
 \value{
 Data frame of all allowable Code_pre to Code_post conversions with

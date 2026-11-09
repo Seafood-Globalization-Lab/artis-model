@@ -7,9 +7,9 @@
 make_v1(hs_taxa_CF_match, coproduct_codes)
 }
 \arguments{
-\item{hs_taxa_CF_match}{Data frame. HS code-to-taxa conversion factor matches.}
+\item{hs_taxa_CF_match}{Data frame.}
 
-\item{coproduct_codes}{Character vector. HS codes to exclude as co-products.}
+\item{coproduct_codes}{Character vector.}
 }
 \value{
 A list of three elements: (1) V1 numeric matrix (products x species)

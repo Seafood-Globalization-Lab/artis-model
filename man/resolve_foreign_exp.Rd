@@ -14,19 +14,17 @@ resolve_foreign_exp(
 )
 }
 \arguments{
-\item{foreign_exports_in}{Data frame. Foreign export flows to be resolved.}
+\item{foreign_exports_in}{Data frame.}
 
-\item{reweight_W_long}{Data frame. Output from create_reweight_W_long().}
+\item{reweight_W_long}{Data frame.}
 
-\item{import_props}{Data frame. Import proportions by source type.}
+\item{import_props}{Data frame.}
 
-\item{hs_clade_match}{Data frame. Output from match_hs_to_clade().}
+\item{hs_clade_match}{Data frame.}
 
-\item{resolve_threshold}{Numeric. Minimum product_weight_t for a flow to be
-further resolved rather than assigned to error (default 1 tonne).}
+\item{resolve_threshold}{Numeric.}
 
-\item{zero_threshold}{Numeric. Flows below this weight are dropped
-(default 1e-3 tonnes).}
+\item{zero_threshold}{Numeric.}
 }
 \value{
 A list of four data frames: (1) resolved domestic exports,

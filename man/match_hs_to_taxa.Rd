@@ -12,13 +12,13 @@ match_hs_to_taxa(
 )
 }
 \arguments{
-\item{hs_data_clean}{Data frame. Output from clean_hs().}
+\item{hs_data_clean}{Data frame.}
 
-\item{prod_taxa_classification}{Data frame. Taxa classification table.}
+\item{prod_taxa_classification}{Data frame.}
 
-\item{fmfo_species_list}{Data frame. FMFO species list from get_fmfo_species().}
+\item{fmfo_species_list}{Data frame.}
 
-\item{hs_version}{Character. HS version (e.g., "HS17").}
+\item{hs_version}{Character.}
 }
 \value{
 Data frame with columns Code, SciName, Match_category, HS_version,

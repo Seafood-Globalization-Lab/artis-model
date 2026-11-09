@@ -14,17 +14,17 @@ compile_cf(
 )
 }
 \arguments{
-\item{conversion_factors}{Data frame. Species-level conversion factor data.}
+\item{conversion_factors}{Data frame.}
 
-\item{eumofa_data}{Data frame. EUMOFA 8-digit conversion factor data.}
+\item{eumofa_data}{Data frame.}
 
-\item{hs_hs_match}{Data frame. Output from match_hs_to_hs().}
+\item{hs_hs_match}{Data frame.}
 
-\item{hs_version}{Character. HS version (e.g., "HS17").}
+\item{hs_version}{Character.}
 
-\item{match_criteria}{Character. One of "EUMOFA", "strict", "loose", or "fillet".}
+\item{match_criteria}{Character.}
 
-\item{fb_slb_dir}{Character. Path to FishBase/SeaLifeBase data directory.}
+\item{fb_slb_dir}{Character.}
 }
 \value{
 Data frame with columns Code, Taxa, CF_calc, CF_live_to_commod, and

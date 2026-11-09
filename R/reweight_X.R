@@ -1,9 +1,9 @@
 #' Reweight X matrix by species production volumes for a single country
 #'
-#' @param country_est Named list. Per-country optimization results.
-#' @param country_j Character. ISO3c code of the country to process.
-#' @param V1 Matrix. Live-weight-to-product conversion factors (products x species).
-#' @param V2 Matrix. Product-to-product conversion factors (products x products).
+#' @param country_est Named list.
+#' @param country_j Character.
+#' @param V1 Matrix.
+#' @param V2 Matrix.
 #' @return Data frame with columns iso3c, hs6, SciName, and reweighted_X
 #'   (proportion of each HS6 product attributable to each species).
 #' @importFrom tibble rownames_to_column

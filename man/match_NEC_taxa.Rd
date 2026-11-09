@@ -15,19 +15,19 @@ match_NEC_taxa(
 )
 }
 \arguments{
-\item{hs_codes_row}{Data table row. The NEC HS code being matched.}
+\item{hs_codes_row}{Data table row.}
 
-\item{possible_hs_codes}{Data frame. All HS codes in the current parent group.}
+\item{possible_hs_codes}{Data frame.}
 
-\item{parent_output_list}{List. Previously matched outputs for the parent group.}
+\item{parent_output_list}{List.}
 
-\item{possible_prod_taxa}{Data frame. Production taxa eligible for matching.}
+\item{possible_prod_taxa}{Data frame.}
 
-\item{match_code_output}{Data table. Accumulated matches for the current code.}
+\item{match_code_output}{Data table.}
 
-\item{match_type}{Character. Match category label to assign.}
+\item{match_type}{Character.}
 
-\item{hs_version}{Character. HS version string.}
+\item{hs_version}{Character.}
 }
 \value{
 A data.table of HS code-to-taxa matches including NEC assignments.

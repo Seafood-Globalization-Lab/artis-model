@@ -16,21 +16,21 @@ initial_variable_setup(
 )
 }
 \arguments{
-\item{datadir}{Character. Path to model input data directory.}
+\item{datadir}{Character.}
 
-\item{outdir}{Character. Path to output directory.}
+\item{outdir}{Character.}
 
-\item{hs_version}{Character. HS version to run (e.g., "17").}
+\item{hs_version}{Character.}
 
-\item{test_years}{Numeric vector. Subset of years to run; empty runs all years.}
+\item{test_years}{Numeric vector.}
 
-\item{prod_type}{Character. "FAO" or "SAU".}
+\item{prod_type}{Character.}
 
-\item{run_env}{Character. "aws" or local.}
+\item{run_env}{Character.}
 
-\item{s3_bucket_name}{Character. S3 bucket name (used when run_env == "aws").}
+\item{s3_bucket_name}{Character.}
 
-\item{s3_region}{Character. AWS region (used when run_env == "aws").}
+\item{s3_region}{Character.}
 }
 \value{
 A list of 24 elements including production data, taxa classification,

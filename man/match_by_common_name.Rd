@@ -14,18 +14,17 @@ match_by_common_name(
 )
 }
 \arguments{
-\item{hs_codes_row}{Data table row. The HS code being matched.}
+\item{hs_codes_row}{Data table row.}
 
-\item{possible_prod_taxa}{Data frame. Production taxa eligible for matching.}
+\item{possible_prod_taxa}{Data frame.}
 
-\item{match_code_output}{Data table. Accumulated matches for the current code.}
+\item{match_code_output}{Data table.}
 
-\item{remove_after_match}{Logical. If TRUE, matched taxa are removed from
-possible_prod_taxa.}
+\item{remove_after_match}{Logical.}
 
-\item{match_type}{Character. Match category label to assign.}
+\item{match_type}{Character.}
 
-\item{hs_version}{Character. HS version string.}
+\item{hs_version}{Character.}
 }
 \value{
 A list of two elements: (1) updated match_code_output data.table,

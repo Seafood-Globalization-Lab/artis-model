@@ -1,9 +1,8 @@
 #' Match each HS code to its most specific shared taxonomic clade
 #'
-#' @param hs_taxa_match Data frame. Output from match_hs_to_taxa().
-#' @param prod_taxa_classification Data frame. Taxa classification table.
-#' @param match_to_prod Logical. If TRUE (default), only clades present in
-#'   production data are considered valid matches.
+#' @param hs_taxa_match Data frame.
+#' @param prod_taxa_classification Data frame.
+#' @param match_to_prod Logical.
 #' @return Data frame with columns Code, hs_clade, and classification_level
 #'   (e.g., "Species", "Genus", "Family", etc.).
 #' @import dplyr

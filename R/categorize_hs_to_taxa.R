@@ -1,7 +1,7 @@
 #' Build HS-to-taxa match strength matrix (Xq)
 #'
-#' @param hs_taxa_match Data frame. Output from match_hs_to_taxa().
-#' @param coproduct_codes Character vector. HS codes to exclude as co-products.
+#' @param hs_taxa_match Data frame.
+#' @param coproduct_codes Character vector.
 #' @return Numeric matrix (products x species) with match strength factors:
 #'   1 = explicit/aquarium match, 2 = NEC match, 3 = broad match. Co-product
 #'   codes are excluded; non-matching cells are 0.
