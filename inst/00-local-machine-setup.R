@@ -18,7 +18,6 @@ artis_version <- "3.0"
 prod_data_type <- "FAO" # FIXIT change/combine fully with "running_sau"?
 baci_version <- "202601"
 fao_prod_version <- "2026.1.0"
-fao_pop_version <- "2026_03_09" # last update date from website
 # change this when ingesting new data with new years represented 
 max_year <- 2024
 #local_data_path <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data"
@@ -58,7 +57,7 @@ path_artis_dev <- file.path(path_env, "artis-development", glue::glue("ARTIS_{ar
 path_baci_raw <- file.path(path_data_storage, "cepii-baci", glue::glue("baci_{baci_version}"))
 path_fao_prod_raw <- file.path(path_data_storage, "fao-global-production")
 path_sau_prod_raw <- file.path(path_data_storage, "sau-production")
-path_fao_pop_raw <- file.path(path_data_storage, "fao-annual-population", glue::glue("Population_E_All_Data_{fao_pop_version}"))
+path_fao_pop_raw <- file.path(path_data_storage, "fao-annual-population")
 path_fb_slb_raw <- file.path(path_data_storage, "fishbase-sealifebase")
 
 path_hs_codes_raw <- file.path(path_data_storage, "all-hs-codes")

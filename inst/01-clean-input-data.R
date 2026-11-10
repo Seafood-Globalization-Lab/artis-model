@@ -25,11 +25,6 @@ library(tidyr)
 
 # FishBase & SeaLifeBase Data ------------------------------------------------------
 
-# Collect new fishbase and sealifebase data files with rfishbase package via artis::collect_fb_slb_data 
-if(need_new_fb_slb) {
-  current_fb_slb_dir <- artis::collect_fb_slb_data(parent_outdir = path_fb_slb_raw)
-} 
-
 # clean raw data
 # FIXIT: AM 2026-07-15 move data structure checks within clean_fb_slb_data() to the raw data assessment script. 
 # Messages are too detailed and not necessarily relevant to the clean-input-data script as many of the violations 
