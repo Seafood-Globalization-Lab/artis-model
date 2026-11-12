@@ -20,7 +20,10 @@ baci_version <- "202601"
 fao_prod_version <- "2026.1.0"
 # change this when ingesting new data with new years represented 
 max_year <- 2024
-#local_data_path <- "/Users/theamarks/Documents/UW-SAFS/ARTIS/data"
+hs_editions <- c("1996", "2002", "2007", "2012", "2017", "2022")
+
+# Regex to filter to ARTIS-relevant HS codes (chapter 03, 05/0511, 16/1604/1605, 23/2301)
+artis_hs_regex <- "^03$|^03[0-9]{2}$|^16$|^160[45]$|^23$|^03[0-9]{4}$|^160[45][0-9]{2}$|^2301$|^230120$|^051191$|^05$|^0511$"
 
 # 01-clean-model-inputs parameters --------------------------------
 # Model Mode for 01-clean-model-inputs - TRUE for SAU; FALSE for FAO
@@ -30,6 +33,7 @@ need_new_fb_slb <- FALSE
 # AM - I think this is leftover code - can set HS year and year for running tests
 test <- FALSE
 test_year <- c()
+
 # 02-artis-pipeline parameters ------------------------------------
 # set years to run - empty if all years [c()], [c(2017)] or [c(2017,2020)] for subset of years
 test_years <- c() 
@@ -63,6 +67,7 @@ path_fb_slb_raw <- file.path(path_data_storage, "fishbase-sealifebase")
 path_hs_codes_raw <- file.path(path_data_storage, "all-hs-codes")
 path_EUMOFA <- file.path(path_data_storage, "EUMOFA")
 path_cnv_fct <- file.path(path_data_storage, "seafood-conversion-factors")
+path_wco_hs <- file.path(path_data_storage, "wco-hs-nomenclature")
 
 # Main data directory paths --------------------------------------------------
 #local_data_path <- glue::glue("/Users/theamarks/Documents/UW-SAFS/ARTIS/data")

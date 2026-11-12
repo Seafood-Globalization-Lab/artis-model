@@ -185,3 +185,122 @@ artis::collect_fb_slb_data(parent_outdir = path_fb_slb_raw)
 
 # Collect WCO HS Nomenclature --------------------------------------------
 
+## WCO HS Nomenclature instrument and tools page:
+##   https://www.wcoomd.org/en/topics/nomenclature/instrument-and-tools.aspx
+## HS 2022 (current) edition page:
+##   https://www.wcoomd.org/en/topics/nomenclature/instrument-and-tools/hs-nomenclature-2022-edition/hs-nomenclature-2022-edition.aspx
+## HS 2022 chapter 3 PDF:
+##   https://www.wcoomd.org/-/media/wco/public/global/pdf/topics/nomenclature/instruments-and-tools/hs-nomenclature-2022/2022/0103_2022e.pdf?la=en
+## Previous editions page:
+##   https://www.wcoomd.org/en/topics/nomenclature/instrument-and-tools/hs_nomenclature_previous_editions.aspx
+## HS 2017 edition page:
+##   https://www.wcoomd.org/en/topics/nomenclature/instrument-and-tools/hs_nomenclature_previous_editions/hs-nomenclature-2017-edition/hs-nomenclature-2017-edition.aspx
+## HS 2017 chapter 3 PDF:
+##   https://www.wcoomd.org/-/media/wco/public/global/pdf/topics/nomenclature/instruments-and-tools/hs-nomenclature-2017/2017/0103_2017e.pdf?la=en
+## HS 2012 chapter 3 PDF:
+##   https://www.wcoomd.org/-/media/wco/public/global/pdf/topics/nomenclature/instruments-and-tools/hs-nomenclature-2012/hs-2012/0103_2012e.pdf?la=en
+## HS 2007 chapter 3 PDF:
+##   https://www.wcoomd.org/-/media/wco/public/global/pdf/topics/nomenclature/instruments-and-tools/hs-nomenclature-older-edition/2007/hs-2007/0103_2007e.pdf?la=en
+## HS 2002 chapter 3 PDF:
+##   https://www.wcoomd.org/-/media/wco/public/global/pdf/topics/nomenclature/instruments-and-tools/hs-nomenclature-older-edition/2002/hs-2002/0103e.pdf?la=en
+## NOTE: HS 1996 edition is not available on the WCO website.
+
+## hs_editions  # editions to collect — 1996 will be skipped (not available)
+## path_wco_hs  # data dir for downloaded PDFs
+
+collect_wco_hs_chapter3 <- function(outdir, hs_editions, overwrite = FALSE) {
+
+  # Hardcoded chapter 3 PDF URLs per edition --------------------------------
+  # URLs are not uniform across editions, so they are hardcoded rather than
+  # constructed programmatically.
+
+  wco_base_url <- "https://www.wcoomd.org/-/media/wco/public/global/pdf/topics/nomenclature/instruments-and-tools"
+
+  chapter3_urls <- list(
+    "2022" = glue::glue("{wco_base_url}/hs-nomenclature-2022/2022/0103_2022e.pdf?la=en"),
+    "2017" = glue::glue("{wco_base_url}/hs-nomenclature-2017/2017/0103_2017e.pdf?la=en"),
+    "2012" = glue::glue("{wco_base_url}/hs-nomenclature-2012/hs-2012/0103_2012e.pdf?la=en"),
+    "2007" = glue::glue("{wco_base_url}/hs-nomenclature-older-edition/2007/hs-2007/0103_2007e.pdf?la=en"),
+    "2002" = glue::glue("{wco_base_url}/hs-nomenclature-older-edition/2002/hs-2002/0103e.pdf?la=en")
+  )
+
+  # Guard: outdir must exist ------------------------------------------------
+
+  if (!dir.exists(outdir)) {
+    cli::cli_abort(
+      "Output directory does not exist: {.file {outdir}}. Create it before calling {.fn collect_wco_hs_chapter3}."
+    )
+  }
+
+  # Loop over requested editions --------------------------------------------
+
+  downloaded <- character(0)
+
+  for (edition in hs_editions) {
+
+    # Skip editions not available on the WCO website
+    if (!edition %in% names(chapter3_urls)) {
+      cli::cli_alert_warning(
+        "HS {.val {edition}} chapter 3 PDF is not available on the WCO website — skipping."
+      )
+      next
+    }
+
+    url       <- chapter3_urls[[edition]]
+    filename  <- glue::glue("hs_chapter03_{edition}.pdf")
+    dest_file <- file.path(outdir, filename)
+
+    # Guard: skip if file already exists
+    if (file.exists(dest_file)) {
+      if (!overwrite) {
+        cli::cli_alert_info(
+          "HS {.val {edition}} chapter 3 PDF already exists — skipping download. \\
+          Set {.arg overwrite = TRUE} to re-download. {.file {dest_file}}"
+        )
+        next
+      }
+      cli::cli_alert_warning(
+        "Overwriting existing HS {.val {edition}} chapter 3 PDF: {.file {dest_file}}"
+      )
+    }
+
+    # Download
+    cli::cli_alert_info("Downloading WCO HS {.val {edition}} chapter 3 from {.url {url}}")
+
+    tryCatch(
+      utils::download.file(url, destfile = dest_file, mode = "wb", quiet = FALSE),
+      error = function(e) {
+        cli::cli_abort(
+          c(
+            "Download failed for WCO HS {.val {edition}} chapter 3.",
+            "URL: {.url {url}}",
+            "Error: {conditionMessage(e)}"
+          )
+        )
+      }
+    )
+
+    # Verify download
+    if (!file.exists(dest_file) || file.size(dest_file) == 0) {
+      cli::cli_abort(
+        "Download completed but output file is missing or empty: {.file {dest_file}}"
+      )
+    }
+
+    size_kb <- round(file.size(dest_file) / 1e3, 1)
+    cli::cli_alert_success(
+      "Downloaded WCO HS {.val {edition}} chapter 3 ({size_kb} KB) to {.file {dest_file}}"
+    )
+
+    downloaded <- c(downloaded, dest_file)
+  }
+
+  invisible(downloaded)
+}
+
+## Execute collection
+collect_wco_hs_chapter3(
+  outdir      = path_wco_hs,
+  hs_editions = hs_editions,
+  overwrite   = FALSE
+)
