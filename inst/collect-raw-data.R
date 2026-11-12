@@ -189,118 +189,148 @@ artis::collect_fb_slb_data(parent_outdir = path_fb_slb_raw)
 ##   https://www.wcoomd.org/en/topics/nomenclature/instrument-and-tools.aspx
 ## HS 2022 (current) edition page:
 ##   https://www.wcoomd.org/en/topics/nomenclature/instrument-and-tools/hs-nomenclature-2022-edition/hs-nomenclature-2022-edition.aspx
-## HS 2022 chapter 3 PDF:
-##   https://www.wcoomd.org/-/media/wco/public/global/pdf/topics/nomenclature/instruments-and-tools/hs-nomenclature-2022/2022/0103_2022e.pdf?la=en
 ## Previous editions page:
 ##   https://www.wcoomd.org/en/topics/nomenclature/instrument-and-tools/hs_nomenclature_previous_editions.aspx
-## HS 2017 edition page:
-##   https://www.wcoomd.org/en/topics/nomenclature/instrument-and-tools/hs_nomenclature_previous_editions/hs-nomenclature-2017-edition/hs-nomenclature-2017-edition.aspx
-## HS 2017 chapter 3 PDF:
-##   https://www.wcoomd.org/-/media/wco/public/global/pdf/topics/nomenclature/instruments-and-tools/hs-nomenclature-2017/2017/0103_2017e.pdf?la=en
-## HS 2012 chapter 3 PDF:
-##   https://www.wcoomd.org/-/media/wco/public/global/pdf/topics/nomenclature/instruments-and-tools/hs-nomenclature-2012/hs-2012/0103_2012e.pdf?la=en
-## HS 2007 chapter 3 PDF:
-##   https://www.wcoomd.org/-/media/wco/public/global/pdf/topics/nomenclature/instruments-and-tools/hs-nomenclature-older-edition/2007/hs-2007/0103_2007e.pdf?la=en
-## HS 2002 chapter 3 PDF:
-##   https://www.wcoomd.org/-/media/wco/public/global/pdf/topics/nomenclature/instruments-and-tools/hs-nomenclature-older-edition/2002/hs-2002/0103e.pdf?la=en
 ## NOTE: HS 1996 edition is not available on the WCO website.
+##
+## URL structure — chapter filenames encode the HS section number as a 2-digit prefix:
+##   Section I  (Ch. 1–5)  → "01"  e.g. Chapter 3  → 0103
+##   Section III (Ch. 15)  → "03"  e.g. Chapter 15 → 0315
+##   Section IV (Ch. 16–24)→ "04"  e.g. Chapter 16 → 0416, Chapter 23 → 0423
+##
+## Edition-specific URL sub-paths and filename patterns:
+##   2022: hs-nomenclature-2022/2022/{stem}_2022e.pdf
+##   2017: hs-nomenclature-2017/2017/{stem}_2017e.pdf
+##   2012: hs-nomenclature-2012/hs-2012/{stem}_2012e.pdf
+##   2007: hs-nomenclature-older-edition/2007/hs-2007/{stem}_2007e.pdf
+##   2002: hs-nomenclature-older-edition/2002/hs-2002/{stem}e.pdf  (no year suffix)
 
 ## hs_editions  # editions to collect — 1996 will be skipped (not available)
+## hs_chapters  # HS chapter numbers to collect (e.g. c(3, 15, 16, 23))
 ## path_wco_hs  # data dir for downloaded PDFs
 
-collect_wco_hs_chapter3 <- function(outdir, hs_editions, overwrite = FALSE) {
+collect_wco_hs_chapters <- function(outdir, hs_editions, hs_chapters, overwrite = FALSE) {
 
-  # Hardcoded chapter 3 PDF URLs per edition --------------------------------
-  # URLs are not uniform across editions, so they are hardcoded rather than
-  # constructed programmatically.
+  # Edition URL sub-path and filename suffix behavior -----------------------
+  # year_suffix: TRUE  → filename is "{stem}_{edition}e.pdf"
+  #              FALSE → filename is "{stem}e.pdf" (2002 drops the year)
+
+  edition_specs <- list(
+    "2022" = list(path = "hs-nomenclature-2022/2022",                  year_suffix = TRUE),
+    "2017" = list(path = "hs-nomenclature-2017/2017",                  year_suffix = TRUE),
+    "2012" = list(path = "hs-nomenclature-2012/hs-2012",               year_suffix = TRUE),
+    "2007" = list(path = "hs-nomenclature-older-edition/2007/hs-2007", year_suffix = TRUE),
+    "2002" = list(path = "hs-nomenclature-older-edition/2002/hs-2002", year_suffix = FALSE)
+  )
+
+  # HS section prefix per chapter number ------------------------------------
+  # Covers only the chapters relevant to ARTIS (03, 15, 16, 23).
+  # The prefix reflects the HS section the chapter belongs to.
+
+  chapter_prefix <- c("3" = "01", "15" = "03", "16" = "04", "23" = "04")
 
   wco_base_url <- "https://www.wcoomd.org/-/media/wco/public/global/pdf/topics/nomenclature/instruments-and-tools"
-
-  chapter3_urls <- list(
-    "2022" = glue::glue("{wco_base_url}/hs-nomenclature-2022/2022/0103_2022e.pdf?la=en"),
-    "2017" = glue::glue("{wco_base_url}/hs-nomenclature-2017/2017/0103_2017e.pdf?la=en"),
-    "2012" = glue::glue("{wco_base_url}/hs-nomenclature-2012/hs-2012/0103_2012e.pdf?la=en"),
-    "2007" = glue::glue("{wco_base_url}/hs-nomenclature-older-edition/2007/hs-2007/0103_2007e.pdf?la=en"),
-    "2002" = glue::glue("{wco_base_url}/hs-nomenclature-older-edition/2002/hs-2002/0103e.pdf?la=en")
-  )
 
   # Guard: outdir must exist ------------------------------------------------
 
   if (!dir.exists(outdir)) {
     cli::cli_abort(
-      "Output directory does not exist: {.file {outdir}}. Create it before calling {.fn collect_wco_hs_chapter3}."
+      "Output directory does not exist: {.file {outdir}}. Create it before calling {.fn collect_wco_hs_chapters}."
     )
   }
 
-  # Loop over requested editions --------------------------------------------
+  # Guard: check all requested chapters have a known prefix -----------------
+
+  unknown_chapters <- hs_chapters[!as.character(hs_chapters) %in% names(chapter_prefix)]
+  if (length(unknown_chapters) > 0) {
+    cli::cli_abort(
+      c(
+        "Unknown HS chapter{?s}: {.val {unknown_chapters}}",
+        "i" = "Supported chapters: {.val {as.integer(names(chapter_prefix))}}"
+      )
+    )
+  }
+
+  # Loop: edition (outer) → chapter (inner) ---------------------------------
 
   downloaded <- character(0)
 
   for (edition in hs_editions) {
 
     # Skip editions not available on the WCO website
-    if (!edition %in% names(chapter3_urls)) {
+    if (!edition %in% names(edition_specs)) {
       cli::cli_alert_warning(
-        "HS {.val {edition}} chapter 3 PDF is not available on the WCO website — skipping."
+        "HS {.val {edition}} is not available on the WCO website — skipping all chapters."
       )
       next
     }
 
-    url       <- chapter3_urls[[edition]]
-    filename  <- glue::glue("hs_chapter03_{edition}.pdf")
-    dest_file <- file.path(outdir, filename)
+    spec <- edition_specs[[edition]]
 
-    # Guard: skip if file already exists
-    if (file.exists(dest_file)) {
-      if (!overwrite) {
-        cli::cli_alert_info(
-          "HS {.val {edition}} chapter 3 PDF already exists — skipping download. \\
-          Set {.arg overwrite = TRUE} to re-download. {.file {dest_file}}"
-        )
-        next
-      }
-      cli::cli_alert_warning(
-        "Overwriting existing HS {.val {edition}} chapter 3 PDF: {.file {dest_file}}"
-      )
-    }
+    for (chapter in hs_chapters) {
 
-    # Download
-    cli::cli_alert_info("Downloading WCO HS {.val {edition}} chapter 3 from {.url {url}}")
+      prefix      <- chapter_prefix[[as.character(chapter)]]
+      stem        <- glue::glue("{prefix}{sprintf('%02d', chapter)}")
+      pdf_name    <- if (spec$year_suffix) glue::glue("{stem}_{edition}e.pdf") else glue::glue("{stem}e.pdf")
+      url         <- glue::glue("{wco_base_url}/{spec$path}/{pdf_name}?la=en")
+      filename    <- glue::glue("wco_hs_{edition}_chapter_{sprintf('%02d', chapter)}.pdf")
+      dest_file   <- file.path(outdir, filename)
 
-    tryCatch(
-      utils::download.file(url, destfile = dest_file, mode = "wb", quiet = FALSE),
-      error = function(e) {
-        cli::cli_abort(
-          c(
-            "Download failed for WCO HS {.val {edition}} chapter 3.",
-            "URL: {.url {url}}",
-            "Error: {conditionMessage(e)}"
+      # Guard: skip if file already exists
+      if (file.exists(dest_file)) {
+        if (!overwrite) {
+          cli::cli_alert_info(
+            "HS {.val {edition}} chapter {.val {chapter}} PDF already exists — skipping download. \\
+            Set {.arg overwrite = TRUE} to re-download. {.file {dest_file}}"
           )
+          next
+        }
+        cli::cli_alert_warning(
+          "Overwriting existing HS {.val {edition}} chapter {.val {chapter}} PDF: {.file {dest_file}}"
         )
       }
-    )
 
-    # Verify download
-    if (!file.exists(dest_file) || file.size(dest_file) == 0) {
-      cli::cli_abort(
-        "Download completed but output file is missing or empty: {.file {dest_file}}"
+      # Download
+      cli::cli_alert_info(
+        "Downloading WCO HS {.val {edition}} chapter {.val {chapter}} from {.url {url}}"
       )
+
+      tryCatch(
+        utils::download.file(url, destfile = dest_file, mode = "wb", quiet = FALSE),
+        error = function(e) {
+          cli::cli_abort(
+            c(
+              "Download failed for WCO HS {.val {edition}} chapter {.val {chapter}}.",
+              "URL: {.url {url}}",
+              "Error: {conditionMessage(e)}"
+            )
+          )
+        }
+      )
+
+      # Verify download
+      if (!file.exists(dest_file) || file.size(dest_file) == 0) {
+        cli::cli_abort(
+          "Download completed but output file is missing or empty: {.file {dest_file}}"
+        )
+      }
+
+      size_kb <- round(file.size(dest_file) / 1e3, 1)
+      cli::cli_alert_success(
+        "Downloaded WCO HS {.val {edition}} chapter {.val {chapter}} ({size_kb} KB) to {.file {dest_file}}"
+      )
+
+      downloaded <- c(downloaded, dest_file)
     }
-
-    size_kb <- round(file.size(dest_file) / 1e3, 1)
-    cli::cli_alert_success(
-      "Downloaded WCO HS {.val {edition}} chapter 3 ({size_kb} KB) to {.file {dest_file}}"
-    )
-
-    downloaded <- c(downloaded, dest_file)
   }
 
   invisible(downloaded)
 }
 
 ## Execute collection
-collect_wco_hs_chapter3(
+collect_wco_hs_chapters(
   outdir      = path_wco_hs,
   hs_editions = hs_editions,
+  hs_chapters = hs_chapters,
   overwrite   = FALSE
 )
