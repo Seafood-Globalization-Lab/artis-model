@@ -23,6 +23,7 @@
 #'   and SeaLifeBase APIs. The SeaLifeBase common names table may require manual 
 #'   download if API access fails.
 #'
+#' @import rfishbase
 #' @export
 collect_fb_slb_data <- function(parent_outdir) {
 
