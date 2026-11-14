@@ -66,7 +66,7 @@ path_fao_pop_raw <- file.path(path_data_storage, "fao-annual-population", glue::
 path_fb_slb_raw <- file.path(path_data_storage, "fishbase-sealifebase")
 path_comtrade_raw <- file.path(path_data_storage, "un-comtrade")
 
-path_hs_codes_raw <- file.path(path_comtrade_raw, "hs-codes-descriptions")
+#path_hs_codes_raw <- file.path(path_comtrade_raw, "hs-codes-descriptions")
 path_EUMOFA <- file.path(path_data_storage, "EUMOFA")
 path_cnv_fct <- file.path(path_data_storage, "seafood-conversion-factors")
 

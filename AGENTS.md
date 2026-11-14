@@ -63,6 +63,6 @@ Available skills:
 - "sciname" is a data column throughout ARTIS that refers to scientific names at any taxonomic classification rank
 
 ## Plan Mode
-- name plan file names following this convention: `plan_<quick_description_of_work>_<yyyy_mm_dd>.md`
+- name plan file names following this convention: `plan_<yyyy_mm_dd>_<quick_description_of_work>_.md`
 - save plan file to the `.posit/assistant/plans/` directory
 - Ask user if this plan corresponds with a GitHub issue - if yes, document in the contents of the plan document. 
