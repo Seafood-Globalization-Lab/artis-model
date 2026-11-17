@@ -20,8 +20,10 @@ baci_version <- "202601"
 fao_prod_version <- "2026.1.0"
 # change this when ingesting new data with new years represented 
 max_year <- 2024
+min_year <- 1996 # not applied yet
+hs_versions <- c("96", "02", "07", "12", "17", "22")
+# maybe could assign names to hs_versions that equal the editions?
 hs_editions <- c("1996", "2002", "2007", "2012", "2017", "2022")
-hs_chapters <- c(3, 15, 16, 23)
 hs_chapters <- c(3, 15, 16, 23)
 
 # Regex to filter to ARTIS-relevant HS codes (chapter 03, 05/0511, 16/1604/1605, 23/2301)

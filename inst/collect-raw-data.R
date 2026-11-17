@@ -13,6 +13,8 @@ pak::local_install(".")
 # Run Local Machine Configuration (directory paths, parameters)
 source(system.file("00-local-machine-setup.R", package = "artis"))
 
+# define data collection functions
+source(system.file("collect_raw_data_functions.R", package = "artis"))
 
 # Collect FAO Production -------------------------------------------------
 
@@ -24,8 +26,10 @@ path_fao_prod_zip <- collect_fao_prod_data(
 
 # Collect BACI Trade -----------------------------------------------------
 
-## Webpage - https://www.cepii.fr/CEPII/en/bdd_modele/bdd_modele_item.asp?id=37
-
+collect_baci_data(
+  outdir = path_baci_raw,
+  hs_versions = hs_versions
+)
 
 # Collect FAO Population -------------------------------------------------
 

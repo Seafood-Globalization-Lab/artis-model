@@ -73,7 +73,135 @@ collect_fao_prod_data <- function(outdir, version, overwrite = FALSE) {
 # Collect BACI Trade -----------------------------------------------------
 
 ## Webpage - https://www.cepii.fr/CEPII/en/bdd_modele/bdd_modele_item.asp?id=37
+## Download link structure - https://www.cepii.fr/DATA_DOWNLOAD/baci/data/BACI_HS{hs_ver}_V{version}.zip
+## Version is auto-detected by scraping the webpage (e.g. "202601")
+## hs_versions: one or more of "92", "96", "02", "07", "12", "17", "22"
 
+collect_baci_data <- function(outdir,
+                              hs_versions = c("96", "02", "07", "12", "17", "22"),
+                              overwrite = FALSE) {
+
+  baci_page_url <- "https://www.cepii.fr/CEPII/en/bdd_modele/bdd_modele_item.asp?id=37"
+  baci_base_url <- "https://www.cepii.fr/DATA_DOWNLOAD/baci/data"
+  # Guard: outdir must exist ------------------------------------------------
+
+  if (!dir.exists(outdir)) {
+    cli::cli_abort(
+      "Output directory does not previously exist: {.file {outdir}}. Create it before calling {.fn collect_baci_data}."
+    )
+  }
+
+  # Detect latest version from CEPII webpage --------------------------------
+
+  cli::cli_alert_info("Fetching BACI download page to detect latest version: {.url {baci_page_url}}")
+
+  page_text <- tryCatch(
+    paste(readLines(baci_page_url, warn = FALSE), collapse = "\n"),
+    error = function(e) {
+      cli::cli_abort(
+        c(
+          "Failed to fetch BACI download page.",
+          "URL: {.url {baci_page_url}}",
+          "Error: {conditionMessage(e)}"
+        )
+      )
+    }
+  )
+
+  version_matches <- regmatches(page_text, gregexpr("BACI_HS\\d+_V(\\d+)\\.zip", page_text))[[1]]
+  if (length(version_matches) == 0) {
+    cli::cli_abort(
+      c(
+        "Could not detect BACI version from download page — the page structure may have changed.",
+        "i" = "Check manually: {.url {baci_page_url}}"
+      )
+    )
+  }
+  baci_version <- sub(".*_V(\\d+)\\.zip", "\\1", version_matches[[1]])
+
+  cli::cli_alert_info("Detected latest BACI version: {.val {baci_version}}")
+
+  # Pre-flight: report which files or unzipped folders already exist ---------
+
+  expected_zips <- file.path(outdir, glue::glue("BACI_HS{hs_versions}_V{baci_version}.zip"))
+  expected_dirs <- tools::file_path_sans_ext(expected_zips)
+  already_exists <- expected_zips[file.exists(expected_zips) | dir.exists(expected_dirs)]
+
+  if (length(already_exists) > 0) {
+    if (!overwrite) {
+      cli::cli_alert_info(
+        "{length(already_exists)} of {length(hs_versions)} BACI version{?s} already exist (as zip or unzipped folder) and will be skipped: \\
+        {.file {basename(tools::file_path_sans_ext(already_exists))}}"
+      )
+    } else {
+      cli::cli_alert_warning(
+        "{length(already_exists)} of {length(hs_versions)} existing BACI zip{?s} will be overwritten: \\
+        {.file {basename(already_exists)}}"
+      )
+    }
+  }
+
+  # Loop: hs_versions -------------------------------------------------------
+
+  downloaded <- character(0)
+
+  for (hs_ver in hs_versions) {
+
+    filename  <- glue::glue("BACI_HS{hs_ver}_V{baci_version}.zip")
+    url       <- glue::glue("{baci_base_url}/{filename}")
+    dest_file <- file.path(outdir, filename)
+
+    # Guard: skip if zip or unzipped folder already exists
+    dest_dir <- tools::file_path_sans_ext(dest_file)
+    if (file.exists(dest_file) || dir.exists(dest_dir)) {
+      if (!overwrite) {
+        existing <- if (dir.exists(dest_dir)) dest_dir else dest_file
+        cli::cli_alert_info(
+          "BACI HS{hs_ver} already exists — skipping download. \\
+          Set {.arg overwrite = TRUE} to re-download. {.file {existing}}"
+        )
+        next
+      }
+      cli::cli_alert_warning(
+        "Overwriting existing BACI HS{hs_ver} zip: {.file {dest_file}}"
+      )
+    }
+
+    # Download
+    cli::cli_alert_info(
+      "Downloading BACI HS{hs_ver} version {.val {baci_version}} from {.url {url}}"
+    )
+
+    tryCatch(
+      utils::download.file(url, destfile = dest_file, mode = "wb", quiet = FALSE),
+      error = function(e) {
+        cli::cli_abort(
+          c(
+            "Download failed for BACI HS{hs_ver} version {.val {baci_version}}.",
+            "URL: {.url {url}}",
+            "Error: {conditionMessage(e)}"
+          )
+        )
+      }
+    )
+
+    # Verify download
+    if (!file.exists(dest_file) || file.size(dest_file) == 0) {
+      cli::cli_abort(
+        "Download completed but output file is missing or empty: {.file {dest_file}}"
+      )
+    }
+
+    size_mb <- round(file.size(dest_file) / 1e6, 1)
+    cli::cli_alert_success(
+      "Downloaded BACI HS{hs_ver} version {.val {baci_version}} ({size_mb} MB) to {.file {dest_file}}"
+    )
+
+    downloaded <- c(downloaded, dest_file)
+  }
+
+  invisible(downloaded)
+}
 
 # Collect FAO Population -------------------------------------------------
 
