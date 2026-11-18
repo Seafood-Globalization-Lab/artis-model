@@ -67,26 +67,18 @@ setup_artis_dirs <- function(dirs) {
 
 # Create HS version / year assignments -----------------------------------
 
-df_years <- data.frame(
-  HS_year = ,
-  analysis_year = 
-  )
+build_df_years <- function(hs_versions, hs_editions, max_year) {
+  names(hs_versions) <- hs_editions
 
-# List of possible HS versions: HS96, HS02, HS07, HS12, HS17
-# No need to do HS92 when using BACI though as that data starts in 1996
-df_years <- data.frame(HS_year = c(rep("96", length(1996:max_year)),
-                                   rep("02", length(2002:max_year)),
-                                   rep("07", length(2007:max_year)),
-                                   rep("12", length(2012:max_year)),
-                                   rep("17", length(2017:max_year))),
-                                   # add new HS version here
-                       analysis_year = c(1996:max_year, 
-                                          2002:max_year, 
-                                          2007:max_year,
-                                          2012:max_year, 
-                                          2017:max_year
-                                          # add new HS version here
-                                        ))
-
-## NOTE: If updating df_years here - you also need to update in ./R/initial_variable_setup.R which 
-# creates and makes df_years available for running all functions in 02-artis-pipeline.R
+  # build each hs version x analysis year data frame block
+  purrr::imap(hs_versions, function(hs_version, edition_year) {
+    # HS_year column with the single hs_version by rows equal to the number of years associated
+    # analysis_year column with the vector of each associated year value
+    data.frame(
+      HS_year = rep(hs_version, length(as.numeric(edition_year):max_year)),
+      analysis_year = as.numeric(edition_year):max_year
+    )
+  }) %>%
+    # append all chunks together into single data frame
+    dplyr::bind_rows()
+}

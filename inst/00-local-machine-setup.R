@@ -1,14 +1,5 @@
 # Model configuration parameters for running ARTIS pipeline on a local machine
 
-# sourced from 01-clean-input-data.R
-
-# Load packages ------------------------------------------------------
-
-library(glue)
-library(reticulate)
-library(cli)
-
-
 # Set configuration parameters -------------------------------------------
 
 # Set up Start date for finding no solution countries
@@ -25,6 +16,8 @@ hs_versions <- c("96", "02", "07", "12", "17", "22")
 # maybe could assign names to hs_versions that equal the editions?
 hs_editions <- c("1996", "2002", "2007", "2012", "2017", "2022")
 hs_chapters <- c(3, 15, 16, 23)
+# Possible future parameter 
+lockfile_update <- FALSE
 
 # Regex to filter to ARTIS-relevant HS codes (chapter 03, 05/0511, 16/1604/1605, 23/2301)
 artis_hs_regex <- "^03$|^03[0-9]{2}$|^16$|^160[45]$|^23$|^03[0-9]{4}$|^160[45][0-9]{2}$|^2301$|^230120$|^051191$|^05$|^0511$"
@@ -52,7 +45,8 @@ devdir <- "./AM_local/dev-artis-3.0"
 # UW gephardtlab.fish server paths ---------------------------------------
 
 # Set where files are stored - local or UW NAS server
-# UW NAS server - gephardtlab.fish.washinton.edu local mapped path
+# UW NAS server - gephartlab.fish.washington.edu local mapped path
+# CLI: smbutil view //amarks1@gephartlab.fish.washington.edu
 #path_env <- file.path("/Volumes/gephartlab") 
 path_env <- file.path("~/Documents/UW-SAFS/ARTIS/data/ARTIS_local_development")
 
