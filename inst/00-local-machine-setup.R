@@ -15,7 +15,7 @@ min_year <- 1996 # not applied yet
 hs_versions <- c("96", "02", "07", "12", "17", "22")
 # maybe could assign names to hs_versions that equal the editions?
 hs_editions <- c("1996", "2002", "2007", "2012", "2017", "2022")
-hs_chapters <- c(3, 15, 16, 23)
+hs_chapters <- c(3, 5, 15, 16, 23)
 # Possible future parameter 
 lockfile_update <- FALSE
 
@@ -116,8 +116,9 @@ cli::cli_li("Develop mode enabled: {.field {dev_mode}}")
 #python_path <- file.path(getwd(), "venv", "bin", "python3")
 #use_python(python_path, required = TRUE)
 
-python_path <- file.path(getwd(), "venv")
-reticulate::use_virtualenv(python_path, required = TRUE)
+# FIXIT 2026-11-18 AM ran out of room on my computer
+# python_path <- file.path(getwd(), "venv")
+# reticulate::use_virtualenv(python_path, required = TRUE)
 
 # empty AWS values --------------------------------------------------------
 # need explicit empty AWS values when running locally - do not change

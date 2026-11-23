@@ -330,7 +330,7 @@ collect_wco_hs_chapters <- function(outdir, hs_editions, hs_chapters, overwrite 
   # Covers only the chapters relevant to ARTIS (03, 15, 16, 23).
   # The prefix reflects the HS section the chapter belongs to.
 
-  chapter_prefix <- c("3" = "01", "15" = "03", "16" = "04", "23" = "04")
+  chapter_prefix <- c("3" = "01", "5" = "01", "15" = "03", "16" = "04", "23" = "04")
 
   wco_base_url <- "https://www.wcoomd.org/-/media/wco/public/global/pdf/topics/nomenclature/instruments-and-tools"
 
