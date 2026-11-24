@@ -9,16 +9,7 @@ rm(list=ls())
 # environmet model run on - ["aws"] of ["local"]
 run_env <- "local"
 
-# install packages
-pak::pak(c(
-  "artis",
-  "data.table",
-  "magrittr",
-  "stringr",
-  "dplyr",
-  "tidyr"
-))
-
+# artis and all dependencies are installed by the pixi environment (pixi.toml)
 # load packages
 library(artis)
 

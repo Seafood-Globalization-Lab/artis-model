@@ -180,12 +180,15 @@ if (length(dirs_existing) > 0) {
 }
 
 # 02-artis-pipeline python environment -----------------------------------
-# Linking python environment set up during installation for use in the pipeline
-#python_path <- file.path(getwd(), "venv", "bin", "python3")
-#use_python(python_path, required = TRUE)
-
-python_path <- file.path(getwd(), "venv")
-reticulate::use_virtualenv(python_path, required = TRUE)
+# The pixi environment sets RETICULATE_PYTHON to its own Python (pixi.toml [activation.env]),
+# and reticulate uses it automatically. Stop if R was started outside pixi so reticulate
+# does not silently pick up a different Python.
+if (!nzchar(Sys.getenv("RETICULATE_PYTHON"))) {
+  cli::cli_abort(c(
+    "x" = "{.envvar RETICULATE_PYTHON} is not set, so the ARTIS Python environment is not active.",
+    "i" = "Run this script inside the pixi environment: {.code pixi run <task>}, {.code pixi shell}, or {.code pixi run rstudio}."
+  ))
+}
 
 # empty AWS values --------------------------------------------------------
 # need explicit empty AWS values when running locally - do not change

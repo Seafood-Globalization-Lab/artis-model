@@ -3,13 +3,8 @@
 
 # Setup -----------------------------------------------------------
 
-# make Posit package manager primary install repo (uses faster binaries)
-# @ snapshot date - hold all package versions to the "latest" version at this date
-# Think about updating this date, but a few months delayed from "today" to avoid release bugs
-pak::repo_add(CRAN = "PPM@2026-06-21")
-
-# install artis from the package root
-pak::local_install(".")
+# artis and all dependencies are installed by the pixi environment (pixi.toml)
+# Run with `pixi run clean-inputs`, or run `pixi run install` after editing R/ or inst/
 
 # Run Local Machine Configuration (directory paths, parameters)
 source(system.file("00-local-machine-setup.R", package = "artis"))

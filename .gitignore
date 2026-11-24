@@ -1,31 +1,34 @@
-.Rproj.user
+# R and RStudio
+.Rproj.user/
 .Rhistory
-.RData
+*.RData
 .Ruserdata
-.DS_Store
-.posit/
-*.log
-demo/outputs
-venv/
-model_inputs_raw*
-baci_raw/
-model_inputs_baci/
-model_inputs/
-outputs/
-*.zip
-model_inputs_sau/
-AM_local/
-grateful-report.html
-.env
-.env.swp
-renv/
-data/
-requirements_old_local.txt
 
-*.html
-*.pdf
-/.quarto/
-README_files/*
-*_files
+# Editors and OS
+.DS_Store
+.idea/
+.posit/
+
+# Secrets and machine-local config
+.env
 .Renviron
+
+# Environments (pixi.toml and pixi.lock are tracked)
+.pixi/
+/venv/
+
+# Package build and check outputs
+/check/
+*.Rcheck/
+artis_*.tar.gz
+grateful-*
+
+# Local data and pipeline outputs (never commit data)
+/local-data/
+/model_inputs/
+/outputs/
+/AM_local/
+*.log
 *.parquet
+*.qs2
+*.zip
