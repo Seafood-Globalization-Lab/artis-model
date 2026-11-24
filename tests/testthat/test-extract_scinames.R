@@ -42,6 +42,18 @@ test_that("extracts multiple family names from raw text", {
   )
 })
 
+test_that("extracts subfamily name (-inae suffix) from raw text", {
+  df <- data.frame(desc = "Pacific salmonids (Salmoninae)", stringsAsFactors = FALSE)
+  result <- extract_scinames(df, "desc")
+  expect_true("Salmoninae" %in% result$desc_scinames[[1]])
+})
+
+test_that("extracts order-level name (-formes suffix) from raw text", {
+  df <- data.frame(desc = "Perch-like fishes (Perciformes)", stringsAsFactors = FALSE)
+  result <- extract_scinames(df, "desc")
+  expect_true("Perciformes" %in% result$desc_scinames[[1]])
+})
+
 test_that("extracts order-level name (oidea suffix) alongside binomial in paren list", {
   df <- data.frame(
     desc = "Sea cucumbers (Stichopus japonicus, Holothurioidea)",
