@@ -8,16 +8,23 @@ For developing the ARTIS model package
 - **GitHub:** https://github.com/Seafood-Globalization-Lab/artis-model
 
 ## Coding and Syntax Style
-- Tidyverse style, `%>%` pipe opperator used in the `artis` package
-- `data.table::fread()` / `fwrite()` for file I/O with the `data.table = FALSE` arguement always for fread
+- Tidyverse style, `%>%` pipe operator used in the `artis` package
+- `data.table::fread()` / `fwrite()` for file I/O with the `data.table = FALSE` argument always for `fread()`
 - `cli` package for all user-facing messages — never `message()`, `cat()`, or `print()`
 - `dplyr::join_by()` for joins, `.by` over `group_by()`, `across()` for column-wise ops
 - Roxygen2 documentation
 - Default to Tidyverse style syntax when there are multiple options to achieve the same thing. 
 - Use R script sections `# <header-title> --------------------------` and subsections 
 `## <header-title> --------------------------`to break up sections and tasks within the code or script.
-- in-line comments inserted above the relevant code and use the same indentation as the code the are referring to. 
-Do NOT insert in-line comments after (to the right) of the code itself. 
+- in-line comments inserted above the relevant code and use the same indentation as the code the are referring to. Do NOT insert in-line comments after (to the right) of the code itself. 
+
+## Function Structure and Design Patterns
+- **Single-responsibility split:** When a function operates on a column/vector of values, separate the per-element logic into a named internal helper. The main (exported) function handles input validation, iteration (`lapply`), and output shaping only.
+- **Internal helper naming:** Prefix non-exported helpers with `.` (e.g. `.extract_taxa_from_string`). This signals they are internal and suppresses export from NAMESPACE.
+- **Testability principle:** Helpers operating on a single unit of data (one string, one row) should be independently unit-testable without requiring a full data frame to be constructed.
+- **Iteration style:** Prefer `purrr::map(df[[col]], .helper_fn)` over embedding complex logic inside anonymous functions — the named helper makes the iteration readable at a glance. `lapply` is acceptable only when avoiding a purrr dependency is a priority.
+- **Abstraction levels:** Each function should operate at one level of abstraction. A data-frame-level function should not contain string-level parsing logic, and vice versa.
+- See `R/extract_scinames.R` as a reference implementation of this pattern.
 
 ## Written English Language Style
 - use American z's in words like "Standardizing" rather than "Standardising" or "visualization" vs "visualisation" 
@@ -42,8 +49,10 @@ Do NOT insert in-line comments after (to the right) of the code itself.
 ## Broader Context
 - The `artis` package is an open-science open-source piece of research software
 - Development and distribution follow the FAIR convention https://www.go-fair.org/fair-principles/
-- Design decisions are made to enhance transparencey and reproducibility of the code, assumptions, and resulting data. 
+- Design decisions are made to enhance transparency and reproducibility of the code, assumptions, and resulting data. 
 - Documentation is critical at the code and developer level all the way up to user facing documentation. 
+- End users include researchers, NGOs, AI, governments, industry, and students.
+- Generated data will be publicly archived
 
 ## Skills (lab-genAI-toolbox)
 Project skills are in `.lab-genAI-toolbox/skills/` git submodule. At the start of any relevant task,
@@ -63,6 +72,6 @@ Available skills:
 - "sciname" is a data column throughout ARTIS that refers to scientific names at any taxonomic classification rank
 
 ## Plan Mode
-- name plan file names following this convention: `plan_<quick_description_of_work>_<yyyy_mm_dd>.md`
+- name plan file names following this convention: `plan_<yyyy_mm_dd>_<quick_description_of_work>_.md`
 - save plan file to the `.posit/assistant/plans/` directory
 - Ask user if this plan corresponds with a GitHub issue - if yes, document in the contents of the plan document. 
