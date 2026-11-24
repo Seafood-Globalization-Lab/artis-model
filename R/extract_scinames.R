@@ -47,23 +47,22 @@ PATTERN_BINOMIAL <- stringr::regex("[A-Z][a-z]+\\s+(?:spp\\.|[a-z]+(?:-[a-z]+)?)
   }
 
   ## Apply binomial regex to each paren chunk and flatten results
-  track2_binomials <- unlist(
-    lapply(paren_chunks, function(chunk) {
-      stringr::str_extract_all(chunk, PATTERN_BINOMIAL)[[1]]
-    })
-  )
+  track2_binomials <- purrr::map(paren_chunks, \(chunk) {
+    stringr::str_extract_all(chunk, PATTERN_BINOMIAL)[[1]]
+  }) |> unlist()
 
   ## Post-process: "of the genus X" → "X spp."
   ## Handles entries like "(of the genus Thunnus)" where no binomial is present
-  genus_matches <- unlist(
-    lapply(paren_chunks, function(chunk) {
-      m <- stringr::str_match_all(chunk, "of the genus ([A-Z][a-z]+)")[[1]]
-      if (nrow(m) == 0L) return(character(0))
-      paste0(m[, 2], " spp.")
-    })
-  )
+  genus_matches <- purrr::map(paren_chunks, \(chunk) {
+    m <- stringr::str_match_all(chunk, "of the genus ([A-Z][a-z]+)")[[1]]
+    if (nrow(m) == 0L) return(character(0))
+    paste0(m[, 2], " spp.")
+  }) |> unlist()
 
   track2 <- c(track2_binomials, genus_matches)
+
+  # Remove Track 2 results where the "genus" token is actually a family/order name
+  track2 <- track2[!stringr::str_detect(track2, "^[A-Z][a-z]+(?:idae|inae|oidea|formes)\\b")]
 
   # Combine both tracks and deduplicate --------------------------
   unique(c(track1, track2))
@@ -124,6 +123,7 @@ PATTERN_BINOMIAL <- stringr::regex("[A-Z][a-z]+\\s+(?:spp\\.|[a-z]+(?:-[a-z]+)?)
 #'
 #'
 #' @importFrom stringr str_extract_all str_replace_all str_match_all
+#' @importFrom purrr map
 #' @importFrom cli cli_abort
 #' @export
 extract_scinames <- function(df, col) {
@@ -143,7 +143,7 @@ extract_scinames <- function(df, col) {
   }
 
   # Extract scinames for each row --------------------------
-  df[[paste0(col, "_scinames")]] <- lapply(df[[col]], .extract_taxa_from_string)
+  df[[paste0(col, "_scinames")]] <- purrr::map(df[[col]], .extract_taxa_from_string)
 
   invisible(df)
 }

@@ -58,8 +58,4 @@ Genus-level names with trailing \code{spp.} are retained as-is (e.g.
 return \code{character(0)} silently — no warning is emitted. The typo
 \code{Huchohucho} (should be \verb{Hucho hucho}) will not match the binomial regex and
 is silently skipped; typo correction is an upstream concern.
-
-\emph{Documentation generated with \code{claude-sonnet-4-5} using the
-\href{https://github.com/Seafood-Globalization-Lab/lab-genAI-toolbox/commit/40860d41b1ae5f18742dd264855c20b2e2bbb10d}{\verb{roxygen2-function-documentation}}
-skill (commit \verb{40860d4}).}
 }

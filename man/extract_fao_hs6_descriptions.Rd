@@ -81,8 +81,6 @@ of its standardization step.
 }
 \seealso{
 \itemize{
-\item \code{\link[=clean_hs]{clean_hs()}} — receives the output of this function for standardization
-and taxa classification annotation
 \item FAO & WCO HS Codes handbook (HS2022):
 \url{https://doi.org/10.4060/cc6347en}
 \item FAO & WCO HS Codes handbook (HS2017):

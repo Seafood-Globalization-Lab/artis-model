@@ -213,15 +213,11 @@
 #'   of its standardization step.
 #'
 #' @seealso
-#' * [clean_hs()] — receives the output of this function for standardization
-#'   and taxa classification annotation
 #' * FAO & WCO HS Codes handbook (HS2022):
 #'   <https://doi.org/10.4060/cc6347en>
 #' * FAO & WCO HS Codes handbook (HS2017):
 #'   <https://doi.org/10.4060/cb3813en>
 #'
-#'
-#' ---
 #'
 #' *Documentation generated with `claude-sonnet-4-5` using the
 #' [`extract-fao-hs6-descriptions`](https://github.com/Seafood-Globalization-Lab/lab-genAI-toolbox/commit/3df26c93f2bade5a6440f57b2faf02d34b7e0990)

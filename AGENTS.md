@@ -16,8 +16,15 @@ For developing the ARTIS model package
 - Default to Tidyverse style syntax when there are multiple options to achieve the same thing. 
 - Use R script sections `# <header-title> --------------------------` and subsections 
 `## <header-title> --------------------------`to break up sections and tasks within the code or script.
-- in-line comments inserted above the relevant code and use the same indentation as the code the are referring to. 
-Do NOT insert in-line comments after (to the right) of the code itself. 
+- in-line comments inserted above the relevant code and use the same indentation as the code the are referring to. Do NOT insert in-line comments after (to the right) of the code itself. 
+
+## Function Structure and Design Patterns
+- **Single-responsibility split:** When a function operates on a column/vector of values, separate the per-element logic into a named internal helper. The main (exported) function handles input validation, iteration (`lapply`), and output shaping only.
+- **Internal helper naming:** Prefix non-exported helpers with `.` (e.g. `.extract_taxa_from_string`). This signals they are internal and suppresses export from NAMESPACE.
+- **Testability principle:** Helpers operating on a single unit of data (one string, one row) should be independently unit-testable without requiring a full data frame to be constructed.
+- **Iteration style:** Prefer `purrr::map(df[[col]], .helper_fn)` over embedding complex logic inside anonymous functions — the named helper makes the iteration readable at a glance. `lapply` is acceptable only when avoiding a purrr dependency is a priority.
+- **Abstraction levels:** Each function should operate at one level of abstraction. A data-frame-level function should not contain string-level parsing logic, and vice versa.
+- See `R/extract_scinames.R` as a reference implementation of this pattern.
 
 ## Written English Language Style
 - use American z's in words like "Standardizing" rather than "Standardising" or "visualization" vs "visualisation" 
@@ -44,6 +51,8 @@ Do NOT insert in-line comments after (to the right) of the code itself.
 - Development and distribution follow the FAIR convention https://www.go-fair.org/fair-principles/
 - Design decisions are made to enhance transparency and reproducibility of the code, assumptions, and resulting data. 
 - Documentation is critical at the code and developer level all the way up to user facing documentation. 
+- End users include researchers, NGOs, AI, governments, industry, and students.
+- Generated data will be publicly archived
 
 ## Skills (lab-genAI-toolbox)
 Project skills are in `.lab-genAI-toolbox/skills/` git submodule. At the start of any relevant task,
