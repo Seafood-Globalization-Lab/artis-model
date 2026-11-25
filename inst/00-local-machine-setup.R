@@ -1,14 +1,5 @@
 # Model configuration parameters for running ARTIS pipeline on a local machine
 
-# sourced from 01-clean-input-data.R
-
-# Load packages ------------------------------------------------------
-
-library(glue)
-library(reticulate)
-library(cli)
-
-
 # Set configuration parameters -------------------------------------------
 
 # Set up Start date for finding no solution countries
@@ -20,9 +11,13 @@ baci_version <- "202601"
 fao_prod_version <- "2026.1.0"
 # change this when ingesting new data with new years represented 
 max_year <- 2024
+min_year <- 1996 # not applied yet
+hs_versions <- c("96", "02", "07", "12", "17", "22")
+# maybe could assign names to hs_versions that equal the editions?
 hs_editions <- c("1996", "2002", "2007", "2012", "2017", "2022")
-hs_chapters <- c(3, 15, 16, 23)
-hs_chapters <- c(3, 15, 16, 23)
+hs_chapters <- c(3, 5, 15, 16, 23)
+# Possible future parameter 
+lockfile_update <- FALSE
 
 # Regex to filter to ARTIS-relevant HS codes (chapter 03, 05/0511, 16/1604/1605, 23/2301)
 artis_hs_regex <- "^03$|^03[0-9]{2}$|^16$|^160[45]$|^23$|^03[0-9]{4}$|^160[45][0-9]{2}$|^2301$|^230120$|^051191$|^05$|^0511$"
@@ -49,14 +44,14 @@ devdir <- "./AM_local/dev-artis-3.0"
 
 # UW gephardtlab.fish server paths ---------------------------------------
 
-# FIXIT: Time to switch this over to a config.yml file to hold the config combos -
-# Like local vs remote server files and run local vs AWS. 
-
 # Set where files are stored - local or UW NAS server
-# UW NAS server - gephardtlab.fish.washinton.edu local mapped path
+# UW NAS server - gephartlab.fish.washington.edu local mapped path
+# CLI: smbutil view //amarks1@gephartlab.fish.washington.edu
 #path_env <- file.path("/Volumes/gephartlab") 
 path_env <- file.path("~/Documents/UW-SAFS/ARTIS/data/ARTIS_local_development")
 
+
+# Raw data paths ---------------------------------------------------------
 path_data_storage <- file.path(path_env, "data-storage")
 path_artis_dev <- file.path(path_env, "artis-development", glue::glue("ARTIS_{artis_version}_{prod_data_type}"))
 # Raw data paths
@@ -72,20 +67,13 @@ path_cnv_fct <- file.path(path_data_storage, "seafood-conversion-factors")
 path_wco_hs <- file.path(path_data_storage, "wco-hs-nomenclature")
 
 # Main data directory paths --------------------------------------------------
-#local_data_path <- glue::glue("/Users/theamarks/Documents/UW-SAFS/ARTIS/data")
-#datadir_raw <- file.path(local_data_path, glue::glue("model_inputs_raw_{artis_version}"))
-# Directory for inputs to create the ARTIS database
-datadir <- file.path(path_artis_dev, glue::glue("model_inputs_{artis_version}_{prod_data_type}")) # FIXIT - Change to dir_inputs (lots of downstream changes)
-outdir <- file.path(path_artis_dev, glue::glue("outputs_{artis_version}_{prod_data_type}")) # FIXIT - Change to dir_output (lots of downstream changes)
+# Directories for data inputs and outputs
+# FIXIT - Change to dir_inputs (lots of downstream changes)
+datadir <- file.path(path_artis_dev, glue::glue("model_inputs_{artis_version}_{prod_data_type}")) 
+# FIXIT - Change to dir_output (lots of downstream changes)
+outdir <- file.path(path_artis_dev, glue::glue("outputs_{artis_version}_{prod_data_type}")) 
 
-# FIXIT - declare raw FAO prod file name here instead of in 01-clean-model-inputs.R? Would this work if swithc
-# to YAML config?
-
-## Raw BACI ---------------------------------------------------------------
-
-#tradedatadir <- file.path(datadir_raw, "baci_raw") 
-
-# Output Directories -----------------------------------------------------
+# Output subdirectories -----------------------------------------------------
 
 # Don't change this bit #############
 # Path for sub folder within outputs that will contain all country-level solutions
@@ -102,29 +90,7 @@ outdir_snet <- file.path(outdir, "snet")
 outdir_attribute <- file.path(outdir, "attribute_tables")
 outdir_sql <- file.path(outdir, "sql_database")
 
-# Create HS version / year assignments -----------------------------------
 
-# Only change df_years when incorporating new HS version
-# List of possible HS versions: HS96, HS02, HS07, HS12, HS17
-
-# List of possible HS versions: HS96, HS02, HS07, HS12, HS17
-# No need to do HS92 when using BACI though as that data starts in 1996
-df_years <- data.frame(HS_year = c(rep("96", length(1996:max_year)),
-                                   rep("02", length(2002:max_year)),
-                                   rep("07", length(2007:max_year)),
-                                   rep("12", length(2012:max_year)),
-                                   rep("17", length(2017:max_year))),
-                                   # add new HS version here
-                       analysis_year = c(1996:max_year, 
-                                          2002:max_year, 
-                                          2007:max_year,
-                                          2012:max_year, 
-                                          2017:max_year
-                                          # add new HS version here
-                                        ))
-
-## NOTE: If updating df_years here - you also need to update in ./R/initial_variable_setup.R which 
-# creates and makes df_years available for running all functions in 02-artis-pipeline.R
 
 # CLI message to declare main model parameters -----------------------------
 cli::cli_verbatim("
@@ -145,47 +111,14 @@ cli::cli_li("Estimate type: {.field {estimate_data_type}}")
 cli::cli_li("Develop mode enabled: {.field {dev_mode}}")
 #cli:: cli_li("Local data path: {.file {local_data_path}}")
 
-
-# Create & check ARTIS directory architecture ------------------------------------
-
-# UW remote server connection
-if(!dir.exists(path_env)) {
-  cli::cli_abort("Not connected to UW server {.file {path_env}}. Map server to local machine before proceeding - following these instructions {.url https://uwconnect.uw.edu/it?id=kb_article_view&sysparm_article=KB0034311}")
-}
-
-dirs_to_create <- c(
-  datadir,
-  outdir,
-  outdir_quadprog,
-  outdir_cvxopt,
-  outdir_snet,
-  outdir_attribute,
-  outdir_sql
-)
-
-dirs_existing <- c()
-
-for (d in dirs_to_create) {
-  if (!dir.exists(d)) {
-    dir.create(d)
-  } else {
-    dirs_existing <- c(dirs_existing, d)
-  }
-}
-
-if (length(dirs_existing) > 0) {
-  cli::cli_alert_info(
-    "Directories already exist - Contents may be overwritten in {.file {path_artis_dev}}: \n{.file {basename(dirs_existing)}}"
-  )
-}
-
 # 02-artis-pipeline python environment -----------------------------------
 # Linking python environment set up during installation for use in the pipeline
 #python_path <- file.path(getwd(), "venv", "bin", "python3")
 #use_python(python_path, required = TRUE)
 
-python_path <- file.path(getwd(), "venv")
-reticulate::use_virtualenv(python_path, required = TRUE)
+# FIXIT 2026-11-18 AM ran out of room on my computer
+# python_path <- file.path(getwd(), "venv")
+# reticulate::use_virtualenv(python_path, required = TRUE)
 
 # empty AWS values --------------------------------------------------------
 # need explicit empty AWS values when running locally - do not change
